@@ -9,9 +9,14 @@ Ghi chú đọc bài: `docs/paper_notes.md` · Định nghĩa phép đo: `docs/d
 
 ## 0. Câu chốt (dùng nguyên văn trong báo cáo)
 
-> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, thời gian đo riêng phần `retarget()`, **không** bật `--rate_limit`; tuyên bố được coi là **tái lập được** nếu trung bình 3 lần chạy (sau 1 lần warm-up bị loại) có `ms_per_frame` trung vị ≤ **33,3 ms**, tức `fps_out` ≥ **30** và `realtime_factor` ≥ **1,00**.**
+> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame (`ms_per_frame_retarget`) khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, **không** bật `--rate_limit`; tuyên bố được coi là **tái lập được** nếu trung bình 3 lần chạy (sau 1 lần warm-up bị loại) có `ms_per_frame_retarget` trung vị ≤ **33,3 ms**, tức `fps_out` ≥ **30** và `realtime_factor` ≥ **1,00**.**
 
-Lưu ý bắt buộc phải ghi kèm câu trên: **bài báo arXiv:2510.02252 không nêu bất kỳ con số thời gian nào** (xem `paper_notes.md` §12). Vì vậy "giá trị gốc" của tuyên bố này là **định tính** ("real time"), và ngưỡng 33,3 ms là **ngưỡng nhóm đặt trước** suy ra từ tốc độ phát của chính dữ liệu nguồn (LAFAN1 = 30 fps), không phải số chép từ paper.
+Bốn điều bắt buộc phải ghi kèm câu trên — thiếu một điều là sai:
+
+1. **Nguồn của tuyên bố là repo, không phải bài báo.** Câu "real-time" lấy từ `README` (mục *Key features*, dòng 1) và mô tả repo GitHub (*"in real time on CPU"*).
+2. **Paper không công bố số.** arXiv:2510.02252 (9 trang) **không** có bất kỳ con số `ms/frame` hay FPS nào, cũng không nêu cấu hình CPU/GPU (đã kiểm tra toàn văn — `docs/paper_notes.md` §12). Vì vậy "giá trị gốc" của tuyên bố này là **định tính**.
+3. **Ngưỡng 33,3 ms là ngưỡng của nhóm**, không phải ngưỡng của paper: `1000/30`, suy ra từ tốc độ phát của chính dữ liệu nguồn LAFAN1 (README Ubisoft: *"496,672 motion frames at 30fps"*). Nhóm đặt trước, không đổi sau khi thấy số.
+4. **Giai đoạn 1 đo đại lượng nào:** V3 chỉ đo được `ms_per_frame_process` (cả tiến trình). Ngưỡng 33,3 ms áp cho `ms_per_frame_retarget` (vòng lặp retarget); cách bắc cầu giữa hai đại lượng nằm ở `docs/dinh_nghia_phep_do.md` §6.1 — **không** được quy đổi bằng hệ số 0,92.
 
 ---
 
@@ -69,7 +74,7 @@ Bốn tuyên bố còn lại đều là **kết quả của policy đã train** 
 
 | Trường | Nội dung |
 |---|---|
-| Đại lượng | `ms_per_frame` (**ms/frame**), `fps_out` (**frame/s**), `realtime_factor` = `fps_out` / `fps_src` (**lần**) |
+| Đại lượng | `ms_per_frame_retarget` (**ms/frame**), `fps_out` (**frame/s**), `realtime_factor` = `fps_out` / `fps_src` (**lần**). Phụ: `ms_per_frame_process` (cả tiến trình) |
 | Số hiệu | **README repo, mục "Key features", dòng 1**: *"Real-time high-quality retargeting"*; **mô tả repo GitHub**: *"Retarget human motions into diverse humanoid robots **in real time on CPU**"*. **Bài báo: không có bảng/hình nào về tốc độ** (xem `paper_notes.md` §12) |
 | Giá trị gốc | **Không có số.** Paper không nêu ms/frame, không nêu FPS, không nêu cấu hình CPU. Repo cũng không nêu số. Giá trị gốc chỉ là **định tính: "real time"** |
 | Điều kiện đo | CPU (không GPU cho đường đo); robot **Unitree G1** (robot duy nhất paper dùng, trang 3); dữ liệu **LAFAN1 BVH 30 fps**; retarget tuần tự từng frame, frame trước làm initial guess (đúng như mục IV, trang 5); solver dừng ở 0,001 hoặc 10 vòng lặp; **không** bật `--rate_limit` |
@@ -86,15 +91,26 @@ Bốn tuyên bố còn lại đều là **kết quả của policy đã train** 
 | Đo được trên CPU trong 10 ngày | ✘ | ✘ | ✘ | ~ | **✔** |
 | Là trọng tâm PDF hướng dẫn (trang 2) | ✘ | ~ | ✘ | ✘ | **✔** |
 
+→ Danh sách đầy đủ **3 bảng số của paper**, giá trị gốc, và điều kiện tái lập từng bảng: **§8**. Kết luận dự kiến (tái lập một phần): **§9**.
+
 ---
 
 ## 3. Cách đo lại tuyên bố chính (C5)
 
-### 3.1 Nguyên tắc: đo `retarget()`, không đo script
+### 3.1 Nguyên tắc: hai đại lượng, tên phải đúng
 
 `scripts/bvh_to_robot.py` chạy **retarget và render trong cùng một vòng lặp**; dòng `print(f"Actual rendering FPS: …")` trong script là FPS **có render**, không phải throughput retargeting. Dùng số đó là **đo sai đối tượng** → loại.
 
-Vì vậy phép đo hợp lệ là một wrapper do tab **Code** viết (`scripts/measure_retarget_runtime.py`, ~40 dòng), dùng đúng API mà script gốc dùng:
+Vì vậy phải tách **hai** đại lượng (định nghĩa đầy đủ: `docs/dinh_nghia_phep_do.md` §1.1):
+
+| Đại lượng | Đo bằng | Gồm những gì |
+|---|---|---|
+| `ms_per_frame_retarget` | wrapper bên dưới | **chỉ** lời gọi `retarget()` từng frame |
+| `ms_per_frame_process` | bấm giờ toàn tiến trình `bvh_to_robot.py` | nạp BVH + `GMR(...)` + viewer + retarget + render + ghi pkl |
+
+**Giai đoạn 1 (V3) đo `ms_per_frame_process`** vì chạy script nguyên bản, không patch. `ms_per_frame_retarget` chỉ có khi wrapper tồn tại. Ngưỡng 33,3 ms áp cho `ms_per_frame_retarget`; cách bắc cầu khi chỉ có `_process` ở `docs/dinh_nghia_phep_do.md` §6.1 (**không** nhân hệ số 0,92).
+
+Wrapper do tab **Code** viết (`scripts/measure_retarget_runtime.py`, ~40 dòng), dùng đúng API mà script gốc dùng:
 
 ```
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
@@ -109,8 +125,8 @@ for f in frames:
 ```
 
 - Đo bằng `time.perf_counter()` (đồng hồ đơn điệu, độ phân giải cao). **Không** dùng `time.time()` như script gốc.
-- **Không** dựng `RobotMotionViewer` (cần display, và làm nhiễu phép đo).
-- Ghi riêng `t_init` = thời gian khởi tạo `GMR(...)` (load MJCF + config), **không** cộng vào `ms_per_frame`.
+- Với `ms_per_frame_retarget`: **không** dựng `RobotMotionViewer`. Với `ms_per_frame_process`: **giữ nguyên** viewer như lúc chạy thật.
+- Ghi riêng `t_init` = thời gian khởi tạo `GMR(...)` (load MJCF + config), **không** cộng vào `ms_per_frame_retarget`.
 
 ### 3.2 Lệnh chạy (tab Run thực thi)
 
@@ -118,6 +134,7 @@ Các cờ `--runs`, `--warmup_runs`, `--warmup_frames`, `--out`, `--raw_out` là
 
 ```bash
 # 1 lần warm-up (bị loại) + 3 lần đo, mỗi lần một process mới
+# wrapper ghi CẢ HAI đại lượng: _retarget (chỉ vòng lặp) và _process (cả tiến trình)
 conda run -n gmr python scripts/measure_retarget_runtime.py \
   --bvh_file <LAFAN1>/walk1_subject1.bvh \
   --robot unitree_g1 \
@@ -125,6 +142,16 @@ conda run -n gmr python scripts/measure_retarget_runtime.py \
   --out results/v3_runtime.csv \
   --raw_out results/v3_runtime_raw.csv
 ```
+
+Nếu **chưa có** wrapper (đúng tình huống V3 đã chạy), đo `ms_per_frame_process` bằng wall-clock ngoài và ghi rõ trong `cmd`:
+
+```powershell
+Measure-Command { conda run -n gmr python scripts/bvh_to_robot.py `
+  --bvh_file <LAFAN1>/walk1_subject1.bvh --robot unitree_g1 `
+  --save_path results/v3/walk1_g1.pkl }
+```
+
+Cách này **gồm cả khởi động interpreter** → là cận trên rộng hơn của `T_process`; phải ghi chú "wall-clock ngoài" vào log, và **không** được dùng để suy ra `ms_per_frame_retarget`.
 
 Lệnh tham chiếu để lấy file `.pkl` (chạy được, nhưng **không dùng để đo** vì có render):
 
@@ -134,21 +161,24 @@ conda run -n gmr python scripts/bvh_to_robot.py \
   --save_path results/v3/walk1_g1.pkl
 ```
 
-Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft — Run ghi lại **tên file thực tế** vào CSV, không dùng tên trong tài liệu này.
+> ⚠ **Cảnh báo tên clip (bắt buộc đọc).** `walk1_subject1.bvh` dài **7840 frame = 261,3 giây** ở 30 fps. **Không được gọi nó là "Walk 1" của Bảng I paper** — "Walk 1" trong Bảng I chỉ dài **33 s** (trang 6). Đây là hai clip khác nhau; gộp lại là sai số liệu. Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft — Run ghi lại **tên file thực tế + số frame** vào CSV.
 
 ### 3.3 Đầu ra bắt buộc
 
 `results/v3_runtime.csv` (1 dòng / lần chạy) với các cột ở `docs/dinh_nghia_phep_do.md` §5, tối thiểu:
-`run, robot, motion, n_frames, fps_src, ms_per_frame, ms_per_frame_mean, ms_per_frame_p95, fps_out, realtime_factor, t_init_s, cpu, os, python, git_head, cmd`.
+`run, robot, motion, n_frames, n_frames_total, fps_src, ms_per_frame_process, ms_per_frame_retarget, ms_per_frame_retarget_p95, fps_out_process, fps_out, realtime_factor_process, realtime_factor, t_init_s, cpu, os, python, git_head, cmd`.
 
-`results/v3_runtime_raw.csv` (1 dòng / frame): `run, frame, ms`.
+- `ms_per_frame_process` **bắt buộc** (giai đoạn 1 đo được).
+- `ms_per_frame_retarget` / `_retarget_p95` / `fps_out` / `realtime_factor`: **để trống** nếu không có wrapper. Không suy ra từ `_process`.
+
+`results/v3_runtime_raw.csv` (1 dòng / frame): `run, frame, included, ms`.
 
 ### 3.4 Sai số chấp nhận
 
 | Mức | Ngưỡng | Cách xử lý |
 |---|---|---|
-| Lặp lại giữa 3 lần chạy | hệ số biến thiên **CV ≤ 5 %** của `ms_per_frame` | nếu > 5 %: chạy thêm 2 lần, báo **trung vị** thay vì trung bình, và ghi rõ máy không ổn định |
-| Ngưỡng quyết định tuyên bố | `realtime_factor` ≥ **1,00** | xem §3.5 |
+| Lặp lại giữa 3 lần chạy | **CV ≤ 5 %**, tính **riêng** cho `_retarget` và `_process` | nếu > 5 %: chạy thêm 2 lần, báo **trung vị** thay vì trung bình, và ghi rõ máy không ổn định |
+| Ngưỡng quyết định tuyên bố | `realtime_factor` ≥ **1,00** — áp cho **`ms_per_frame_retarget`** | xem §3.5 và `dinh_nghia_phep_do.md` §6.1 |
 | Dung sai kỹ thuật của phép đo | ± 5 % (làm tròn 0,1 ms; 0,1 fps) | — |
 
 **Không có sai số "so với paper"** vì paper không có số. Đây là điểm yếu cố hữu của tuyên bố này và phải viết thẳng trong báo cáo.
@@ -160,6 +190,8 @@ Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft —
 | ≥ 1,00 | **Tái lập được** — GMR retarget nhanh ít nhất bằng tốc độ phát của dữ liệu nguồn trên CPU |
 | 0,80 – 0,99 | **Tái lập một phần** — gần real-time, phải nêu cấu hình CPU và đề xuất CPU mạnh hơn |
 | < 0,80 | **Không tái lập được** — phải thử thêm máy thứ hai trước khi kết luận; nếu vẫn < 0,80 thì kết luận "không tái lập trên CPU phổ thông", kèm phân tích nút thắt (2 stage IK × 10 vòng lặp) |
+
+Bảng trên dành cho `ms_per_frame_retarget`. Khi giai đoạn 1 chỉ có `ms_per_frame_process`, dùng đúng bảng bắc cầu ở `docs/dinh_nghia_phep_do.md` **§6.1** — nguyên tắc: `_process` ≤ 33,3 ms là **điều kiện đủ** để kết luận tái lập; `_process` > 33,3 ms mà `_retarget` ≤ 33,3 ms thì kết luận **tái lập một phần** (vòng lặp retarget đạt, đầu-cuối không đạt); không có `_retarget` thì **chưa kết luận được**.
 
 ---
 
@@ -177,7 +209,9 @@ Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft —
 | 8 | **OS** — README chỉ test Ubuntu 22.04/20.04; worktree này là Windows | Cài đặt có thể tắc (MuJoCo, Mink/qpsolvers) | Nếu tắc: ghi nhật ký theo AGENTS.md (tắc ở đâu, đã thử gì); dùng WSL2 và ghi rõ |
 | 9 | **Python 3.10** bắt buộc theo hướng dẫn | Lệch version → API Mink khác | Dùng đúng 3.10; lưu `requirements.txt` thực tế |
 | 10 | **Máy đo có GPU** | torch/MuJoCo có thể chọn backend khác → số không so được với "CPU" | Đặt `CUDA_VISIBLE_DEVICES=""` khi đo, ghi vào `cmd` |
-| 11 | **Clip quá ngắn** (Walk 2 = 5,5 s) | Ảnh hưởng warm-up lên trung bình | Dùng clip dài (Walk 1 = 33 s ≈ 990 frame); loại 30 frame đầu mỗi lần |
+| 11 | **Clip quá ngắn** | Ảnh hưởng warm-up lên trung bình | Dùng clip dài (`walk1_subject1.bvh`, 7840 frame / 261,3 s) và loại 30 frame đầu mỗi lần |
+| 12 | **Nhầm tên clip** — `walk1_subject1.bvh` (7840 frame, 261,3 s) bị gọi là "Walk 1" của Bảng I (33 s) | Bảng so sánh ghép sai đối tượng, sai số liệu | CSV ghi `bvh_file` + `n_frames_total`; trong báo cáo luôn ghi tên file thật, không dùng nhãn "Walk 1" cho clip này |
+| 13 | **Nhầm tên đại lượng** — gọi chung là `ms_per_frame` (RV-17) | Kết luận áp sai ngưỡng, Review không đối chiếu được | Luôn dùng hậu tố `_retarget` / `_process`; cấm cột `ms_per_frame` trần |
 
 ---
 
@@ -185,7 +219,8 @@ Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft —
 
 | Đại lượng | Bài báo | Nhóm đo được |
 |---|---|---|
-| `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | *(điền sau khi Run chạy)* |
+| `ms_per_frame_retarget` (ms) — G1, LAFAN1 | **không nêu** | *(điền sau khi Run chạy)* |
+| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** | *(điền sau)* |
 | `fps_out` (frame/s) | **không nêu** | *(điền sau)* |
 | `realtime_factor` (lần) | **không nêu** — chỉ có chữ "real time" | *(điền sau)* |
 | Success rate "Dance 5" sim2sim (%) | 51 | không đo (ngoài phạm vi) |
@@ -210,5 +245,38 @@ Nguyên tắc: ô "nhóm đo được" **để trống** cho tới khi có CSV. 
 |---|---|---|
 | **Code (Vỹ)** | Viết `scripts/measure_retarget_runtime.py` đúng hợp đồng §3.1 + §3.3 | `--help` chạy được; xuất đúng 2 file CSV với đủ cột |
 | **Run (Mạnh)** | Dựng env `gmr` @ commit `25f56db7`, tải LAFAN1, chạy 1 warm-up + 3 lần | `results/v3_runtime.csv` có 3 dòng `run=2,3,4` |
-| **Review (Trường)** | Kiểm 5 dòng: đúng file, đúng cột `cmd`, không có `--rate_limit`, có `git_head`, CV ≤ 5 % | PASS/FAIL theo mẫu 5 dòng |
+| **Review (Trường)** | Kiểm 5 dòng: đúng file, đúng **tên đại lượng** (`_retarget`/`_process`), đúng cột `cmd`, không có `--rate_limit`, có `git_head`, CV ≤ 5 % | PASS/FAIL theo mẫu 5 dòng |
 | **Writing** | Điền §5 | Không ô nào ở cột "nhóm đo được" bị chép từ paper |
+
+---
+
+## 8. Các tuyên bố định lượng trong paper và vì sao **không** tái lập được
+
+Đây là mục trả lời trực tiếp yêu cầu của đề tài ("kiểm chứng một tuyên bố định lượng trong bài báo"). Bài báo có **đúng 3 bảng số**. Cả ba đều đo **policy đã train**, không đo retargeter — nên không thể tái lập nếu không có GPU + IsaacSim.
+
+| # | Bảng | Đại lượng (đơn vị) | Giá trị GMR | Cần gì để tái lập |
+|---|---|---|---|---|
+| 1 | **Bảng I**, trang 6 | success rate (%), 21 motion × 4 phương pháp × 3 chế độ | 100 % ở "Dance 1"/"Dance 2"; **51 %** ở "Dance 5" sim2sim | IsaacSim + BeyondMimic + **policy đã train** cho từng clip × từng phương pháp + 100/4096/100 rollout |
+| 2 | **Bảng II**, trang 6 | tracking error: `E_g-mpbpe` (mm), `E_mpbpe` (mm), `E_mpjpe` (10⁻³ rad) | mean **`E_g-mpbpe` = 104,1 mm**; `E_mpbpe` = 28,1 mm; `E_mpjpe` = 561,7 | như trên, chế độ **sim**, 100 rollout/policy; sai số đo trên **quỹ đạo policy**, không phải file retarget |
+| 3 | **Bảng III**, trang 7 | success rate sim2sim (%) theo `start frame` | "Walk 2": 64 % (frame 0) → 100 % (frame 7) | **cùng một policy đã train**, chỉ đổi frame đầu + 100 rollout MuJoCo |
+
+**Khối lượng thật của một lần tái lập:** 21 clip × 4 phương pháp (GMR, PHC, ProtoMotions, Unitree) = **84 policy**, mỗi policy chạy 100 + 4096 + 100 rollout. Cộng thêm: dựng PHC (cần SMPL-X có bản quyền), chuyển BVH→SMPL(-X), và bộ dữ liệu Unitree **không công khai** (paper tự ghi là closed-source).
+
+**Kết luận: ngoài phạm vi giai đoạn 1.** Nhóm **không có GPU**, không có IsaacSim, không có license SMPL-X, và thời lượng giai đoạn 1 là 10 ngày. Đây không phải "chưa làm" mà là **không thể làm** với nguồn lực hiện có — và chính paper cũng không công bố cấu hình phần cứng để tái lập (xem `paper_notes.md` §12).
+
+Hệ quả: mọi bảng trong báo cáo phải tách hai cột. Cột "bài báo" chép đúng số + số hiệu bảng; cột "nhóm đo được" để **trống** ở các dòng Bảng I/II/III và ghi rõ "không đo — ngoài phạm vi".
+
+---
+
+## 9. Kết luận dự kiến của V1 (khung cho mục 7 báo cáo)
+
+Kết luận phải viết được thành **tái lập một phần**, không phải "tái lập được" cũng không phải "không tái lập được":
+
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được: GMR retarget chuyển động LAFAN1 sang Unitree G1 trên CPU với `ms_per_frame_retarget` = … ms (`realtime_factor` = …, trung bình 3 lần, CV = … %), so với ngưỡng do nhóm đặt trước 33,3 ms → kết luận tái lập / không tái lập theo bảng §3.5. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
+
+Điều kiện để câu trên đúng:
+
+1. Chỉ điền số vào chỗ `…` khi có `results/v3_runtime.csv` do Review chấm PASS.
+2. Không đổi ngưỡng 33,3 ms sau khi thấy số.
+3. Không dùng từ "tái lập được" cho toàn bộ bài báo — chỉ cho phần thời gian thực.
+4. Nếu vì lý do nào đó phần thời gian thực cũng không đạt, câu kết luận phải đổi thành "không tái lập được", **không** được giữ nguyên "một phần" cho đẹp.

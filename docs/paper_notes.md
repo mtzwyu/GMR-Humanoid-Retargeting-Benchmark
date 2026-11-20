@@ -240,6 +240,7 @@ TBD (chưa có): `unitree_h1`, `unitree_h1_2`, `booster_t1`, `booster_k1`, `high
 - `assets/xsens_bvh_test/251021_04_boxing_120Hz_cm_3DsMax.bvh` (~2,9 MB) — BVH **120 Hz**, dùng để smoke-test.
 - `assets/hard_motions/{0,1}.txt`, `assets/<robot>/…` (MJCF/URDF + mesh).
 - Không có sẵn file LAFAN1 → phải tải `lafan1.zip` từ repo Ubisoft (LAFAN1 là **30 fps**, 77 sequence, 496.672 frame — theo README của Ubisoft).
+- **Cảnh báo tên clip:** `walk1_subject1.bvh` dài **7840 frame = 261,3 s** ở 30 fps. Đây **không phải** "Walk 1" của Bảng I (33 s, trang 6). Hai clip khác nhau — không được gộp khi lập bảng so sánh.
 
 ---
 
