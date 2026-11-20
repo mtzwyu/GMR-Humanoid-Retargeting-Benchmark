@@ -281,12 +281,15 @@ Trước đây nhóm chỉ **lập luận** rằng đổi khối lượng/ma sá
 
 → **Kết luận bằng số:** đổi khối lượng ±20 % **có** làm pkl khác hash nhưng chỉ ở mức `1,5e-9 rad` (cỡ epsilon máy, ~1e-7 độ) — tức không thay đổi chuyển động; đổi ma sát **không đổi một byte**. Đúng bản chất retarget động học, nhưng nay đã có **bằng chứng chạy thật** thay vì lập luận.
 
-**Đo lại không GPU** (`CUDA_VISIBLE_DEVICES` rỗng, headless):
+**Đo lại không GPU** (`CUDA_VISIBLE_DEVICES` rỗng, headless) và **kiểm GL renderer**:
 
-| Chế độ | CUDA_VISIBLE_DEVICES | Viewer | ms/frame | Ghi chú |
+| Chế độ | CUDA_VISIBLE_DEVICES | Viewer | GL_VENDOR / GL_RENDERER | ms/frame |
 |---|---|---|---|---|
-| headless, env mặc định | (không đặt) | không | **2,359** | torch **2.14.1+cpu**, `cuda.is_available() = False`, `device_count = 0` |
-| headless, biến rỗng | rỗng (bị xoá) | không | **2,377** | vẫn `False`; sha pkl trùng baseline; lệch 0,018 ms (0,8 %) |
-| V3 5 lần đo | (không đặt) | **có** | 17,349 | số chốt V3 (mean n = 5) |
+| headless, env mặc định | (không đặt) | không | n/a (không tạo GL context) | **2,359** |
+| headless, biến rỗng | rỗng (bị xoá) | không | n/a | **2,377** (lệch 0,8 %) |
+| V3 5 lần đo | (không đặt) | **có** | **NVIDIA Corporation** / **NVIDIA GeForce RTX 4050 Laptop GPU/PCIe/SSE2** (GL 4.6.0, driver 621.14) | 17,349 |
 
-→ **GPU không tham gia**: bản torch cài trong env là **CPU-only** (`2.14.1+cpu`), `torch.cuda.is_available()` luôn `False` kể cả khi không đặt biến. Chênh ~15 ms/frame giữa 17,349 và 2,36 là **chi phí render của viewer MuJoCo**, không phải GPU.
+**Kết luận phân tầng (sửa lại câu trước cho chính xác):**
+- **Tính toán** (retarget IK, numpy/mink/daqp) chạy **trên CPU**: torch trong env là bản **CPU-only `2.14.1+cpu`**, `torch.cuda.is_available()` luôn `False`, `device_count = 0` kể cả khi không đặt biến.
+- **Render** (viewer và cả `mj.Renderer` ghi video) **dùng GPU rời qua OpenGL**: `GL_RENDERER = NVIDIA GeForce RTX 4050 Laptop GPU/PCIe/SSE2`. Vậy câu “chênh 15 ms/frame là chi phí render, không phải GPU” phải viết lại: chênh 15 ms là **chi phí render, và render đó chạy trên GPU** — không phải GPU tham gia tính toán, nhưng **GPU có tham gia phần render**.
+- **Nhiệt GPU 51–57 °C** đo trong V5 do đó **có nguồn rõ ràng**: chính các lần chạy có viewer (render bằng GPU rời). Không phải “đoán do driver/desktop compositor”.
