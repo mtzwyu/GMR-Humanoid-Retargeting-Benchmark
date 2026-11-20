@@ -120,6 +120,23 @@ Sản phẩm nộp cần "bằng chứng chạy được"; ảnh là bằng ch�
 - Video demo: `.mp4` **không commit** (đã gitignore) — để ngoài repo và nộp kèm link.
 - Ảnh phải do máy chạy ra, không dùng ảnh minh hoạ lấy từ repo gốc.
 
+## Media cho slide
+
+Ảnh và video dùng lại cho slide 13 phút — làm **ngay khi có kết quả**, không để cuối kỳ đi tìm.
+
+**Video** (để xem lại và chèn slide):
+- Lưu ở `results/media/`, `.mp4`, **không commit** (đã gitignore) — giữ local, nộp bằng link.
+- Mỗi clip ≤ 60 giây, khung 16:9, quay đúng đoạn cao trào (không quay cả 164 giây).
+- Bắt buộc có 3 clip: `v3_walk1_g1` (tư thế chuẩn) · `v3_walk4_g1` (clip khom — minh hoạ motion khó) · `v5_sim2sim_g1_t1_pm01` (cùng motion, 3 robot).
+- Lệnh sinh video ghi vào `results/media/README.md` để tái tạo được.
+
+**Ảnh trích từ video** (để chèn slide, commit được):
+- Mỗi clip trích **3 khung hình** tại cùng frame index (ví dụ 25%, 50%, 75%) → `results/figures/`, PNG ≤ 1 MB.
+- Đặt tên: `slide_<clip>_f<frame>.png`.
+- Ảnh cần: 1 khung tư thế chuẩn, 1 khung clip khom (để so), 1 khung 3 robot cạnh nhau, 1 đồ thị `ms_per_frame`, 1 ảnh terminal có lệnh + thời gian.
+
+`results/media/README.md` ghi bảng: tệp · pkl nguồn · lệnh sinh · thời lượng · frame index đã trích.
+
 ## Quy tắc cứng
 
 1. `main` chỉ Planner merge. Không ai push thẳng, không ai chạy thử trên `main`.
