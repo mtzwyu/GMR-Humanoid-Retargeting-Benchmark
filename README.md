@@ -32,11 +32,13 @@ Kiểm chứng tuyên bố "retarget thời gian thực trên CPU" của GMR b�
 |---|---|---|
 | **V3 — tốc độ 1 robot** (Unitree G1, `walk1_subject1.bvh` 7.840 frame, CPU, không `--rate_limit`) | `ms_per_frame_process` = **17,349 ms** (mean, n = 5; median 17,272; CV 2,13 %) → **57,6 FPS** quy đổi, `realtime_factor` ≈ **1,92** | `results/v3_runtime.csv`; 1 warm-up bị loại, 5 lần đo |
 | **V5 — sim2sim 3 robot** (cùng một motion) | G1 **16,758 ms** (mean, n = 3) · Booster T1 29dof **13,034 ms** (median, n = 5) · ENGINEAI PM01 **34,975 ms** (mean, n = 3) | `results/v5_sim2sim.csv`; H1 ghi `blocked`, xem `results/v5_h1_note.md` |
-| **Chất lượng ánh xạ** (pkl V5, 7.839 frame) | `foot_slide_mean` 49,0 / 83,1 / 118,4 mm/s; `min_body_height` +9,9 / −7,6 / +43,8 mm; xuyên sàn 0 / 2,13 / 0 % frame; bão hòa khớp 23,8 / 43,3 / 24,1 % | `results/v6_quality.csv` (G1 / T1 / PM01) |
+| **Chất lượng ánh xạ** (pkl V5, 7.839 frame) | `foot_slide_mean` 49,0 / 83,1 / 118,4 mm/s; `min_body_height` +9,9 / −7,6 / +43,8 mm; **không có frame nào có gốc body dưới −1 mm: 0 / 2,13 / 0 %**; bão hòa khớp 23,8 / 43,3 / 24,1 % | `results/v6_quality.csv` (G1 / T1 / PM01) |
 
 **Phép thử nhiễu (V6):** N1 σ = 0,5° → 0,51 % frame lệch > 5°; σ = 2° → **87,74 %**; trễ 1–5 frame và mất 1–10 % frame gần như không đổi (`dq_mean` 0,001°); scale vị trí ±20 % → 90,4–98,0 % frame lệch > 5° (`results/v6_noise_sweep.csv`).
 
 > Cột `ms_per_frame_process` là **wall-clock của cả tiến trình** `bvh_to_robot.py` (nạp BVH, khởi tạo, render, ghi pkl) chia cho số frame — cận trên của thời gian retarget thuần. Ngưỡng 33,3 ms là ngưỡng **nhóm tự đặt** theo nguồn 30 fps, không phải ngưỡng của paper.
+>
+> `pct_frames_penetration` đo tại **gốc body** (body origin), không đo bề mặt/mesh: 0 % chỉ nghĩa là không có gốc body nào dưới −1 mm, **không** chứng minh bàn chân/geom không xuyên sàn.
 
 ## Cấu trúc repo
 
@@ -54,6 +56,7 @@ Kiểm chứng tuyên bố "retarget thời gian thực trên CPU" của GMR b�
 ├─ tools/                   script đo/kiểm chứng/dựng bằng chứng (PowerShell + Python)
 ├─ report/                  báo cáo giai đoạn 1
 ├─ .agents/skills/          skill riêng của project cho agent
+├─ LICENSE                  MIT License của mã nhóm
 ├─ requirements.txt         môi trường đường BVH LAFAN1 (đường chính)
 ├─ requirements-xsens.txt   phụ kiện cho đường Xsens
 └─ third_party/             clone GMR + dữ liệu LAFAN1 (KHÔNG commit)
@@ -85,16 +88,20 @@ SMPL-X không nằm trong hai đường trên: body model phải tải riêng v�
 
 ## Bắt đầu nhanh
 
-```bash
+```powershell
 # 1) Repo + môi trường + GMR gốc ghim đúng commit
-git clone https://github.com/mtzwyu/GMR-Humanoid-Retargeting-Benchmark.git && cd GMR-Humanoid-Retargeting-Benchmark
+git clone https://github.com/mtzwyu/GMR-Humanoid-Retargeting-Benchmark.git
+cd GMR-Humanoid-Retargeting-Benchmark
 git clone https://github.com/YanjieZe/GMR.git third_party/GMR
 git -C third_party/GMR checkout 25f56db
-conda create -n gmr python=3.10 -y && conda activate gmr && pip install -r requirements.txt
+conda create -n gmr python=3.10 -y
+conda activate gmr
+pip install -r requirements.txt
 
 # 2) Chạy GMR gốc: BVH LAFAN1 -> Unitree G1 (cần walk1_subject1.bvh trong third_party/data/lafan1)
-python third_party/GMR/scripts/bvh_to_robot.py \
-  --bvh_file third_party/data/lafan1/walk1_subject1.bvh \
+New-Item -ItemType Directory -Force -Path results/pkl | Out-Null
+python third_party/GMR/scripts/bvh_to_robot.py `
+  --bvh_file third_party/data/lafan1/walk1_subject1.bvh `
   --format lafan1 --robot unitree_g1 --save_path results/pkl/g1_walk1.pkl
 
 # 3) Đo runtime: 1 warm-up + 5 lần đo, rồi gộp CSV
@@ -168,7 +175,7 @@ Kèm `scripts/NOTES.md` (cấu trúc `.pkl`, cách gọi script) và `scripts/te
 2. **`ms_per_frame_process` là cận trên**, gồm khởi tạo, render và ghi pkl; thời gian retarget thuần chỉ có khi dùng `scripts/measure_runtime.py`. Ngưỡng 33,3 ms do nhóm đặt, không phải của paper.
 3. **`foot_slide` là chỉ số proxy.** Định nghĩa "tiếp đất" theo mức thấp nhất của chính bàn chân và đo tại tâm thân bàn chân, nên chỉ dùng **so sánh tương đối** giữa 3 robot, không phải số tuyệt đối.
 4. **`min_body_height` phụ thuộc offset nghỉ của model** (G1 +16,1 mm, T1 +36,6 mm, PM01 +45,0 mm). Muốn so "thấp hơn vị trí nghỉ bao nhiêu" phải trừ `rest_offset_mm`.
-5. **Nhóm không đặt ngưỡng tuyệt đối cho chất lượng trước khi đo**, nên chỉ kết luận tương đối; riêng xuyên sàn dùng `pct_frames_penetration` (frame có thân dưới −1 mm).
+5. **Nhóm không đặt ngưỡng tuyệt đối cho chất lượng trước khi đo**, nên chỉ kết luận tương đối; riêng xuyên sàn dùng `pct_frames_penetration` đo tại **gốc body** (không phải bề mặt/mesh), nên 0 % chỉ là "không có gốc body dưới −1 mm".
 6. **V4 — không huấn luyện.** GMR là retargeting dựa trên tối ưu (mink + MuJoCo), không phải RL, không có checkpoint để train; V4 được thay bằng chạy lại pipeline với 3 cấu hình.
 7. **H1 bị chặn trên đường LAFAN1** (không có `bvh_lafan1_to_h1.json`, `--robot unitree_h1` không hợp lệ); **H1_2 chạy được qua Xsens 120 Hz**, nhưng không dùng để so tốc độ vì script Xsens bật rate-limit mặc định.
 8. **KI-02:** bốn dòng `rate_limit` từng có `cmd` ghi cờ chưa từng chạy; đã xoá khỏi CSV và ghi lại trong `docs/known_issues.md`.
@@ -196,6 +203,6 @@ Lớp 15DHTH07 · HK1 2026–2027 · ĐH Công Thương TP.HCM · Nhóm 01 · đ
 
 ## Giấy phép và ghi công
 
-Phát hành theo **MIT License** — xem [`LICENSE` của repo gốc](https://github.com/YanjieZe/GMR/blob/25f56db/LICENSE).
+Mã của nhóm phát hành theo **MIT** (xem [`LICENSE`](LICENSE)); repo gốc YanjieZe/GMR cũng dùng MIT (xem `third_party/GMR/LICENSE` sau khi clone — [bản trên GitHub](https://github.com/YanjieZe/GMR/blob/25f56db/LICENSE)).
 
 Dựa trên [YanjieZe/GMR](https://github.com/YanjieZe/GMR) @ `25f56db` (MIT, Copyright 2025 Yanjieze) và bài báo *Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking* (arXiv:2510.02252). Mọi số đo trong `results/` do nhóm thực hiện trên máy của nhóm.
