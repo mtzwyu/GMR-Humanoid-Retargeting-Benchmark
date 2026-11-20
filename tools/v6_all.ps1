@@ -2,7 +2,7 @@
 $ErrorActionPreference = 'Continue'
 $py   = "C:\Users\xpaga\miniconda3\envs\gmr\python.exe"
 $root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
-$script = Join-Path $root "third_party\_run\v6_run.py"
+$script = Join-Path $root "tools\v6_run.py"
 $logdir = Join-Path $root "results\logs"
 Set-Location (Join-Path $root "third_party\GMR")
 

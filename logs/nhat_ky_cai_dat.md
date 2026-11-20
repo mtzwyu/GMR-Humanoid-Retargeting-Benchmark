@@ -182,9 +182,60 @@ Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũ
 
 **Kết luận:** chênh lệch 14,4 % giữa hai đợt đo **không** đến từ thuật toán (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU) — đúng bản chất của phép đo wall-clock toàn tiến trình.
 
+## V6 — phép thử nhiễu (DEC-02): 4 phép thử, 15 mức
+
+Đặc tả: `docs/v6_noise_spec.md` (DEC-02, phương án C). Input cố định `walk1_subject1.bvh` → `unitree_g1`; baseline = pkl của lần chạy sạch `g1_walk1_subject1_run1.pkl` (SHA256 `E7E3B906…`). Mỗi mức chạy **1 lần** — phép thử này đo **độ lệch có hệ thống**, **không** đo thời gian, nên không vi phạm hợp đồng 1 warm-up + 3 lần đo của V3/V5.
+
+Kiểm chứng trước khi chạy: driver `v6_run.py` chạy lại bản sạch cho ra **|Δq| = 0,0000° · dr_rmse = 0,000 mm** so với pkl baseline → driver trung thực với `bvh_to_robot.py` (chỉ bỏ phần viewer).
+
+| Phép thử | Mức | dq_mean (°) | dq_max (°) | dq_max **bỏ frame 0** (°) | dr_rmse (mm) | pct_frames_gt5deg (%) | converges |
+|---|---|---|---|---|---|---|---|
+| N1 nhiễu khớp | σ = 0,5° | 0,56 | 7,56 | 7,56 | 1,20 | 0,51 | 1 |
+| N1 | σ = 1° | 1,10 | 14,11 | 14,11 | 1,56 | 5,55 | 1 |
+| N1 | σ = 2° | 2,18 | 25,80 | 25,80 | 2,02 | 87,74 | 1 |
+| N1 | σ = 5° | 5,41 | 63,89 | 63,89 | 3,52 | 100,00 | 1 |
+| N2 trễ | k = 1 | 0,0010 | 36,08 | **0,31** | 0,03 | 0,013 | 1 |
+| N2 | k = 2 | 0,0010 | 36,08 | **0,40** | 0,03 | 0,013 | 1 |
+| N2 | k = 3 | 0,0010 | 36,08 | **0,44** | 0,03 | 0,013 | 1 |
+| N2 | k = 5 | 0,0010 | 36,08 | **0,46** | 0,03 | 0,013 | 1 |
+| N3 mất frame | p = 1 % | 0,0033 | 6,83 | 6,83 | 0,17 | 0,013 | 1 |
+| N3 | p = 5 % | 0,0158 | 6,09 | 6,09 | 0,36 | 0,077 | 1 |
+| N3 | p = 10 % | 0,0355 | 10,99 | 10,99 | 0,62 | 0,306 | 1 |
+| N4 lệch tỉ lệ | −20 % | 1,86 | 29,65 | 29,65 | 718,53 | 90,43 | 1 |
+| N4 | −10 % | 0,73 | 19,27 | **15,83** | 358,57 | 6,37 | 1 |
+| N4 | +10 % | 1,88 | 33,32 | **18,37** | 359,32 | 94,77 | 1 |
+| N4 | +20 % | 3,14 | 42,82 | **31,92** | 718,51 | 98,05 | 1 |
+
+**RV-31 — `dq_max` bị frame 0 thổi lên:** cột `dq_max` (giữ nguyên, khớp CSV) tính cả frame 0; cột mới **`dq_max_excl_frame0`** tính lại trên các frame 1…N−1. Khác biệt chỉ đáng kể ở **N2** (36,08° → 0,31–0,46°) và **N4** (−10 %: 19,27 → **15,83**; +10 %: 33,32 → **18,37**; +20 %: 42,82 → **31,92**; −20 % không đổi vì frame 0 không phải chỗ lệch lớn nhất). `dq_mean` và `dr_rmse` **không đổi** (frame 0 chỉ là 1/7.839 nên không dịch chuyển trung bình). Cả hai cột đều nằm trong `results/v6_noise_sweep.csv`; khi trích vào báo cáo phải ghi rõ đang dùng cột nào.
+
+**Đối chiếu giả thuyết (ghi đúng kết quả đo, không sửa số):**
+1. **N1:** `dq_mean` tăng **gần tuyến tính** theo σ (0,56 → 1,10 → 2,18 → 5,41 ứng với 0,5/1/2/5°) — khớp kỳ vọng. Nhưng `pct_frames_gt5deg` bùng nổ **phi tuyến** (0,5 % → 5,5 % → 87,7 % → 100 %) vì đây là chỉ số ngưỡng: khi sai số trung bình chạm ~2° thì gần như mọi frame đều có ít nhất một khớp vượt 5°.
+2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ **1 frame** (pct 0,013 % = 1/7839) lệch 36,08°, đã truy ra: đó là **frame đầu tiên ngay sau điểm dịch** — cùng một frame đầu vào (frame 0) được retarget lần thứ hai. **Lần giải đầu chưa hội tụ trong trần 10 vòng lặp; các lần giải lại sau đó hội tụ dần.** Bằng chứng: `out[0]` vs `base[0]` = **0,0000°**; `out[1]` vs `base[0]` = **36,08°**; rồi **0,307° → 0,094° → 0,044° → 0,021°** (giảm đơn điệu, không tích lũy). **Kết luận: đúng là frame biên sau warm-start, không phải sai số tích lũy**; IK có phụ thuộc warm-start ở frame biên (không hoàn toàn độc lập từng frame như giả thuyết).
+
+**Ghi chú thêm (RV-30):** **frame 0 của mỗi clip chưa hội tụ ở khâu tay** — vì thế mọi chỉ số `dq_max` đều bị frame 0 thổi lên; xem cột `dq_max_excl_frame0` ở mục RV-31 bên dưới để đọc đúng mức lệch thực của phần còn lại của clip.
+3. **N3:** ảnh hưởng **rất nhỏ** (dq_mean 0,0033 → 0,0355°; pct ≤ 0,31 %) và tăng theo p — vì frame thiếu được lấp bằng nội suy tuyến tính nên tư thế gần như giữ nguyên.
+4. **N4:** lệch lớn và **bất đối xứng** (pct 6,4 % ở −10 % nhưng 94,8 % ở +10 %). `dr_rmse` 359/719 mm **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn), không phải sai tư thế — cần nói rõ khi viết báo cáo.
+5. `still_converges = 1` ở **cả 15 mức** → không mức nhiễu nào làm IK phân kỳ hay sinh NaN.
+
+### Bão hòa khớp — lời giải cho bất đối xứng của N4
+
+Đếm số frame có **ít nhất 1 khớp nằm trong 0,5° so với giới hạn** (`qpos_lo`/`qpos_hi` của `g1_mocap_29dof.xml`), cột `n_saturated_frames`; cột `n_frames_hit_limit_max` = số khớp tối đa cùng bão hòa trong một frame.
+
+| Điều kiện | n_saturated_frames | n_frames_hit_limit_max | Khớp bão hòa nhiều nhất |
+|---|---|---|---|
+| Baseline sạch | 1.865 / 7.839 (23,8 %) | 3 | waist_pitch 745 · ankle_roll 452/412 |
+| N4 **−10 %** | 1.793 | 2 | waist_pitch 807 · shoulder_yaw 398 · ankle_roll 344/310 |
+| N4 **+10 %** | **2.002** | 3 | waist_pitch 783 · **ankle_roll 534/489** · shoulder_yaw 392 |
+| N4 **+20 %** | **2.166** | 3 | waist_pitch 843 · **ankle_roll 589/541** |
+| N1 σ = 5° | 3.550 | 5 | — |
+
+**Kết luận (3 câu):** Ở +10 %/+20 % (người cao hơn robot) số frame bão hòa **cao hơn** −10 % (2.002 / 2.166 so với 1.793), và phần tăng tập trung ở `ankle_roll` (534/489 so với 310/344) — hướng đúng giả thuyết "robot không với tới nên khớp bị ghì ở giới hạn". Tuy vậy mức chênh (≈200–370 frame) **không đủ lớn** để giải thích trọn vẹn khoảng cách `pct_frames_gt5deg` (6,4 % so với 94,8 %), nên bão hòa chỉ là **một phần** lời giải; phần còn lại là hình học tay/chân không với tới đích. Lưu ý `dr_rmse` 359/719 mm của N4 **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn) chứ **không phải sai tư thế** — chỉ số này không dùng để kết luận về tư thế.
+
+Số thô: `results/v6_noise_sweep.csv` (thêm 2 cột bão hòa + `max_dev_frame_index`); đồ thị: `results/figures/v6_noise_vs_deviation.png` (3 panel); lệnh: `logs/lenh_da_chay.md` mục 11.
+
 ## V6 — chất lượng ánh xạ (vế thứ 2 của đề tài)
 
-Đề tài HR-04 yêu cầu đo **tốc độ và chất lượng** ánh xạ. Mục trước đã có tốc độ; mục này đo chất lượng trên **pkl đã có của V5** (`v5_<robot>_walk1_subject1_run1.pkl`), **không chạy lại retarget**. Công cụ: `tools/quality_metrics.py`; số thô: `results/v6_quality.csv`; đồ thị: `results/figures/v6_quality.png`.
+Đề tài HR-04 yêu cầu đo **tốc độ và chất lượng** ánh xạ. Mục trên đã có tốc độ; mục này đo chất lượng trên **pkl đã có của V5** (`v5_<robot>_walk1_subject1_run1.pkl`), **không chạy lại retarget**. Công cụ: `tools/quality_metrics.py`; số thô: `results/v6_quality.csv`; đồ thị: `results/figures/v6_quality.png`.
 
 **Định nghĩa (đúng đặc tả Planner):**
 1. `foot_slide_L/R/mean` (mm/s) — frame **tiếp đất** của một bàn chân = độ cao thân bàn chân trong **30 mm** so với chính mức thấp nhất của nó trong clip; tổng dịch ngang (xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia tổng thời gian tiếp đất; tính riêng trái/phải rồi lấy trung bình.

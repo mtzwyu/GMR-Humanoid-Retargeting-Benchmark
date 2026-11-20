@@ -30,6 +30,10 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 | `v6_plot.py` | Đồ thị 3 panel ngang (bản dùng cho báo cáo in): `dq_mean`, `pct>5°`, `n_saturated_frames` | `python tools\v6_plot.py` |
 | `v6_plot_slide.py` | Bản **2000×1125 (16:9), 3 panel xếp dọc, chữ ≥ 18 pt** cho slide/video | `python tools\v6_plot_slide.py` |
 
+> **Phải chạy `v6_run.py` từ `third_party/GMR`** (tham số `--bvh` mặc định là `../data/lafan1/...`):
+> `cd third_party\GMR` rồi `python ..\..\tools\v6_run.py --mode n1 --level 2 --seed 0 --out ..\..\results\pkl\v6_n1_2deg.pkl`.
+> `v6_all.ps1` đã trỏ đúng `tools\v6_run.py` và tự `Set-Location` vào `third_party\GMR`.
+
 ## C. Phân tích tư thế & đồ thị thời gian
 
 | Script | Việc | Cách chạy |
@@ -49,6 +53,9 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 | `record_s1c.py` | **Bản dùng thật cho cảnh S1**: vẽ bộ xương người + trục khớp 0,1 m từ `retargeter.scaled_human_data` lên sàn phẳng, camera bám `Hips`, 1280×720 30 fps | `python tools\record_s1c.py --start 300 --frames 300 --out results\media\s1_human_input.mp4` |
 | `extract_frames.py` | Trích 3 khung 25/50/75 % từ clip → PNG (ffmpeg 9: cần `-update 1`) | `python tools\extract_frames.py <mp4> <tiền_tố> <số_frame>` |
 
+> **`record_s1c.py` cũng phải chạy từ `third_party/GMR`** (tham số `--bvh` mặc định `../data/lafan1/walk1_subject1.bvh`):
+> `cd third_party\GMR` rồi `python ..\..\tools\record_s1c.py --start 300 --frames 300 --out ..\..\results\media\s1_human_input.mp4`.
+
 ## E. Chất lượng ánh xạ (vế thứ 2 của đề tài: "tốc độ **và chất lượng**")
 
 | Script | Việc | Cách chạy |
@@ -66,7 +73,7 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 3. **`pct_frames_penetration`** (%) — phần trăm frame có **ít nhất 1 thân** dưới mặt đất (`z < -1 mm`).
 4. **`joint_limit_violation_pct`** (%) — phần trăm frame có **ít nhất 1 khớp** cách giới hạn `qpos_lo`/`qpos_hi` dưới **0,5°** (dùng lại đúng công cụ của V6).
 
-Thân bàn chân dùng để đo: `unitree_g1` → `left_ankle_roll_link`/`right_ankle_roll_link`; `booster_t1_29dof` → `left_foot_link`/`right_foot_link`; `engineai_pm01` → `LINK_FOOT_L`/`LINK_FOOT_R`.
+Thân bàn chân dùng để đo: `unitree_g1` → `left_ankle_roll_link`/`right_ankle_roll_link`; `booster_t1_29dof` → `left_foot_link`/`right_foot_link`; `engineai_pm01` → `LINK_FOOT_L`/`LINK_FOOT_R`; `unitree_h1_2` → `left_ankle_roll_link`/`right_ankle_roll_link`.
 
 ## F. Tiện ích
 
