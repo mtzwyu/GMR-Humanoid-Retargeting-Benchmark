@@ -4,6 +4,34 @@ Lỗi đang mở, có bằng chứng đo được. Mỗi mục: hiện tượng 
 
 ---
 
+## KI-02 · Cột `cmd` trong CSV ghi một cờ chưa từng được truyền
+
+**Mức độ: nghiêm trọng.** Đây là lỗi tính trung thực của số liệu, không phải lỗi kỹ thuật — phát hiện bởi Review, không phải bởi người làm ra nó.
+
+**Hiện tượng.** `results/v3_runtime.csv` có 4 dòng `mode = rate_limit` với cột `cmd` chứa `--rate_limit`. Nhưng lệnh thật đã chạy **không có cờ đó**.
+
+**Bằng chứng** (3 nguồn độc lập):
+1. Mã: `third_party/_run/measure_v3.ps1:20,23` chỉ đưa cờ vào **chuỗi in ra CSV**; dòng `:26` gọi lệnh thật **không** kèm `$flag`.
+2. Log của chính các lần đó: `Actual rendering FPS: 64,61 … 136,41`, tqdm `64,25 it/s` — một bộ giới hạn 30 Hz không thể cho 64 fps.
+3. Chạy lại thư viện trong env `gmr`: `RateLimiter(frequency=30).sleep()` × 90 → 46,6 ms/lần ≈ **21,4 Hz**. Nếu cờ có tác dụng, tổng thời gian phải ≈ 370 s, thực tế 124–136 s.
+
+**Hệ quả.**
+- Bốn dòng đó phải **xoá khỏi CSV**; kết luận "`--rate_limit` không ép 30 fps" trong PR #4 **không có bằng chứng** và phải rút.
+- Bảng so sánh có/không `--rate_limit` trong báo cáo sẽ là **số bịa** nếu giữ lại.
+
+**Cách xử lý.**
+1. Xoá 4 dòng `rate_limit` khỏi `v3_runtime.csv`.
+2. Ghi lại phát hiện đúng bản chất trong nhật ký: *"đo riêng thư viện `RateLimiter(30)` = 21,4 Hz trên Windows (hạt sleep ~15,6 ms) → cờ này không dùng để đo throughput"*, kèm lệnh đo.
+3. Rà các CSV khác xem còn cột nào mô tả điều lệnh không làm.
+
+**Bài học cho mục 3 và mục 7 của báo cáo.** Cột `cmd` là **hợp đồng tái lập**. Một dòng `cmd` sai làm cả bảng mất giá trị, và người phát hiện là người **không viết ra nó**. Đây là lý do phải tách vai Review.
+
+**Người xử lý:** Mạnh (`gmr-run`)
+**Trạng thái:** đang sửa
+
+
+---
+
 ## KI-01 · Robot cúi gập người và di chuyển bất thường khi phát lại
 
 **Hiện tượng.** Khi render `results/pkl/g1_walk4_no_rate_limit_1.pkl` trong MuJoCo (`g1_mocap`), robot gập người về trước, đầu cúi, hai tay buông trước bụng, chân khuỵu — trông như đang bò/chạy loạn.

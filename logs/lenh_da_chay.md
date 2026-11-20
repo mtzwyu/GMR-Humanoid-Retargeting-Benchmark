@@ -87,10 +87,11 @@ Một lần đo lẻ (ví dụ lần đo hiển thị trong ảnh bằng chứng
 Measure-Command { python scripts/bvh_to_robot.py --bvh_file ../data/lafan1/walk1_subject1.bvh --format lafan1 --robot unitree_g1 --save_path ../../results/pkl/g1_walk1_subject1_evidence.pkl }
 ```
 
-## 6. Đo V5 sim2sim
+## 6. Đo V5 sim2sim (mỗi robot 1 warm-up + 3 lần đo, PM01 chạy đầu tiên)
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File third_party\_run\measure_v5.ps1   # sinh results\_v5_tmp.csv
+powershell -NoProfile -ExecutionPolicy Bypass -File third_party\_run\measure_v5.ps1 -RobotList "engineai_pm01,booster_t1_29dof,unitree_g1" -Measured 3   # sinh results\v5_raw.csv
+powershell -NoProfile -ExecutionPolicy Bypass -File third_party\_run\build_v5.ps1    # gộp thành results\v5_sim2sim.csv
 ```
 
 Ba robot chạy được trên đường BVH: `unitree_g1`, `booster_t1_29dof`, `engineai_pm01`.
