@@ -9,12 +9,12 @@ Ghi chú đọc bài: `docs/paper_notes.md` · Định nghĩa phép đo: `docs/d
 
 ## 0. Câu chốt (dùng nguyên văn trong báo cáo)
 
-> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, **không** bật `--rate_limit`; tuyên bố được coi là **tái lập được** nếu trung bình 3 lần chạy (sau 1 lần warm-up bị loại) có `ms_per_frame` trung vị ≤ **33,3 ms**, tức `fps_out` ≥ **30** và `realtime_factor` ≥ **1,00**.**
+> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, **không** bật `--rate_limit`; **sau 1 lần warm-up bị loại, chạy 5 lần**; báo **mean** nếu CV ≤ 5 %, báo **median** nếu CV > 5 %. Kết quả: **CV = 2,13 %** → dùng **mean = 17,349 ms/frame** (tương đương **57,6 FPS**, `realtime_factor_process` ≈ **1,92**) so với ngưỡng nhóm đặt trước **33,3 ms** → **tái lập được**. Số này đo ở mức **cả tiến trình**; `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1.**
 
 Bốn điều bắt buộc phải ghi kèm câu trên — thiếu một điều là sai:
 
 1. **Nguồn của tuyên bố là repo, không phải bài báo.** Câu "real-time" lấy từ `README` (mục *Key features*, dòng 1) và mô tả repo GitHub (*"in real time on CPU"*).
-2. **Paper không công bố số.** arXiv:2510.02252 (9 trang) **không** có bất kỳ con số `ms/frame` hay FPS nào, cũng không nêu cấu hình CPU/GPU (đã kiểm tra toàn văn — `docs/paper_notes.md` §12). Vì vậy "giá trị gốc" của tuyên bố này là **định tính**.
+2. **Paper không công bố số, nhưng repo thì CÓ.** arXiv:2510.02252 (9 trang) **không** có con số `ms/frame` hay FPS nào (đã kiểm tra toàn văn — `docs/paper_notes.md` §12). **Nhưng README repo có mục "Speed Benchmark"** với số định lượng: **35~45 FPS** trên 13th Gen Intel Core i9-13900K 24-Cores và **60~70 FPS** trên AMD Ryzen Threadripper 7960X 24-Cores (bản `25f56db7`). Đây là **mốc đối chiếu duy nhất** của chính repo — phải nêu, không được nói "repo không có số".
 3. **Ngưỡng 33,3 ms là ngưỡng của nhóm**, không phải ngưỡng của paper: `1000/30`, suy ra từ tốc độ phát của chính dữ liệu nguồn LAFAN1 (README Ubisoft: *"496,672 motion frames at 30fps"*). Nhóm đặt trước, không đổi sau khi thấy số.
 4. **Giai đoạn 1 đo đại lượng nào — chỉ `ms_per_frame_process`.** Bản đo V3 đã dùng là **bản đo cũ**: `results/v3_runtime.csv` có **13 cột** và **chỉ có `ms_per_frame_process`**, không có cột `ms_per_frame`. Script `scripts/measure_runtime.py` (@`5f9cdd5`) **có khả năng** đo cả hai (2 process) nhưng **chưa được dùng cho số liệu giai đoạn 1**, và Planner đã chốt **không chạy lại** V3/V5 bằng script mới. Vì vậy: (a) trong báo cáo phải gọi file đó là **"bản đo cũ"**, **không** trình bày như file đúng hợp đồng §5.1; (b) kết luận phải áp **bảng bắc cầu §6.1** của `docs/dinh_nghia_phep_do.md`, **không** suy ra `ms_per_frame`, **không** nhân hệ số 0,92.
 
@@ -75,8 +75,8 @@ Bốn tuyên bố còn lại đều là **kết quả của policy đã train** 
 | Trường | Nội dung |
 |---|---|
 | Đại lượng | `ms_per_frame` (**ms/frame**), `fps_out` (**frame/s**), `realtime_factor` = `fps_out` / `fps_src` (**lần**). Phụ: `ms_per_frame_process` (cả tiến trình) |
-| Số hiệu | **README repo, mục "Key features", dòng 1**: *"Real-time high-quality retargeting"*; **mô tả repo GitHub**: *"Retarget human motions into diverse humanoid robots **in real time on CPU**"*. **Bài báo: không có bảng/hình nào về tốc độ** (xem `paper_notes.md` §12) |
-| Giá trị gốc | **Không có số.** Paper không nêu ms/frame, không nêu FPS, không nêu cấu hình CPU. Repo cũng không nêu số. Giá trị gốc chỉ là **định tính: "real time"** |
+| Số hiệu | **README repo, mục "Key features", dòng 1**: *"Real-time high-quality retargeting"*; **mô tả repo GitHub**: *"Retarget human motions into diverse humanoid robots **in real time on CPU**"*; **README, mục "Speed Benchmark"**: bảng 2 CPU (xem "Giá trị gốc"). **Bài báo: không có bảng/hình nào về tốc độ** (xem `paper_notes.md` §12) |
+| Giá trị gốc | **Có số, nhưng của repo — paper không có.** README *Speed Benchmark* (bản `25f56db7`): **35~45 FPS** (13th Gen Intel Core i9-13900K 24-Cores), **60~70 FPS** (AMD Ryzen Threadripper 7960X 24-Cores). **README không nêu điều kiện đo** (motion nào, robot nào, có `--rate_limit` không, có tính render không) → không tái lập chính xác được |
 | Điều kiện đo | CPU (không GPU cho đường đo); robot **Unitree G1** (robot duy nhất paper dùng, trang 3); dữ liệu **LAFAN1 BVH 30 fps**; retarget tuần tự từng frame, frame trước làm initial guess (đúng như mục IV, trang 5); solver dừng ở 0,001 hoặc 10 vòng lặp; **không** bật `--rate_limit` |
 | Đo lại được? | **Có.** Chỉ cần: repo + LAFAN1 BVH + Python 3.10 + MuJoCo CPU. Không cần GPU, không cần SMPL-X, không cần train |
 
@@ -191,7 +191,7 @@ Nếu sau này có người chạy lại bằng script mới, **định dạng �
 
 ### 3.5 Ba mức kết luận (chốt trước, không đổi sau khi thấy số)
 
-| `realtime_factor` (trung bình các lần đo) | Kết luận |
+| `realtime_factor` (mean nếu CV ≤ 5 %, median nếu CV > 5 %; n = 5) | Kết luận |
 |---|---|
 | ≥ 1,00 | **Tái lập được** — GMR retarget nhanh ít nhất bằng tốc độ phát của dữ liệu nguồn trên CPU |
 | 0,80 – 0,99 | **Tái lập một phần** — gần real-time, phải nêu cấu hình CPU và đề xuất CPU mạnh hơn |
@@ -199,13 +199,32 @@ Nếu sau này có người chạy lại bằng script mới, **định dạng �
 
 Bảng trên định nghĩa cho `ms_per_frame` (số chính thức, lấy từ probe). **Giai đoạn 1 không có số này**, nên khi áp cho bản đo cũ thì: (a) đọc `realtime_factor` thành **`realtime_factor_process`**, và (b) dùng bảng bắc cầu `docs/dinh_nghia_phep_do.md` **§6.1** — `_process` ≤ 33,3 ms là **điều kiện đủ** để kết luận tái lập; nếu `_process` > 33,3 ms thì **chưa kết luận được** vì thiếu số Nhóm A (không được suy ra).
 
+### 3.6 So với Speed Benchmark của repo — vì sao nhóm đo **nhanh hơn** i9-13900K
+
+Đây là mốc đối chiếu **duy nhất** phía repo (bản `25f56db7`). Bảng dưới là so sánh **tham khảo**, không phải so sánh có kiểm soát:
+
+| Nguồn | CPU | Tốc độ | Điều kiện đo |
+|---|---|---|---|
+| README GMR, *Speed Benchmark* | 13th Gen Intel Core i9-13900K 24-Cores | **35~45 FPS** | **README không nêu** |
+| README GMR, *Speed Benchmark* | AMD Ryzen Threadripper 7960X 24-Cores | **60~70 FPS** | **README không nêu** |
+| Nhóm đo (bản đo cũ V3) | 12th Gen Intel Core i5-12450HX (8 core) | **57,6 FPS** (mean 17,349 ms/frame) | `walk1_subject1.bvh` (7840 frame, 30 fps), `unitree_g1`, **không** `--rate_limit`, đo **cả tiến trình** |
+
+Nhóm đo **cao hơn** khoảng 28–65 % so với mức của i9-13900K dù CPU yếu hơn, và **thấp hơn** mức Threadripper. Bốn lý do, theo thứ tự quan trọng:
+
+1. **README không nêu điều kiện đo** — không biết họ đo motion nào, robot nào, clip dài bao nhiêu, có `--rate_limit` hay không, có tính khởi tạo + render hay không. Vì vậy **không tái lập chính xác được**; đây là so sánh tham khảo.
+2. **Độ khó của motion** — clip càng nhiều động tác nhanh/biên độ lớn thì solver càng lâu hội tụ (2 stage × tối đa 10 vòng lặp, ngưỡng 0,001). `walk1_subject1` là **đi bộ**, nhẹ hơn nhiều so với dance/kungfu trong Bảng I.
+3. **Đời CPU** — i5-12450HX (12th Gen, 8 core) vs i9-13900K (13th Gen, 24 core): xung đơn nhân khác nhau, nhưng GMR chạy tuần tự từng frame nên khoảng cách không tỉ lệ với số core.
+4. **Đại lượng khác nghĩa** — số của nhóm là **cả tiến trình** (init + render + ghi pkl), tức **đã gồm overhead**; nếu lệch thì nó làm nhóm **chậm đi**. Vậy phần retarget thuần còn nhanh hơn 57,6 FPS.
+
+**Không được kết luận** "GMR chạy nhanh hơn trên CPU yếu hơn" — điều kiện đo của README không rõ. Kết luận tuyên bố vẫn chỉ dựa trên ngưỡng 33,3 ms ở §3.5.
+
 ---
 
 ## 4. Rủi ro không tái lập
 
 | # | Rủi ro | Ảnh hưởng | Cách giảm |
 |---|---|---|---|
-| 1 | **Paper không nêu phần cứng** | Không có mốc để so; "real time" của họ có thể là máy khác hẳn | Ghi rõ CPU/RAM/OS; coi ngưỡng 30 fps là ngưỡng vật lý, không phải ngưỡng của paper |
+| 1 | **Paper không nêu phần cứng**; README chỉ nêu **2 CPU** và **không nêu motion/robot/điều kiện** của Speed Benchmark | Không có mốc so sánh có kiểm soát; "real time" của họ có thể là máy/motion khác hẳn | Ghi rõ CPU/RAM/OS của nhóm; nêu cả 2 mốc README (35~45 FPS i9-13900K, 60~70 FPS 7960X) khi so sánh, không chọn 1 mốc có lợi |
 | 2 | **Đo sai đối tượng** — dùng FPS render của script | Kết quả vô nghĩa, thường thấp hơn thực tế rất nhiều | Dùng `scripts/measure_runtime.py` (probe `--retarget-only`); cấm dùng `Actual rendering FPS` |
 | 3 | **Bật `--rate_limit`** | Entry script bị áp nhịp theo motion fps → `ms_per_frame_process` luôn ≈ 33 ms (tự ứng nghiệm); probe không bị ảnh hưởng | `measure_runtime.py` không truyền cờ này; nếu đo tay thì không bật, và ghi vào `cmd` |
 | 4 | **Đường batch cần CUDA** — `bvh_to_robot_dataset.py` hardcode `device = "cuda:0"` | Máy chỉ CPU chạy batch sẽ lỗi → tưởng "không cài được" | Dùng `scripts/measure_runtime.py`; không dùng batch cho phép đo chính |
@@ -227,10 +246,12 @@ Bảng trên định nghĩa cho `ms_per_frame` (số chính thức, lấy từ p
 | Đại lượng | Bài báo | Nhóm đo được |
 |---|---|---|
 | `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** — bản đo cũ không có cột này |
-| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** | có trong `results/v3_runtime.csv` (**bản đo cũ**, 5 lần đo) — Writing điền sau khi Review PASS |
+| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** (repo: xem dòng dưới) | **17,349** (mean, n = 5, CV 2,13 %) — `results/v3_runtime.csv`, bản đo cũ |
 | `fps_out` (frame/s) | **không nêu** | không đo (chỉ suy ra được từ `ms_per_frame`) |
 | `realtime_factor` (lần) | **không nêu** — chỉ có chữ "real time" | không đo; cột `realtime_factor` trong file cũ **là của `_process`** |
-| `realtime_factor_process` (lần) | **không nêu** | có trong file cũ (cột mang tên `realtime_factor`) |
+| `realtime_factor_process` (lần) | **không nêu** | **1,92** (cột mang tên `realtime_factor` trong file cũ) |
+| FPS — README *Speed Benchmark* (bản `25f56db7`) | **không nêu** (số này của repo) | xem dòng dưới |
+| FPS — nhóm đo (i5-12450HX) | README: **35~45 FPS** (i9-13900K) và **60~70 FPS** (Threadripper 7960X) | **57,6 FPS** (mean 17,349 ms, cả tiến trình) |
 | Success rate "Dance 5" sim2sim (%) | 51 | không đo (ngoài phạm vi) |
 | `E_g-mpbpe` mean GMR (mm) | 104,1 | không đo (ngoài phạm vi) |
 | Xuyên sàn PHC "Dance 1" (cm) | 60 | không đo (ngoài phạm vi) |
@@ -280,7 +301,7 @@ Hệ quả: mọi bảng trong báo cáo phải tách hai cột. Cột "bài bá
 
 Kết luận phải viết được thành **tái lập một phần**, không phải "tái lập được" cũng không phải "không tái lập được":
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = … ms (`realtime_factor_process` = …, … lần đo, CV = … %) theo **bản đo cũ** `results/v3_runtime.csv`; áp bảng bắc cầu §6.1 với ngưỡng 33,3 ms → … (tái lập được / chưa kết luận được). Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó, và script mới chưa được dùng. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (`realtime_factor_process` = **1,92**, **5** lần đo, **CV = 2,13 %**) theo **bản đo cũ** `results/v3_runtime.csv` — tương đương **57,6 FPS** trên i5-12450HX, so với mốc README 35~45 FPS (i9-13900K) và 60~70 FPS (Threadripper 7960X); áp bảng bắc cầu §6.1 với ngưỡng 33,3 ms → **tái lập được**. Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó, và script mới chưa được dùng. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
 
 Điều kiện để câu trên đúng:
 
