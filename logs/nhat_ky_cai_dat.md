@@ -59,10 +59,20 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 | Mục | Kết quả |
 |---|---|
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
-| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | 14,03 · 15,14 · 16,34 ms/frame (thêm lần đo thứ 4 trong cửa sổ console: 13,12 ms/frame) |
-| V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13 bên dưới: cờ không được truyền vào lệnh thật) |
+| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,71 %**) |
+| V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13: cờ không được truyền vào lệnh thật) |
 | V5 sim2sim (cùng motion, 3 robot) | G1 **17,34** ms/frame · T1 29dof **13,44** · PM01 **34,99** |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
+
+**RV-14 — wall time phải nằm trong log (Review chặn merge, đã sửa):** trước đây `wall_clock_s` chỉ in ra console nên không đối chiếu ngược được. Nay mỗi lần chạy, script ghi thêm **một dòng cuối vào chính file log của lần đó**:
+
+```
+END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 frames=7840 exit=0 at=2026-11-20 22:50:56
+```
+
+Lần ghi đầu bị lỗi font (`Out-File -Encoding utf8` chèn UTF-8 vào file log vốn là UTF-16LE của PowerShell) → đổi sang `-Encoding Unicode` và **chạy lại toàn bộ**; 6 file log mới `results/logs/v3_walk1_subject1_run1..6.log` đều đọc được dòng END. Các log cũ (`v3_walk1_subject1_no_rate_limit_*.log`, `v3_walk1_subject1_rate_limit_*.log`, `v3_walk1_subject1_evidence.log`) đã bị thay thế và xoá khỏi nhánh.
+
+*Lưu ý:* lần đo đơn trong cửa sổ console (13,117 ms/frame) không thuộc lô 3 lần đo nên **không** đưa vào CSV; ảnh chụp console vẫn giữ làm bằng chứng quy trình.
 
 **RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
 
