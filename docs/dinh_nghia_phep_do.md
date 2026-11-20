@@ -1,7 +1,7 @@
 # Định nghĩa phép đo — nguồn sự thật chung của nhóm
 
 **Nhóm 01 · HR-04 · 15DHTH07 · HK1 2026–2027**
-Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.1** (sửa RV-17: tách hai đại lượng đo)
+Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.2** (RV-17 + đồng bộ CLI `measure_runtime.py`)
 Ai cũng đọc. **Không ai sửa** (muốn đổi phải qua Duy, ghi phiên bản mới).
 
 Mục đích: để 4 người đo ra số ghép được với nhau. Mọi file CSV trong `results/` phải theo đúng file này. Tuyên bố đang kiểm chứng: `docs/v1_tuyen_bo.md` (C5).
@@ -12,20 +12,23 @@ Mục đích: để 4 người đo ra số ghép được với nhau. Mọi file
 
 ### 1.1 Chỉ tiêu chính — HAI đại lượng, tên gọi khác nhau
 
-Tuyên bố nói về **vòng lặp retargeting**, nhưng phần mềm chỉ chạy được **cả tiến trình** (nạp dữ liệu + khởi tạo + render + ghi pkl). Vì vậy phải định nghĩa **cả hai** và luôn ghi đúng tên. Không được gọi chung là "ms_per_frame".
+Tuyên bố nói về **vòng lặp retargeting**, nhưng phần mềm chạy **cả tiến trình** (nạp dữ liệu + khởi tạo + render + ghi pkl). Vì vậy phải định nghĩa **cả hai**:
+
+- **`ms_per_frame`** (không hậu tố) = **vòng lặp retarget** — đại lượng chính thức để kết luận tuyên bố C5.
+- **Mọi đại lượng đo cả tiến trình đều có hậu tố `_process`.**
 
 **Nhóm A — đo vòng lặp retarget (đại lượng của tuyên bố):**
 
 | Ký hiệu | Đại lượng | Đơn vị | Định nghĩa |
 |---|---|---|---|
 | `t_i` | thời gian xử lý frame thứ *i* | ms | `(perf_counter() sau retarget) − (perf_counter() trước retarget)`, **chỉ** bọc lời gọi `retargeter.retarget(frame)` — không render, không ghi file |
-| `ms_per_frame_retarget` | trung vị `t_i` của **một lần chạy** | ms/frame | `median(t_i)` trên các frame được tính (xem §3) |
-| `ms_per_frame_retarget_mean` | trung bình cộng `t_i` | ms/frame | `mean(t_i)` |
-| `ms_per_frame_retarget_p95` | phân vị 95 | ms/frame | `percentile(t_i, 95)` — bắt đuôi chậm |
-| `fps_out` | thông lượng retarget | frame/s | `1000 / ms_per_frame_retarget` |
+| `ms_per_frame` | trung vị `t_i` của **một lần chạy** | ms/frame | `median(t_i)` trên các frame được tính (xem §3) |
+| `ms_per_frame_mean` | trung bình cộng `t_i` | ms/frame | `mean(t_i)` |
+| `ms_per_frame_p95` | phân vị 95 | ms/frame | `percentile(t_i, 95)` — bắt đuôi chậm |
+| `fps_out` | thông lượng retarget | frame/s | `1000 / ms_per_frame` |
 | `realtime_factor` | hệ số thời gian thực của retarget | lần | `fps_out / fps_src` |
 
-**Nhóm B — đo cả tiến trình (đại lượng giai đoạn 1 thực đo):**
+**Nhóm B — đo cả tiến trình (cận trên chẩn đoán):**
 
 | Ký hiệu | Đại lượng | Đơn vị | Định nghĩa |
 |---|---|---|---|
@@ -34,30 +37,35 @@ Tuyên bố nói về **vòng lặp retargeting**, nhưng phần mềm chỉ ch�
 | `fps_out_process` | thông lượng đầu-cuối | frame/s | `1000 / ms_per_frame_process` |
 | `realtime_factor_process` | hệ số thời gian thực đầu-cuối | lần | `fps_out_process / fps_src` |
 
-Quan hệ: `ms_per_frame_process` **luôn ≥** `ms_per_frame_retarget` (chứa thêm mọi overhead). Vì vậy Nhóm B là **cận trên bảo thủ** của Nhóm A.
+Quan hệ: `ms_per_frame_process` **luôn ≥** `ms_per_frame` (chứa thêm mọi overhead). Vì vậy Nhóm B là **cận trên bảo thủ** của Nhóm A, **không** dùng thay Nhóm A để kết luận.
 
-**Giai đoạn 1 (V3) đo đại lượng nào:** đo **`ms_per_frame_process`** — vì V3 chạy `scripts/bvh_to_robot.py` nguyên bản, không patch bên trong, nên chỉ bấm giờ được ở mức tiến trình. `ms_per_frame_retarget` chỉ có khi dùng wrapper §3.1 của `docs/v1_tuyen_bo.md`, và khi đó **bắt buộc** ghi cả hai.
+**Giai đoạn 1 (V3) đo đại lượng nào:** đo **cả hai trong cùng một lần chạy** bằng `scripts/measure_runtime.py` — script tự bật **2 process**:
 
-**Ngưỡng 33,3 ms áp cho đại lượng nào:** áp cho **`ms_per_frame_retarget`** (đại lượng của tuyên bố). Cách dùng `ms_per_frame_process` để kết luận mà không cần wrapper: xem §6.1.
+1. **process entry script** (`bvh_to_robot.py` / `smplx_to_robot.py` chạy nguyên bản, có viewer) → cho `ms_per_frame_process`;
+2. **process probe** (chạy lại chính script với `--retarget-only`, **không** dựng viewer, không render) → cho `ms_per_frame`; `t_init` lấy từ probe.
 
-**Ghi chú overhead:** Review đo trên V3 thấy phần tiến trình nhiều hơn phần retarget khoảng **8 %** (khởi tạo + render + ghi pkl). Con số 8 % là **quan sát một lần trên một máy**, **không phải hằng số** — **cấm** quy đổi `ms_per_frame_retarget = 0,92 × ms_per_frame_process`.
+Cả hai process đều chạy với `CUDA_VISIBLE_DEVICES=""` do script đặt.
+
+**Ngưỡng 33,3 ms áp cho đại lượng nào:** áp cho **`ms_per_frame`** (đại lượng của tuyên bố). Bảng bắc cầu khi chỉ có số `_process`: xem §6.1.
+
+**Ghi chú overhead:** Review đo trên V3 thấy phần tiến trình nhiều hơn phần retarget khoảng **8 %** (khởi tạo + render + ghi pkl). Con số 8 % là **quan sát một lần trên một máy**, **không phải hằng số** — **cấm** quy đổi `ms_per_frame = 0,92 × ms_per_frame_process`.
 
 Các trường chung:
 
 | Ký hiệu | Đại lượng | Đơn vị | Định nghĩa |
 |---|---|---|---|
-| `fps_src` | tốc độ phát của dữ liệu nguồn | frame/s | **30** với LAFAN1 (README Ubisoft: *"496,672 motion frames at 30fps"*); phải đối chiếu header `Frame Time` của file BVH và ghi lại giá trị header |
-| `t_init` | thời gian khởi tạo retargeter | s | thời gian `GMR(...)` (load MJCF + config), **không** cộng vào đại lượng nào ở trên; báo cáo riêng |
+| `fps_src` | tốc độ phát của dữ liệu nguồn | frame/s | **30** với LAFAN1 (README Ubisoft: *"496,672 motion frames at 30fps"*); truyền vào script bằng `--fps-src` (mặc định 30) và đối chiếu header `Frame Time` của file BVH |
+| `t_init` | thời gian khởi tạo retargeter | s | thời gian `GMR(...)` (load MJCF + config), đo từ **probe**; **không** cộng vào đại lượng nào ở trên, báo cáo riêng |
 | `n_frames` | số frame **được tính** vào Nhóm A | frame | tổng frame − 30 (xem §3) |
 | `n_frames_total` | tổng số frame của clip | frame | dùng cho Nhóm B, **không** trừ warm-up |
 
 Cách ghi (bắt buộc):
 
-- `ms_per_frame_retarget`, `ms_per_frame_process`: **1 chữ số thập phân**, đơn vị ms. Ví dụ `18.4`.
+- `ms_per_frame`, `ms_per_frame_process`: **1 chữ số thập phân**, đơn vị ms. Ví dụ `18.4`.
 - `fps_out`, `fps_out_process`: **1 chữ số thập phân**, đơn vị frame/s. Ví dụ `54.3`.
 - `realtime_factor`, `realtime_factor_process`: **2 chữ số thập phân**. Ví dụ `1.81`.
 - Không bao giờ ghi "khoảng", "gần", "~" trong CSV. Chỉ số.
-- Không bao giờ ghi cột tên `ms_per_frame` trần. Phải có hậu tố `_retarget` hoặc `_process`.
+- Số nào đo **cả tiến trình** thì **bắt buộc** có hậu tố `_process`. Chỉ Nhóm A mới được dùng tên trần `ms_per_frame` / `fps_out` / `realtime_factor`.
 
 ### 1.2 Chỉ tiêu phụ về chất lượng ánh xạ (nhóm tự định nghĩa — **không** phải số của paper)
 
@@ -88,7 +96,7 @@ cpu, ram_gb, os, python, numpy, mujoco, mink, torch, git_head, cuda_visible
 Quy tắc cứng:
 
 1. **Cùng một máy** cho cả 3 lần đo của một cấu hình. Đổi máy → đổi `machine_id`, không trộn.
-2. Đặt `CUDA_VISIBLE_DEVICES=""` để chắc chắn đo trên CPU (tuyên bố là "on CPU").
+2. `CUDA_VISIBLE_DEVICES=""` — `scripts/measure_runtime.py` tự đặt cho cả 2 process con; nếu đo tay thì phải tự đặt. Ghi `cuda_visible` vào CSV (script ghi sẵn).
 3. Tắt ứng dụng nặng, cắm sạc, không chạy song song việc khác trong lúc đo.
 4. **Ghim commit** repo GMR: hiện tại `25f56db7` (2026-10-22). Mọi CSV ghi `git_head`.
 5. `fps_src` phải khớp dữ liệu: LAFAN1 = 30. **Cấm** trộn file 120 Hz (ví dụ `assets/xsens_bvh_test/251021_04_boxing_120Hz_cm_3DsMax.bvh`) vào bảng so sánh chính.
@@ -108,7 +116,7 @@ lần 4  → đo, run=4        (có thể chạy thêm run=5,6 nếu CV > 5 %)
 - Mỗi lần là **một process mới** (tránh cache/heap tích tụ giữa các lần).
 - Trong mỗi lần đo, **bỏ 30 frame đầu** (≈ 1 s ở 30 fps) để loại chi phí khởi tạo lười (JIT/allocation lần đầu). Ghi rõ số frame bị bỏ vào `n_warmup_frames`.
 - `n_frames` trong CSV = số frame **thực sự được tính** vào Nhóm A (tổng frame − 30). `n_frames_total` = tổng frame của clip, **không** trừ.
-- Frame bị bỏ **không** được tính vào `ms_per_frame_retarget`, nhưng file raw vẫn ghi lại (cột `included = 0/1`) để người Review kiểm tra.
+- Frame bị bỏ **không** được tính vào `ms_per_frame`, nhưng file raw vẫn ghi lại (cột `included = 0/1`) để người Review kiểm tra.
 - `ms_per_frame_process` **không** trừ 30 frame: `T_process` phủ toàn bộ clip, chia cho `n_frames_total`. Như vậy 30 frame warm-up vẫn nằm trong tử số → đại lượng **bảo thủ** (hơi cao), đúng ý đồ của một cận trên.
 - Thời gian chạy mỗi lần ≥ 200 frame. Clip chính: **`walk1_subject1.bvh` — 7840 frame, 261,3 s @ 30 fps**. **Không** được gọi clip này là "Walk 1" của Bảng I paper: "Walk 1" trong Bảng I chỉ dài **33 s** (mục V-D và Bảng I, trang 6). Hai thứ khác nhau, không được gộp.
 
@@ -117,7 +125,7 @@ lần 4  → đo, run=4        (có thể chạy thêm run=5,6 nếu CV > 5 %)
 - Bật `--rate_limit` (giới hạn nhịp theo chuyển động người → kết quả luôn ≈ 30 fps, tự ứng nghiệm).
 - Dùng con số `Actual rendering FPS` do `scripts/bvh_to_robot.py` in ra (đó là FPS của vòng lặp **có render**, không phải retargeting).
 - Dùng `scripts/bvh_to_robot_dataset.py` làm phép đo chính (hardcode `device = "cuda:0"`).
-- Dựng `RobotMotionViewer` **khi đo `ms_per_frame_retarget`** (cần display, làm nhiễu số). Ngược lại, khi đo `ms_per_frame_process` thì **phải giữ nguyên** viewer như lúc V3 chạy thật — bỏ viewer đi sẽ làm đại lượng "cả tiến trình" không còn là cận trên đúng nghĩa.
+- Dựng `RobotMotionViewer` **khi đo `ms_per_frame`** (cần display, làm nhiễu số). Ngược lại, khi đo `ms_per_frame_process` thì **phải giữ nguyên** viewer như lúc V3 chạy thật — bỏ viewer đi sẽ làm đại lượng "cả tiến trình" không còn là cận trên đúng nghĩa.
 - Dùng `time.time()` — bắt buộc `time.perf_counter()`.
 
 ---
@@ -128,10 +136,10 @@ Với mỗi cấu hình (robot × clip × máy), tính **riêng cho từng đạ
 
 ```
 # Nhóm A — vòng lặp retarget
-ms_per_frame_retarget_final = mean( ms_per_frame_retarget của run 2, 3, 4 )
+ms_per_frame_final = mean( ms_per_frame của run 2, 3, 4 )
 sd_A     = độ lệch chuẩn mẫu (ddof = 1) của 3 giá trị trên
-CV_A     = sd_A / ms_per_frame_retarget_final × 100 %
-fps_out  = 1000 / ms_per_frame_retarget_final
+CV_A     = sd_A / ms_per_frame_final × 100 %
+fps_out  = 1000 / ms_per_frame_final
 realtime_factor = fps_out / fps_src
 
 # Nhóm B — cả tiến trình
@@ -144,7 +152,7 @@ realtime_factor_process = fps_out_process / fps_src
 
 Báo cáo dạng:
 
-- **`ms_per_frame_retarget` = X ± Y ms (mean ± sd, n = 3)** + `ms_per_frame_retarget_p95` của lần chạy có trung vị gần `..._final` nhất.
+- **`ms_per_frame` = X ± Y ms (mean ± sd, n = 3)** + `ms_per_frame_p95` của lần chạy có trung vị gần `..._final` nhất.
 - **`ms_per_frame_process` = X ± Y ms (mean ± sd, n = 3)**.
 
 Nếu `CV > 5 %` (áp cho cả hai):
@@ -161,13 +169,16 @@ Nếu `CV > 5 %` (áp cho cả hai):
 ### 5.1 `results/v3_runtime.csv` — 1 dòng / lần chạy
 
 ```
-run,robot,motion,bvh_file,n_frames,n_frames_total,n_warmup_frames,fps_src,ms_per_frame_process,ms_per_frame_retarget,ms_per_frame_retarget_mean,ms_per_frame_retarget_p95,fps_out,fps_out_process,realtime_factor,realtime_factor_process,t_init_s,cpu,ram_gb,os,python,numpy,mujoco,mink,torch,git_head,cuda_visible,cmd,timestamp
+run,robot,motion,bvh_file,n_frames,n_warmup_frames,fps_src,ms_per_frame,ms_per_frame_mean,ms_per_frame_p95,fps_out,realtime_factor,t_init_s,cpu,ram_gb,os,python,numpy,mujoco,mink,torch,git_head,cuda_visible,cmd,timestamp,n_frames_total,ms_per_frame_process,fps_out_process,realtime_factor_process,process_cmd
 ```
 
-- `ms_per_frame_process` **bắt buộc** (giai đoạn 1 đo được).
-- `ms_per_frame_retarget` và các cột `_retarget_mean` / `_retarget_p95`: **để trống** nếu không dùng wrapper. Không được bịa, không được suy ra từ `_process`.
-- `fps_out` / `realtime_factor` (không hậu tố) luôn tính từ **`ms_per_frame_retarget`**; nếu cột đó trống thì hai cột này cũng trống.
-- `fps_out_process` / `realtime_factor_process` tính từ `ms_per_frame_process`.
+Đây là **đúng thứ tự cột** mà `scripts/measure_runtime.py` xuất ra (`SUMMARY_COLUMNS`, commit `5f9cdd5`). Không đổi thứ tự, không đổi tên.
+
+- `ms_per_frame`, `ms_per_frame_mean`, `ms_per_frame_p95`, `fps_out`, `realtime_factor`: từ **probe** (chỉ retarget()).
+- `ms_per_frame_process`, `fps_out_process`, `realtime_factor_process`: từ **entry script** (cả tiến trình).
+- `process_cmd`: lệnh entry script đã chạy — dùng để tái lập cột `_process`; `cmd` là lệnh probe — dùng để tái lập cột `ms_per_frame`.
+- `t_init_s`: lấy từ probe.
+- Nếu ai đó đo tay bằng `bvh_to_robot.py` (không qua script): chỉ có `_process`; các cột Nhóm A **để trống**, **không** suy ra từ `_process`.
 
 - `run`: 1 = warm-up (bị loại), 2–4 = đo.
 - `cmd`: **nguyên văn** lệnh đã chạy (dấu nháy được phép, dấu phẩy thì bọc trong `"`).
@@ -185,7 +196,7 @@ run,motion,robot,frame,included,ms
 ### 5.3 `results/v5_sim2sim.csv` — 1 dòng / (robot × clip)
 
 ```
-robot,robot_dof,motion,bvh_file,n_frames,n_frames_total,fps_src,ms_per_frame_process,ms_per_frame_retarget,fps_out_process,fps_out,realtime_factor_process,realtime_factor,min_body_height,foot_slide,git_head,cmd,timestamp
+robot,robot_dof,motion,bvh_file,n_frames,n_frames_total,fps_src,ms_per_frame_process,ms_per_frame,fps_out_process,fps_out,realtime_factor_process,realtime_factor,min_body_height,foot_slide,git_head,cmd,timestamp
 ```
 
 ---
@@ -194,24 +205,24 @@ robot,robot_dof,motion,bvh_file,n_frames,n_frames_total,fps_src,ms_per_frame_pro
 
 ### 6.1 Ngưỡng 33,3 ms áp cho đại lượng nào
 
-**Ngưỡng 33,3 ms (= 1000/30) áp cho `ms_per_frame_retarget`** — đại lượng của tuyên bố ("retarget theo thời gian thực").
+**Ngưỡng 33,3 ms (= 1000/30) áp cho `ms_per_frame`** — đại lượng của tuyên bố ("retarget theo thời gian thực").
 
-Giai đoạn 1 chưa có wrapper nên chỉ đo `ms_per_frame_process`. Quy tắc bắt buộc:
+Giai đoạn 1 **có đủ cả hai** số (script đo 2 process trong một lần chạy) → kết luận thẳng theo `ms_per_frame` ở §6.3. Bảng dưới chỉ dùng cho trường hợp **thiếu** số Nhóm A (ví dụ ai đó đo tay bằng `bvh_to_robot.py`, hoặc probe lỗi):
 
 | Tình huống | Được kết luận |
 |---|---|
 | `ms_per_frame_process` ≤ 33,3 ms | **Tái lập được** — điều kiện **đủ**: `retarget ≤ process ≤ 33,3 ms` |
-| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame_retarget` ≤ 33,3 ms | **Tái lập một phần** — vòng lặp retarget đạt real-time, nhưng đầu-cuối (init + render + ghi pkl) thì không |
-| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame_retarget` > 33,3 ms | **Không tái lập được** (theo mức < 0,80 thì phải thử máy thứ hai) |
-| `ms_per_frame_process` > 33,3 ms, **không có** `ms_per_frame_retarget` | **Chưa kết luận được** — phải chạy wrapper trước |
+| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame` ≤ 33,3 ms | **Tái lập một phần** — vòng lặp retarget đạt real-time, nhưng đầu-cuối (init + render + ghi pkl) thì không |
+| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame` > 33,3 ms | **Không tái lập được** (theo mức < 0,80 thì phải thử máy thứ hai) |
+| `ms_per_frame_process` > 33,3 ms, **không có** `ms_per_frame` | **Chưa kết luận được** — phải chạy `scripts/measure_runtime.py` (probe) trước |
 
-**Cấm** quy đổi `ms_per_frame_retarget = 0,92 × ms_per_frame_process`. Tỉ lệ overhead 8 % là quan sát một lần của Review trên một máy, không phải hằng số; dùng nó để "sửa" số là bịa số.
+**Cấm** quy đổi `ms_per_frame = 0,92 × ms_per_frame_process`. Tỉ lệ overhead 8 % là quan sát một lần của Review trên một máy, không phải hằng số; dùng nó để "sửa" số là bịa số.
 
 ### 6.2 Bảng sai số
 
 | Chỉ tiêu | Sai số chấp nhận | Nếu vượt |
 |---|---|---|
-| `ms_per_frame_retarget` và `ms_per_frame_process` giữa các lần chạy | **CV ≤ 5 %** (tính riêng cho mỗi đại lượng) | chạy thêm 2 lần, báo trung vị (§4) |
+| `ms_per_frame` và `ms_per_frame_process` giữa các lần chạy | **CV ≤ 5 %** (tính riêng cho mỗi đại lượng) | chạy thêm 2 lần, báo trung vị (§4) |
 | Cùng đại lượng, chạy lại trên máy khác | **≤ 25 %** | ghi thành 2 dòng riêng, **không** trộn vào một con số |
 | `min_body_height` | ± 5 mm | kiểm tra lại FK / đơn vị |
 | `foot_slide` | ± 10 % | kiểm tra ngưỡng tiếp đất 1 cm |
@@ -223,7 +234,7 @@ Mọi ngưỡng trong bảng trên là **do nhóm đặt trước**; bài báo k
 
 ### 6.3 Ba mức kết luận (chốt trước, **không đổi sau khi thấy số**)
 
-Áp cho `realtime_factor` (tức `ms_per_frame_retarget`); với giai đoạn 1 chưa có wrapper thì áp theo bảng §6.1.
+Áp cho `realtime_factor` (tức `ms_per_frame`). Khi thiếu số Nhóm A thì áp theo bảng §6.1.
 
 | `realtime_factor` | Kết luận |
 |---|---|
@@ -256,9 +267,9 @@ Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình họ
 
 | Vai | Việc | Không được làm |
 |---|---|---|
-| Code (Vỹ) | `scripts/measure_retarget_runtime.py` xuất đúng §5 | không sửa ngưỡng trong file này |
-| Run (Mạnh) | chạy §3, sinh CSV, ghi log | không bỏ lần chạy xấu, không chọn tay |
-| Review (Trường) | kiểm CSV đủ cột, **đúng tên đại lượng** (`_retarget` vs `_process`), có `cmd`, `git_head`, CV ≤ 5 %, không có `--rate_limit` | không tự đo lại rồi trộn số |
+| Code (Vỹ) | **Đã xong**: `scripts/measure_runtime.py` @ `5f9cdd5` (nhánh `task/code-scripts3`), xuất đúng §5 | không sửa ngưỡng trong file này |
+| Run (Mạnh) | chạy §3 bằng CLI của script, sinh CSV, ghi log | không bỏ lần chạy xấu, không chọn tay |
+| Review (Trường) | kiểm CSV đủ cột, **đúng tên đại lượng** (`ms_per_frame` vs `_process`), có `cmd` + `process_cmd`, `git_head`, CV ≤ 5 % | không tự đo lại rồi trộn số |
 | Writing | điền bảng `bài báo | nhóm đo được` | không chép số paper sang cột nhóm |
 
 ---
@@ -268,4 +279,5 @@ Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình họ
 | Phiên bản | Ngày | Thay đổi | Người |
 |---|---|---|---|
 | 1.0 | 2026-11-20 | Bản đầu: chốt `ms_per_frame` / `fps_out` / `realtime_factor`, 1 warm-up + 3 lần, CV ≤ 5 %, ngưỡng 1,00; thêm V5 3 robot | Duy |
-| 1.1 | 2026-11-20 | **RV-17**: tách `ms_per_frame_retarget` (chỉ vòng lặp) và `ms_per_frame_process` (cả tiến trình); nói rõ giai đoạn 1 đo `_process`, ngưỡng 33,3 ms áp cho `_retarget`, thêm bảng §6.1; cấm quy đổi bằng hệ số 0,92; sửa ghi chú clip `walk1_subject1.bvh` (7840 frame, 261,3 s) ≠ "Walk 1" (33 s) của Bảng I | Duy |
+| 1.1 | 2026-11-20 | **RV-17**: tách hai đại lượng (vòng lặp retarget với hậu tố `_retarget`, và cả tiến trình với `_process`); ngưỡng 33,3 ms áp cho đại lượng retarget; thêm bảng §6.1; cấm quy đổi bằng hệ số 0,92; sửa ghi chú clip `walk1_subject1.bvh` (7840 frame, 261,3 s) ≠ "Walk 1" (33 s) của Bảng I | Duy |
+| 1.2 | 2026-11-21 | **Đồng bộ với CLI cuối của Code** (`scripts/measure_runtime.py` @ `5f9cdd5`): đổi tên `ms_per_frame_retarget` → **`ms_per_frame`** và `ms_per_frame_retarget_p95` → **`ms_per_frame_p95`** (đây mới là tên chính thức); mọi số đo cả tiến trình giữ hậu tố `_process`; §5.1 chép đúng thứ tự cột của `SUMMARY_COLUMNS` (thêm `n_frames_total`, `process_cmd`); ghi rõ script đo **2 process** trong một lần chạy (entry script cho `_process`, probe `--retarget-only` cho `ms_per_frame`, `t_init` lấy từ probe); §6.1 chỉ còn là quy tắc dự phòng khi thiếu số Nhóm A | Duy |
