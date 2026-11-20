@@ -32,7 +32,7 @@ Kiểm chứng tuyên bố "retarget thời gian thực trên CPU" của GMR b�
 |---|---|---|
 | **V3 — tốc độ 1 robot** (Unitree G1, `walk1_subject1.bvh` 7.840 frame, CPU, không `--rate_limit`) | `ms_per_frame_process` = **17,349 ms** (mean, n = 5; median 17,272; CV 2,13 %) → **57,6 FPS** quy đổi, `realtime_factor` ≈ **1,92** | `results/v3_runtime.csv`; 1 warm-up bị loại, 5 lần đo |
 | **V5 — sim2sim 3 robot** (cùng một motion) | G1 **16,758 ms** (mean, n = 3) · Booster T1 29dof **13,034 ms** (median, n = 5) · ENGINEAI PM01 **34,975 ms** (mean, n = 3) | `results/v5_sim2sim.csv`; H1 ghi `blocked`, xem `results/v5_h1_note.md` |
-| **Chất lượng ánh xạ** (pkl V5, 7.839 frame) | `foot_slide_mean` 49,0 / 83,1 / 118,4 mm/s; `min_body_height` +9,9 / −7,6 / +43,8 mm; **không có frame nào có gốc body dưới −1 mm: 0 / 2,13 / 0 %**; bão hòa khớp 23,8 / 43,3 / 24,1 % | `results/v6_quality.csv` (G1 / T1 / PM01) |
+| **Chất lượng ánh xạ** (pkl V5, 7.839 frame) | `foot_slide_mean` 49,0 / 83,1 / 118,4 mm/s (ngưỡng nhóm ≤ 50 mm/s: **chỉ G1 đạt**); `pct_frames_penetration` — frame có **gốc body** dưới −1 mm: 0 / 2,13 / 0 %; `min_body_height` +9,9 / −7,6 / +43,8 mm; bão hòa khớp 23,8 / 43,3 / 24,1 % | `results/v6_quality.csv` (G1 / T1 / PM01), ngưỡng theo `docs/quyet_dinh.md` DEC-03 |
 
 **Phép thử nhiễu (V6):** N1 σ = 0,5° → 0,51 % frame lệch > 5°; σ = 2° → **87,74 %**; trễ 1–5 frame và mất 1–10 % frame gần như không đổi (`dq_mean` 0,001°); scale vị trí ±20 % → 90,4–98,0 % frame lệch > 5° (`results/v6_noise_sweep.csv`).
 
@@ -174,8 +174,8 @@ Kèm `scripts/NOTES.md` (cấu trúc `.pkl`, cách gọi script) và `scripts/te
 1. **Paper không công bố FPS.** Ba bảng của paper đều đo policy đã train, không đo retargeter; con số tốc độ duy nhất là bảng *Speed Benchmark* trong README repo (35–45 FPS trên i9-13900K). Vì vậy báo cáo không được so tốc độ "với paper".
 2. **`ms_per_frame_process` là cận trên**, gồm khởi tạo, render và ghi pkl; thời gian retarget thuần chỉ có khi dùng `scripts/measure_runtime.py`. Ngưỡng 33,3 ms do nhóm đặt, không phải của paper.
 3. **`foot_slide` là chỉ số proxy.** Định nghĩa "tiếp đất" theo mức thấp nhất của chính bàn chân và đo tại tâm thân bàn chân, nên chỉ dùng **so sánh tương đối** giữa 3 robot, không phải số tuyệt đối.
-4. **`min_body_height` phụ thuộc offset nghỉ của model** (G1 +16,1 mm, T1 +36,6 mm, PM01 +45,0 mm). Muốn so "thấp hơn vị trí nghỉ bao nhiêu" phải trừ `rest_offset_mm`.
-5. **Nhóm không đặt ngưỡng tuyệt đối cho chất lượng trước khi đo**, nên chỉ kết luận tương đối; riêng xuyên sàn dùng `pct_frames_penetration` đo tại **gốc body** (không phải bề mặt/mesh), nên 0 % chỉ là "không có gốc body dưới −1 mm".
+4. **`min_body_height` phụ thuộc offset nghỉ của model** (G1 +16,1 mm, T1 +36,6 mm, PM01 +45,0 mm). Ngưỡng ±5 mm đặt trước khi đo đã **bị rút** (DEC-03) vì nó đo độ cao gốc body, không đo xuyên sàn; phần thay thế (`pct_frames_penetration`, `min_body_height − rest_offset`) là **hậu kiểm**.
+5. **Ngưỡng chất lượng:** một ngưỡng đăng ký trước được **giữ và áp dụng** — `foot_slide ≤ 50 mm/s`, chỉ G1 đạt; một ngưỡng (`min_body_height ±5 mm`) bị rút sau khi đo vì lý do kỹ thuật. Vì vậy kết luận chất lượng chỉ mang tính tương đối, và `pct_frames_penetration` đo tại **gốc body** (không phải bề mặt/mesh): 0 % chỉ là "không có gốc body dưới −1 mm".
 6. **V4 — không huấn luyện.** GMR là retargeting dựa trên tối ưu (mink + MuJoCo), không phải RL, không có checkpoint để train; V4 được thay bằng chạy lại pipeline với 3 cấu hình.
 7. **H1 bị chặn trên đường LAFAN1** (không có `bvh_lafan1_to_h1.json`, `--robot unitree_h1` không hợp lệ); **H1_2 chạy được qua Xsens 120 Hz**, nhưng không dùng để so tốc độ vì script Xsens bật rate-limit mặc định.
 8. **KI-02:** bốn dòng `rate_limit` từng có `cmd` ghi cờ chưa từng chạy; đã xoá khỏi CSV và ghi lại trong `docs/known_issues.md`.
