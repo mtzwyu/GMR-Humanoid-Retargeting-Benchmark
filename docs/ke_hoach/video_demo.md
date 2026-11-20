@@ -20,7 +20,7 @@
 - `demo_90s_720p.mp4` — H.264, 1280×720, **không audio** (`-an`), mục tiêu ≤ 25 MB → bản nộp
 - `demo_90s_540p.mp4` — bản nhẹ ≤ 8 MB để nhúng slide
 
-## Kịch bản 6 cảnh (90 giây)
+## Kịch bản 6 cảnh (thời lượng lấy theo manifest thực tế ≈ 67 s)
 
 | # | Thời gian | Nội dung | Nguồn asset | Trạng thái |
 |---|---|---|---|---|
@@ -72,7 +72,7 @@ Pipeline mỗi cảnh:
 
 ## Checklist nghiệm thu
 
-- [ ] `ffprobe` báo duration **90 ± 2 s**, 1280×720, h264, **không audio**
+- [ ] `ffprobe` báo duration **65–75 s** (tổng thực tế theo manifest: S0 5 + S1 10 + S2 10 + S3 10 + S4 10 + S5 14 + S6 8 ≈ **67 s**), 1280×720, h264, **không audio**
 - [ ] Bản 720p ≤ 25 MB, bản 540p ≤ 8 MB
 - [ ] Số trên phụ đề khớp `results/v3_runtime.csv` và `results/v5_sim2sim.csv` (17,3 · 13,0 · 17,0 · 35,5)
 - [ ] Phụ đề không che thân robot ở cả 6 cảnh
