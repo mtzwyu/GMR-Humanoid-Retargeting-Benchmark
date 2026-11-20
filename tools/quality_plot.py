@@ -22,7 +22,7 @@ bars = ax.bar(labels, means, color=colors, width=0.55)
 for i, r in enumerate(rows):
     ax.plot([i, i], [float(r["foot_slide_L"]), float(r["foot_slide_R"])], color="black",
             linewidth=1.2, marker="o", markersize=5, zorder=3)
-    ax.annotate(f"{means[i]:.1f}", (i, means[i]), ha="center", va="bottom", fontsize=9)
+    ax.annotate(f"{means[i]:.1f}".replace(".", ","), (i, means[i]), ha="center", va="bottom", fontsize=9)
 ax.set_ylabel("foot slide (mm/s)")
 ax.set_title("foot_slide: cột = trung bình 2 chân, chấm = trái/phải")
 ax.grid(axis="y", alpha=0.3)
@@ -36,10 +36,10 @@ for i, h in enumerate(heights):
     rest = float(rows[i]["rest_offset_mm"])
     ax.plot([i - 0.27, i + 0.27], [rest, rest], color="black", linewidth=1.4, linestyle=":",
             zorder=4)
-    ax.annotate(f"{h:.1f}", (i, h), ha="center", va="bottom" if h >= 0 else "top", fontsize=9)
+    ax.annotate(f"{h:.1f}".replace(".", ","), (i, h), ha="center", va="bottom" if h >= 0 else "top", fontsize=9)
 ax.plot([], [], color="black", linestyle=":", linewidth=1.4, label="offset nghỉ của model")
 ax.set_ylabel("min body height (mm)")
-ax.set_title("Độ cao tâm thân thấp nhất (âm = tâm thân dưới mặt đất)")
+ax.set_title("Độ cao gốc body thấp nhất (âm = gốc body dưới mặt đất)")
 ax.legend(fontsize=8)
 ax.grid(axis="y", alpha=0.3)
 

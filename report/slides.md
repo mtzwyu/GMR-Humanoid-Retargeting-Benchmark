@@ -24,7 +24,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 | 3 | Bài toán retargeting | 1:00 | 1:00 | Duy |
 | 4 | Paper làm gì (4 nguồn, 84 policy) | 2:00 | 1:00 | Duy |
 | 5 | Nghịch lý: paper không có số tốc độ | 3:00 | 0:50 | Duy |
-| 6 | Tuyên bố + ngưỡng 33,3 ms | 3:50 | 0:40 | Duy |
+| 6 | Tuyên bố + ngưỡng 33,33 ms | 3:50 | 0:40 | Duy |
 | 7 | Cài đặt: 7 sự cố, 1 quyết định | 4:30 | 1:10 | Mạnh |
 | 8 | Đo cái gì: process vs retarget | 5:40 | 0:50 | Mạnh |
 | 9 | Kết quả V3 | 6:30 | 0:50 | Mạnh |
@@ -68,9 +68,9 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 - Sơ đồ 3 khối: người (mocap) → **retargeting** → robot (qpos)
 - Ba tầng khó: embodiment gap · ràng buộc vật lý (sàn/tự cắt/giật) · thời gian thực
-- Số nhấn: người ↔ G1 29 DoF; ngân sách **33,3 ms/frame** ở 30 fps
+- Số nhấn: người ↔ G1 29 DoF; ngân sách **33,33 ms/frame** ở 30 fps
 
-**Lời:** nhấn "33,3 ms là ngân sách của dữ liệu nguồn, không phải ngưỡng của paper".
+**Lời:** nhấn "33,33 ms là ngân sách của dữ liệu nguồn, không phải ngưỡng của paper".
 
 ---
 
@@ -104,7 +104,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 **Thông điệp:** một câu chốt, một ngưỡng đặt trước, một cách đọc duy nhất.
 
 - Câu chốt (rút gọn 2 dòng)
-- `ms_per_frame ≤ 33,3 ms` ⇔ `fps_out ≥ 30` ⇔ `realtime_factor ≥ 1,00`
+- `ms_per_frame ≤ 33,33 ms` ⇔ `fps_out ≥ 30` ⇔ `realtime_factor ≥ 1,00`
 - Ba nhãn: ≥1,00 tái lập được · 0,80–0,99 một phần · <0,80 không
 
 **Lời:** "Ngưỡng chốt trước, không đổi sau khi thấy số."
@@ -142,7 +142,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 - Số lớn: **17,349 ms** (trung bình, n = 5) · CV **2,13 %** · 1,92× · **57,6 FPS**
 - Mốc repo (Speed Benchmark): 35–45 FPS (i9-13900K) · 60–70 FPS (Threadripper) — README không nêu điều kiện
-- Đồ thị: `v3_ms_per_frame_g1_2026-11-20.png` (đường 33,3 ms)
+- Đồ thị: `v3_ms_per_frame_g1_2026-11-20.png` (đường 33,33 ms)
 - Bảng nhỏ 5 điểm: 17,522 · 17,246 · 17,852 · 16,853 · 17,272
 - Ghi chú: bỏ warm-up; cả 5 giá trị đều < 20 ms
 
@@ -152,9 +152,9 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 ## 10. Bắc cầu — 0:40
 
-**Thông điệp:** `process ≤ 33,3` là điều kiện **đủ**, không phải suy diễn.
+**Thông điệp:** `process ≤ 33,33` là điều kiện **đủ**, không phải suy diễn.
 
-- Bất đẳng thức: `retarget ≤ process = 17,349 ≤ 33,3`
+- Bất đẳng thức: `retarget ≤ process = 17,349 ≤ 33,33`
 - Kết luận: tái lập được **ở mức cả tiến trình**
 - Không được nói: "vòng lặp retarget đạt real-time" (không đo)
 - Sai số giữa hai phiên ≈ 14 % → báo 17,3 ms, không 17,35
@@ -180,7 +180,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 **Thông điệp:** ít khớp nhất mà chậm nhất → số DoF không giải thích được.
 
-- 24 DoF / 34,975 ms vs 27 DoF / 13,034 ms (chậm 2,7×)
+- 24 DoF / 34,975 ms (mean) vs 27 DoF / 13,034 ms (median); so cùng mean thì chậm 2,8× T1
 - Ba giả thuyết: cấu hình IK · số vòng lặp solver · mô hình nặng
 - Nhãn đỏ: "**giả thuyết**, chưa tách nguyên nhân"
 
@@ -193,7 +193,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 **Thông điệp:** đổi khối lượng không đổi một byte pkl, nên phép thử đó sẽ là bảng giả.
 
 - GMR = tối ưu động học, không có physics trong vòng tính
-- SHA256: 40 pkl trùng theo cặp (robot, motion)
+- SHA256: 40 file pkl — 37 thuộc 4 cặp trùng hash tuyệt đối, 3 file lẻ
 - Thay bằng N1–N4: nhiễu khớp · trễ · mất frame · lệch tỉ lệ người (15 mức × 1 lần)
 - Kết quả headline: N2/N3 vô hại · N1 hỏng từ **2°** · N4 hỏng từ **±10 %**, giãn nặng hơn co
 - Cảnh báo trên slide: `dr_rmse` 719 mm của N4 là **scale quỹ đạo**, không phải sai tư thế
@@ -239,10 +239,10 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 | # | Câu hỏi dễ bị hỏi | Trả lời ngắn (1 hơi) |
 |---|---|---|
-| 1 | Sao không đo `ms_per_frame`? | Bản đo cũ chỉ có `_process` (13 cột); script mới có probe nhưng Planner chốt không chạy lại. `process ≤ 33,3` là điều kiện **đủ**, nên kết luận vẫn đứng. |
+| 1 | Sao không đo `ms_per_frame`? | Bản đo cũ chỉ có `_process` (13 cột); script mới có probe nhưng Planner chốt không chạy lại. `process ≤ 33,33` là điều kiện **đủ**, nên kết luận vẫn đứng. |
 | 2 | Sao không train 3 seed? | GMR không huấn luyện — không có trọng số/seed. Policy BeyondMimic cần IsaacSim + GPU + 84 policy. Nhóm thay bằng 3 cấu hình (số V5) và ghi rõ. |
-| 3 | PM01 chậm vì ít khớp? | Ngược lại: 24 DoF mà chậm 2,7× T1 27 DoF. Số khớp không giải thích; ba giả thuyết IK/solver/model, chưa tách. |
-| 4 | Sim2sim không đúng "nhiễu vật lý"? | Khối lượng không vào vòng tính; 40 pkl trùng SHA256. Làm bảng ±20 % sẽ là bảng giả; nhóm thay bằng N1–N4. |
+| 3 | PM01 chậm vì ít khớp? | Ngược lại: 34,975 ms (mean) vs 13,034 ms (median); so cùng mean thì chậm 2,8× T1 27 DoF. Số khớp không giải thích; ba giả thuyết IK/solver/model, chưa tách. |
+| 4 | Sim2sim không đúng "nhiễu vật lý"? | Khối lượng không vào vòng tính; 40 file pkl có 37 file thuộc 4 cặp trùng SHA256, 3 file lẻ. Làm bảng ±20 % sẽ là bảng giả; nhóm thay bằng N1–N4. |
 | 5 | Hai đợt lệch 14 %, số nào tin? | pkl giống nhau từng byte → chênh do trạng thái máy. Chọn đợt chậm hơn (bảo thủ), báo 17,3 ms kèm sai số giữa phiên. |
 | 6 | So với paper thế nào? | Paper không công bố ms/FPS/hardware; chỉ so được với ngưỡng nhóm đặt. Không có tỉ lệ "nhanh hơn paper". |
 | 7 | Nhiễu trễ có 36° ở frame 0 — có phải lỗi tích lũy? | Không. Đó là **1 frame biên**: IK khởi tạo từ nghiệm frame trước nên phụ thuộc warm start; lệch tắt dần 0,31 → 0,10 → 0,05 → 0,02°. `dq_mean` toàn clip = 0,001°. |

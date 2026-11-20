@@ -18,12 +18,12 @@
 |---|---|---|
 | 1 | Giới thiệu bài toán và tóm tắt bài báo | 2 |
 | 2 | Tuyên bố cần kiểm chứng | 3 |
-| 3 | Nhật ký cài đặt | 5 |
-| 4 | Kết quả chạy mô hình có sẵn, đối chiếu với bài báo | 6 |
-| 5 | Kết quả tự huấn luyện (3 hạt giống) | 7 |
-| 6 | Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu, chất lượng ánh xạ và đồ thị | 8 |
-| 7 | Kết luận | 13 |
-| 8 | Phân công công việc và tự thuật từng thành viên | 14 |
+| 3 | Nhật ký cài đặt | 4 |
+| 4 | Kết quả chạy mô hình có sẵn, đối chiếu với bài báo | 5 |
+| 5 | Kết quả tự huấn luyện (3 hạt giống) | 6 |
+| 6 | Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu, chất lượng ánh xạ và đồ thị | 7 |
+| 7 | Kết luận | 12 |
+| 8 | Phân công công việc và tự thuật từng thành viên | 13 |
 |  | Tài liệu tham khảo | 15 |
 
 **Phạm vi:** chạy retargeting có sẵn, đo tốc độ, sim2sim 3 robot + 4 phép thử nhiễu; **không** train RL, **không** robot thật. **Máy đo:** LENOVO 83GS · i5-12450HX · ~15,7 GiB · Windows 11 · **CPU**. **Dữ liệu:** LAFAN1 (Ubisoft), BVH 30 fps, CC BY-NC-ND 4.0.
@@ -38,7 +38,7 @@
 
 1. **Sai khác hình thái.** Người và robot khác nhau về số bậc tự do, tỉ lệ chiều dài khâu, giới hạn khớp và tư thế nghỉ. Ánh xạ thẳng góc khớp là vô nghĩa; ánh xạ thẳng vị trí tuyệt đối thì vi phạm giới hạn khớp.
 2. **Ràng buộc vật lý.** Kết quả phải không xuyên sàn, không bay, không tự cắt, không giật khớp — những lỗi mắt người thấy ngay nhưng khó gói vào một hàm mục tiêu.
-3. **Thời gian thực.** Với teleoperation, retargeting phải nhanh ít nhất bằng tốc độ phát dữ liệu nguồn (LAFAN1 30 fps ⇒ 33,3 ms/frame). Chậm hơn thì chỉ phát lại được, không điều khiển được.
+3. **Thời gian thực.** Với teleoperation, retargeting phải nhanh ít nhất bằng tốc độ phát dữ liệu nguồn (LAFAN1 30 fps ⇒ 33,33 ms/frame). Chậm hơn thì chỉ phát lại được, không điều khiển được.
 
 Tầng thứ ba là chỗ nhóm chọn kiểm chứng: đo được trên CPU, không cần GPU, không cần huấn luyện.
 
@@ -60,13 +60,13 @@ Paper **không công bố con số tốc độ nào**: không ms/frame, không F
 
 ### 2.1 Câu chốt
 
-> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget LAFAN1 (30 fps) sang Unitree G1 trên CPU, không bật `--rate_limit`; coi là tái lập được nếu trung vị `ms_per_frame` ≤ 33,3 ms, tức `fps_out` ≥ 30 và `realtime_factor` ≥ 1,00.**
+> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget LAFAN1 (30 fps) sang Unitree G1 trên CPU, không bật `--rate_limit`; coi là tái lập được nếu trung vị `ms_per_frame` ≤ 33,33 ms, tức `fps_out` ≥ 30 và `realtime_factor` ≥ 1,00.**
 
 Bốn điều bắt buộc ghi kèm:
 
 1. **Nguồn tuyên bố là repo, không phải paper.** Paper không nói GMR real-time và không định nghĩa "real-time".
 2. **Paper không có số** ⇒ giá trị gốc là **định tính**; không tồn tại sai số "so với paper", mọi so sánh tốc độ với paper là bịa.
-3. **Ngưỡng 33,3 ms do nhóm đặt** (`1000/30`, từ tốc độ phát LAFAN1), chốt trước khi thấy số.
+3. **Ngưỡng 33,33 ms do nhóm đặt** (`1000/30`, từ tốc độ phát LAFAN1), chốt trước khi thấy số.
 4. **Giai đoạn 1 chỉ đo `ms_per_frame_process`** bằng bản đo cũ `results/v3_runtime.csv` (13 cột, không có cột `ms_per_frame`); kết luận đi qua bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`; **cấm** quy đổi `0,92 ×`.
 
 ### 2.2 Vì sao chọn phương án C
@@ -81,16 +81,16 @@ Vì paper không có số tốc độ, nhóm cân nhắc: **A** chỉ đo real-t
 |---|---|---|
 | `ms_per_frame` | **chỉ** `retarget()` từng frame (probe, không viewer) | Đại lượng của tuyên bố |
 | `ms_per_frame_process` | cả tiến trình: nạp BVH + init + viewer + retarget + render + ghi pkl | Cận trên bảo thủ; giai đoạn 1 chỉ có số này |
-| `realtime_factor_process` | `33,333 / ms_per_frame_process` | Đọc kèm, không thay thế |
+| `realtime_factor_process` | `(1000 / ms_per_frame_process) / fps_src` | Đọc kèm, không thay thế |
 
 **Bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`** (vì thiếu số Nhóm A):
 
 | Tình huống | Kết luận |
 |---|---|
-| `process` ≤ 33,3 ms | **Tái lập được** — điều kiện đủ (`retarget ≤ process`) |
-| `process` > 33,3 **và** `ms_per_frame` ≤ 33,3 | Tái lập một phần |
-| `process` > 33,3 **và** `ms_per_frame` > 33,3 | Không tái lập được (phải thử máy thứ hai) |
-| `process` > 33,3, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra |
+| `process` ≤ 33,33 ms | **Tái lập được** — điều kiện đủ (`retarget ≤ process`) |
+| `process` > 33,33 **và** `ms_per_frame` ≤ 33,33 | Tái lập một phần |
+| `process` > 33,33 **và** `ms_per_frame` > 33,33 | Không tái lập được (phải thử máy thứ hai) |
+| `process` > 33,33, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra |
 
 Ba mức chốt trước: `realtime_factor` ≥ 1,00 tái lập được · 0,80–0,99 một phần · < 0,80 không.
 
@@ -101,7 +101,7 @@ Ba mức chốt trước: `realtime_factor` ≥ 1,00 tái lập được · 0,80
 | `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** (bản đo cũ không có cột) |
 | `ms_per_frame_process` (ms) | **không nêu** | **17,349** (trung bình, n = 5; sd 0,369; CV 2,13 %; trung vị 17,272) |
 | `fps_out_process` (frame/s) | **không nêu** | **57,6** (suy ra `1000/17,349`) |
-| `realtime_factor_process` (lần) | **không nêu** (chỉ chữ "real time") | **1,92** (`33,333/17,349`) |
+| `realtime_factor_process` (lần) | **không nêu** (chỉ chữ "real time") | **1,92** (`(1000/17,349)/30`) |
 | V5 · T1 29dof · `_process` (ms) | **—** | **13,034** (trung vị, n = 5, CV 11,32 %) → 2,56 |
 | V5 · G1 · `_process` (ms) | **—** | **16,758** (trung bình, n = 3, CV 4,59 %) → 1,99 |
 | V5 · PM01 · `_process` (ms) | **—** | **34,975** (trung bình, n = 3, CV 3,01 %) → 0,95 |
@@ -111,9 +111,9 @@ Ba mức chốt trước: `realtime_factor` ≥ 1,00 tái lập được · 0,80
 
 Hai lưu ý: cột `realtime_factor` **trong CSV** là của từng lần chạy, không dùng để báo cáo; `walk1_subject1.bvh` dài **7.840 frame = 261,3 s**, **không phải** "Walk 1" của Bảng I (33 s).
 
-**Quy tắc thống kê:** báo **trung bình** khi CV ≤ 5 %, báo **trung vị** khi CV > 5 % (theo `docs/dinh_nghia_phep_do.md` §4). Áp dụng: V3 17,349 (CV 2,13 %), G1 16,758 (4,59 %), PM01 34,975 (3,01 %) dùng mean; **T1 13,034 dùng median vì CV 11,32 % > 5 %** — ngoại lệ duy nhất, ghi rõ để không bị coi là chọn số có lợi.
+**Quy tắc thống kê:** báo **trung bình** khi CV ≤ 5 %, báo **trung vị** khi CV > 5 % (theo `docs/dinh_nghia_phep_do.md` §4). Áp dụng: V3 17,349 (CV 2,13 %), G1 16,758 (4,59 %), PM01 34,975 (3,01 %) dùng mean; **T1 13,034 dùng median vì CV 11,32 % > 5 %** — trường hợp duy nhất CV > 5 %, ghi rõ để không bị coi là chọn số có lợi. **`sd` trong toàn báo cáo là độ lệch chuẩn mẫu, `ddof = 1`.**
 
-**Mốc đối chiếu của repo.** README (bản `25f56db`) có mục *Speed Benchmark*: **35–45 FPS** trên Intel Core i9-13900K 24 nhân và **60–70 FPS** trên AMD Threadripper 7960X 24 nhân. Nhóm đo **57,6 FPS** trên i5-12450HX — nằm giữa hai mốc, cao hơn mốc i9. Đây là so sánh **tham khảo, không kiểm soát**: README không nêu motion/robot/clip, không nói có `--rate_limit` hay có tính render; `walk1_subject1` là đi bộ (nhẹ hơn dance/kungfu); GMR chạy tuần tự từng frame nên số core ít quyết định; và số của nhóm là **cả tiến trình** (đã gồm init + render + ghi pkl), tức nếu lệch thì nhóm bị **chậm đi**. Vì vậy **không** được kết luận "GMR nhanh hơn trên CPU yếu hơn"; kết luận vẫn chỉ dựa trên ngưỡng 33,3 ms.
+**Mốc đối chiếu của repo.** README (bản `25f56db`) có mục *Speed Benchmark*: **35–45 FPS** trên Intel Core i9-13900K 24 nhân và **60–70 FPS** trên AMD Threadripper 7960X 24 nhân. Nhóm đo **57,6 FPS** trên i5-12450HX — nằm giữa hai mốc, cao hơn mốc i9. Đây là so sánh **tham khảo, không kiểm soát**: README không nêu motion/robot/clip, không nói có `--rate_limit` hay có tính render; `walk1_subject1` là đi bộ (nhẹ hơn dance/kungfu); GMR chạy tuần tự từng frame nên số core ít quyết định; và số của nhóm là **cả tiến trình** (đã gồm init + render + ghi pkl), tức nếu lệch thì nhóm bị **chậm đi**. Vì vậy **không** được kết luận "GMR nhanh hơn trên CPU yếu hơn"; kết luận vẫn chỉ dựa trên ngưỡng 33,33 ms.
 
 ### 2.5 Ba bảng của paper và vì sao không tái lập
 
@@ -151,10 +151,10 @@ Nhật ký đầy đủ: `logs/nhat_ky_cai_dat.md` (15 mục + 4 FIX + MEDIA + R
 | 1 | `proxsuite` không có wheel Windows | Pip build source 54,7 MB, `CMAKE_C_COMPILER not set` vì thiếu MSVC; bản 0.8.2 chỉ có sdist. Ghim `proxsuite==0.7.2.post1` (wheel `cp310-win_amd64`, 4,3 MB), cài lại exit 0; không sửa `pyproject.toml` vì solver mặc định là **daqp** |
 | 2 | `libstdcxx-ng` chỉ có cho Linux | `PackagesNotFoundInChannelsError`; bỏ qua có ghi chép, kiểm chứng bù bằng việc chạy thật có mở cửa sổ MuJoCo |
 | 3 | SMPL-X bị chặn bởi license | Repo không kèm body model; SMPL-X và AMASS/OMOMO phải ký license tại Max Planck. Chuyển sang `bvh_to_robot.py` + LAFAN1 (6 config `bvh_lafan1_*`); **V3/V5 đo trên đường BVH, không phải SMPL-X như paper** |
-| 4 | KI-01: robot cúi gập | `walk4` có `waist_pitch` **+29,52° ± 1,70**, so với walk3 **+25,19° ± 4,27** và dance1 **+18,62° ± 8,70**; scale 1,75/1,8 = 0,972 và hai khâu dùng cùng `g1_mocap_29dof.xml`. Kết luận: `walk4` là clip **đi khom lưng**, pipeline tái hiện trung thực; đổi motion chính thức sang `walk1_subject1` |
+| 4 | KI-01: robot cúi gập | `walk4` có `waist_pitch` **+29,52 ± 1,70 độ**, so với walk3 **+25,19 ± 4,27 độ** và dance1 **+18,62 ± 8,70 độ**; scale 1,75/1,8 = 0,972 và hai khâu dùng cùng `g1_mocap_29dof.xml`. Kết luận: `walk4` là clip **đi khom lưng**, pipeline tái hiện trung thực; đổi motion chính thức sang `walk1_subject1` |
 | 5 | KI-02: cột `cmd` ghi cờ chưa truyền | `measure_v3.ps1` chỉ ghép `--rate_limit` vào chuỗi CSV (dòng 20, 23), lệnh thật (dòng 26) không có cờ; log ghi 64–136 fps; `RateLimiter(30)` × 300 = 14,004 s = **21,42 Hz**. Xoá 4 dòng, rút kết luận về `--rate_limit` |
 | 6 | RV-14: log không chứa số đo | Thêm dòng `END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 …` vào từng log; lần đầu `-Encoding utf8` làm vỡ UTF-16LE → đổi `-Encoding Unicode`, chạy lại toàn bộ; **20/20 log đo** có `END` |
-| 7 | Hai đợt V3 lệch 14,4 % | 15,171 → 17,349 ms (mean); **40 pkl** trùng SHA256 theo cặp (G1+walk1 ×20 `E7E3B906…`, T1 ×7 `4E716187…`, PM01 ×5 `57B693A8…`, G1+walk4 ×5 `37F0ACD2…`) ⇒ chênh do trạng thái máy, không do thuật toán; chọn đợt mới vì log đối chiếu được |
+| 7 | Hai đợt V3 lệch 14,4 % | 15,171 → 17,349 ms (mean); **40 file pkl**, trong đó **37 file thuộc 4 cặp trùng hash tuyệt đối** (G1+walk1 ×20 `E7E3B906…`, T1 ×7 `4E716187…`, PM01 ×5 `57B693A8…`, G1+walk4 ×5 `37F0ACD2…`), **3 file lẻ một lần chạy** ⇒ chênh do trạng thái máy, không do thuật toán; chọn đợt mới vì log đối chiếu được |
 
 **Bài học:** Review độc lập có giá trị bằng một người làm — sự cố (5) do Review phát hiện; và mỗi số trong CSV phải lần ngược được tới dòng `END` của chính lần chạy.
 
@@ -178,11 +178,11 @@ Nhật ký đầy đủ: `logs/nhat_ky_cai_dat.md` (15 mục + 4 FIX + MEDIA + R
 | 5 | `measure_4` | 132,128 | 16,853 | log `run5` |
 | 6 | `measure_5` | 135,413 | 17,272 | log `run6` |
 
-n = 5: mean **17,349** (số dùng để kết luận), median 17,272, sd 0,369, **CV 2,13 %** (≤ 5 %), biên độ 16,853–17,852; `fps_out_process` 57,6; `realtime_factor_process` **1,92**. Cả 5 giá trị đều < 20 ms nên kết luận không phụ thuộc chọn mean hay median. Không dùng cột `realtime_factor` từng dòng.
+n = 5: mean **17,349** (số dùng để kết luận), median 17,272, sd **0,369** (mẫu, `ddof = 1`), **CV 2,13 %** (≤ 5 %), biên độ 16,853–17,852; `fps_out_process` 57,6; `realtime_factor_process` **1,92**. Cả 5 giá trị đều < 20 ms nên kết luận không phụ thuộc chọn mean hay median. Không dùng cột `realtime_factor` từng dòng.
 
 ![Hình 1](results/figures/v3_ms_per_frame_g1_2026-11-20.png)
 
-**Hình 1 —** Thời gian xử lý mỗi frame qua 5 lần đo V3 (G1, `walk1_subject1`); đường ngưỡng 33,3 ms. Nguồn: `results/v3_runtime.csv`.
+**Hình 1 —** Thời gian xử lý mỗi frame qua 5 lần đo V3 (G1, `walk1_subject1`); đường ngưỡng 33,33 ms. Nguồn: `results/v3_runtime.csv`.
 
 ### 4.3 Bằng chứng hình ảnh
 
@@ -190,7 +190,7 @@ Ngoài **Hình 1** (đồ thị ms/frame) và **Hình 2** (render G1 ở §5), `
 
 ### 4.4 Đối chiếu với bài báo
 
-Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so được với **ngưỡng nhóm đặt**: 17,349 ms ≤ 33,3 ms ⇒ theo bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`, **tái lập được ở mức cả tiến trình** (điều kiện đủ: `retarget ≤ process`). Hai giới hạn phải nói cùng lúc: (a) **không** được nói "vòng lặp retarget đạt real-time" — bản đo cũ không có `ms_per_frame`, số 17,349 gồm init + viewer + render + ghi pkl, là **cận trên bảo thủ**; (b) sai số **giữa hai phiên ≈ 14 %**, lớn hơn CV trong phiên (2,13 %) ⇒ báo **17,3 ms** kèm sai số giữa phiên, không phải 17,35 ms chính xác đến 0,4 ms. Ba bảng paper **không đối chiếu được** và **không được đối chiếu** — chúng đo policy, không đo tốc độ.
+Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so được với **ngưỡng nhóm đặt**: 17,349 ms ≤ 33,33 ms ⇒ theo bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`, **tái lập được ở mức cả tiến trình** (điều kiện đủ: `retarget ≤ process`). Hai giới hạn phải nói cùng lúc: (a) **không** được nói "vòng lặp retarget đạt real-time" — bản đo cũ không có `ms_per_frame`, số 17,349 gồm init + viewer + render + ghi pkl, là **cận trên bảo thủ**; (b) sai số **giữa hai phiên ≈ 14 %**, lớn hơn CV trong phiên (2,13 %) ⇒ báo **17,3 ms** kèm sai số giữa phiên, không phải 17,35 ms chính xác đến 0,4 ms. Ba bảng paper **không đối chiếu được** và **không được đối chiếu** — chúng đo policy, không đo tốc độ.
 
 ### 4.5 Hạn chế phép đo
 
@@ -205,7 +205,7 @@ GMR là **retargeting dựa trên tối ưu hình học**, không phải học t
 
 **Thay bằng 5 lần lặp thật.** Repo không có seed, nên nhóm dùng đúng 5 lần chạy độc lập đã có trong `results/v3_runtime.csv` (cùng input `walk1_subject1`, cùng G1, mỗi lần một process mới) — trình bày đầy đủ ở bảng §4.2 — để chứng minh pipeline **ổn định và tất định**, đáp ứng vượt mức yêu cầu "3 lần lặp".
 
-5 lần đo chính thức: mean **17,349 ms**, median 17,272, sd **0,369**, **CV 2,13 %**. Nếu gộp cả warm-up (16,897): mean 17,274 — không đổi kết luận. Độ biến thiên **0,999 ms** giữa lần nhanh nhất và chậm nhất (16,853–17,852), tức **5,8 %** biên độ thô.
+5 lần đo chính thức: mean **17,349 ms**, median 17,272, sd **0,369** (mẫu, `ddof = 1`), **CV 2,13 %**. Nếu gộp cả warm-up (16,897): mean 17,274 — không đổi kết luận. Độ biến thiên **0,999 ms** giữa lần nhanh nhất và chậm nhất (16,853–17,852), tức **5,8 %** biên độ thô.
 
 **Bằng chứng tất định:** 20 pkl của cặp G1 + `walk1_subject1` trong lô V3/V5 (6 lần V3, 4 lần V5, bản đầu, các bản cũ) có **cùng SHA256 `E7E3B906…`** — khác thời điểm chạy nhưng đầu ra giống nhau từng byte. Vì vậy dao động thời gian là **trạng thái máy**, không phải thuật toán; và không có "seed" nào có thể đổi kết quả.
 
@@ -233,7 +233,7 @@ GMR là **retargeting dựa trên tối ưu hình học**, không phải học t
 Hướng dẫn môn mô tả sim2sim tối thiểu bằng **đổi tham số vật lý** (khối lượng ±20 %, ma sát, trễ 1–3 bước). Nhóm không làm vậy vì phép thử **vô nghĩa với pipeline này**:
 
 1. **Không có physics trong vòng tính.** Mỗi frame chỉ giải bài toán ngược trên vị trí/hướng khớp (Mink, ≤ 10 vòng); không tích phân lực, không ma sát, không lực tiếp xúc. Khối lượng khâu không xuất hiện ở bất kỳ bước nào.
-2. **Đổi khối lượng không đổi một byte pkl.** Đường tính chỉ dùng qpos, chiều dài khâu, hệ số scale, giới hạn khớp. Tính tất định đã kiểm bằng SHA256: **40 pkl** thuộc các cặp (robot, motion) khác nhau, khác đợt, có/không `--rate_limit`, đều **trùng hash trong cùng cặp**. Cùng đầu vào ⇒ cùng đầu ra từng byte, không có nguồn ngẫu nhiên.
+2. **Đổi khối lượng không đổi một byte pkl.** Đường tính chỉ dùng qpos, chiều dài khâu, hệ số scale, giới hạn khớp. Tính tất định đã kiểm bằng SHA256 trên **40 file pkl**: **37 file thuộc 4 cặp (robot, motion) trùng hash tuyệt đối** (khác đợt, có/không `--rate_limit`), **3 file lẻ một lần chạy**. Cùng đầu vào ⇒ cùng đầu ra từng byte, không có nguồn ngẫu nhiên.
 3. **Bảng "tụt theo mức nhiễu vật lý" sẽ là bảng giả** vì mọi mức ±20 % cho cùng kết quả. Nhóm từ chối làm bảng đó và thay bằng bốn phép thử nhiễu có tác dụng thật lên đầu vào bài toán ngược (DEC-02, `docs/v6_noise_spec.md`).
 
 ### 6.3 Bốn phép thử
@@ -242,8 +242,8 @@ Input cố định `walk1_subject1.bvh` → `unitree_g1`; baseline là lần ch�
 
 | # | Phép thử | Mức | Cách làm |
 |---|---|---|---|
-| N1 | Nhiễu khớp | σ = 0,5 · 1 · 2 · 5° | Cộng Gaussian vào mọi kênh rotation BVH |
-| N2 | Trễ điều khiển | k = 1 · 2 · 3 · 5 frame | Dịch chuỗi frame đi k |
+| N1 | Nhiễu khớp | σ ∈ {0,5; 1; 2; 5} độ | Cộng Gaussian vào mọi kênh rotation BVH |
+| N2 | Trễ điều khiển | k ∈ {1; 2; 3; 5} frame | Dịch chuỗi frame đi k |
 | N3 | Mất frame | p = 1 · 5 · 10 % | Bỏ ngẫu nhiên p %, nội suy tuyến tính |
 | N4 | Lệch tỉ lệ người | ±10 · ±20 % | Scale chiều cao người |
 
@@ -258,11 +258,11 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 **Hai ghi chú kỹ thuật bắt buộc:**
 
 - **Off-by-one frame:** baseline do `bvh_to_robot.py` ghi **7.839 frame** (repo `break` trước khi `append` nên mất frame cuối), còn driver V6 lưu đủ **7.840**. Mọi so sánh dùng trên **7.839 frame chung** nên không thiên vị; không có frame nào bị so lệch.
-- **Phạm vi chỉ số `dq`:** `dq_mean` và `dq_max` chỉ tính trên **29 DoF khớp**, **không** gồm root rotation (root ghi riêng ở cột `dq_rootrot_mean`). σ của N1 là **per-channel** (từng trục rotvec), nên biên độ góc khớp thực tế xấp xỉ **σ√3** — cụm "ngưỡng hỏng nằm giữa 1° và 2°" phải đọc là **per-channel**, không phải biên độ khớp.
+- **Phạm vi chỉ số `dq`:** `dq_mean` và `dq_max` chỉ tính trên **29 DoF khớp**, **không** gồm root rotation (root ghi riêng ở cột `dq_rootrot_mean`). σ của N1 là **per-channel** (từng trục rotvec), nên biên độ góc khớp thực tế xấp xỉ **σ√3** — cụm "ngưỡng hỏng nằm giữa 1° và 2°" phải đọc là **per-channel**, không phải biên độ khớp. Với N4, `dq_max` bị **frame 0** (warm start) phóng đại; bảng N4 vì thế thêm cột **`dq_max` bỏ frame 0** — giá trị trên 7.838 frame còn lại.
 
 **N1 — nhiễu khớp:**
 
-| σ (°) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+| σ (°) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_frames_gt5deg` (%) | conv. |
 |---|---|---|---|---|---|
 | 0,5 | 0,56 | 7,56 | 1,20 | 0,51 | 1 |
 | 1 | 1,10 | 14,11 | 1,56 | 5,55 | 1 |
@@ -271,7 +271,7 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 
 **N2 — trễ (so đúng cặp frame):**
 
-| k | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+| k | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_frames_gt5deg` (%) | conv. |
 |---|---|---|---|---|---|
 | 1 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
 | 2 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
@@ -280,7 +280,7 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 
 **N3 — mất frame:**
 
-| p (%) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+| p (%) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_frames_gt5deg` (%) | conv. |
 |---|---|---|---|---|---|
 | 1 | 0,0033 | 6,83 | 0,17 | 0,013 | 1 |
 | 5 | 0,0158 | 6,09 | 0,36 | 0,077 | 1 |
@@ -288,12 +288,12 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 
 **N4 — lệch tỉ lệ người:**
 
-| Mức (%) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | frame bão hoà (Δ) |
-|---|---|---|---|---|---|
-| −20 | 1,86 | 29,65 | 718,53 | 90,43 | 1.819 (−46) |
-| −10 | 0,73 | 19,27 | 358,57 | **6,37** | 1.793 (−72) |
-| +10 | 1,88 | 33,32 | 359,32 | **94,77** | 2.002 (+137) |
-| +20 | 3,14 | 42,82 | 718,51 | 98,05 | 2.166 (+301) |
+| Mức (%) | `dq_mean` | `dq_max` | `dq_max` bỏ frame 0 | `dr_rmse` (mm) | `pct_frames_gt5deg` (%) | frame bão hoà (Δ) |
+|---|---|---|---|---|---|---|
+| −20 | 1,86 | 29,65 | 29,65 | 718,53 | 90,43 | 1.819 (−46) |
+| −10 | 0,73 | 19,27 | 15,82 | 358,57 | **6,37** | 1.793 (−72) |
+| +10 | 1,88 | 33,32 | 18,37 | 359,32 | **94,77** | 2.002 (+137) |
+| +20 | 3,14 | 42,82 | 31,91 | 718,51 | 98,05 | 2.166 (+301) |
 
 ![Hình 3](results/figures/v6_noise_slide.png)
 
@@ -301,11 +301,11 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 
 **Năm nhận xét:**
 
-1. **N1 — trung bình gần tuyến tính, chỉ số ngưỡng bùng nổ phi tuyến.** `dq_mean` 0,56 → 1,10 → 2,18 → 5,41°; `pct_gt5°` 0,51 → 5,55 → 87,74 → 100 %. Vì là chỉ số **ngưỡng**: khi sai số trung bình chạm ~2° thì gần như mọi frame có ít nhất một khớp vượt 5°. **Ngưỡng hỏng nằm giữa σ = 1° và 2° (per-channel, tức biên độ khớp thực ≈ 1,7°–3,5°).** Frame bão hoà: 1.875 / 1.910 / 2.122 / 3.550 (baseline 1.865).
-2. **N2 — trễ chỉ lệch pha, không sai tư thế.** `dq_mean` = 0,0010°, `dr_rmse` = 0,03 mm ≈ 0 với mọi k = 1…5. Ngoại lệ: đúng **1 frame biên** (0,013 % ≈ 1/7.839) lệch tới 36°, rồi **tắt dần** (0,31° → 0,10° → 0,05° → 0,02°): tại frame biên IK khởi tạo từ nghiệm frame trước nên phụ thuộc trạng thái khởi tạo — **hiệu ứng biên cục bộ**, không phải tích lũy. Nếu so lệch frame, `dq_mean` sẽ rất lớn và kết luận "trễ làm hỏng tư thế" là **sai phương pháp**.
+1. **N1 — trung bình gần tuyến tính, chỉ số ngưỡng bùng nổ phi tuyến.** `dq_mean` 0,56 → 1,10 → 2,18 → 5,41°; `pct_frames_gt5deg` 0,51 → 5,55 → 87,74 → 100 %. Vì là chỉ số **ngưỡng**: khi sai số trung bình chạm ~2° thì gần như mọi frame có ít nhất một khớp vượt 5°. **Ngưỡng hỏng nằm giữa σ = 1° và 2° (per-channel, tức biên độ khớp thực ≈ 1,7°–3,5°).** Frame bão hoà: 1.875 / 1.910 / 2.122 / 3.550 (baseline 1.865).
+2. **N2 — trễ chỉ lệch pha, không sai tư thế.** `dq_mean` = 0,0010°, `dr_rmse` = 0,03 mm ≈ 0 với mọi **k ∈ {1; 2; 3; 5}**. Ngoại lệ: đúng **1 frame biên** (0,013 % ≈ 1/7.839) lệch tới 36°, rồi **tắt dần** (0,31° → 0,10° → 0,05° → 0,02°): tại frame biên IK khởi tạo từ nghiệm frame trước nên phụ thuộc trạng thái khởi tạo — **hiệu ứng biên cục bộ**, không phải tích lũy. Nếu so lệch frame, `dq_mean` sẽ rất lớn và kết luận "trễ làm hỏng tư thế" là **sai phương pháp**.
 3. **N3 — mất frame gần như vô hại.** `dq_mean` 0,0033 → 0,0355°, `pct` ≤ 0,31 % vì frame thiếu được nội suy tuyến tính.
-4. **N4 — nguy hiểm nhất và bất đối xứng.** ±10 %: **6,37 %** (co) vs **94,77 %** (giãn); ±20 %: 90,43 % và 98,05 %. **Đọc phần chênh, không đọc trị tuyệt đối:** bản sạch đã có **1.865/7.839 frame (23,8 %)** chạm giới hạn, chủ yếu `waist_pitch` (745 frame); so baseline, +10 % là +137, +20 % là +301, −10 % là −72, tập trung ở `ankle_roll`. Chênh cỡ 10² frame **không đủ** giải thích 6,4 % vs 94,8 %; phần còn lại là **hình học tay/chân không với tới đích khi người cao hơn robot** — định tính, chưa tách định lượng.
-5. **`dr_rmse` 359/719 mm của N4 KHÔNG phải sai tư thế.** Con số **đối xứng theo |mức|** (−10: 358,57 · +10: 359,32 · −20: 718,53 · +20: 718,51), tỉ lệ với độ lớn scale, không phụ thuộc dấu ⇒ **quỹ đạo gốc bị scale**, không phải retarget hỏng dáng. Sai tư thế thật nằm ở `dq_mean`/`pct_gt5°`, và hai chỉ số đó **bất đối xứng**. **Cấm** viết "N4 làm retarget hỏng, lệch 719 mm".
+4. **N4 — nguy hiểm nhất và bất đối xứng.** ±10 %: **6,37 %** (co) vs **94,77 %** (giãn); ±20 %: 90,43 % và 98,05 %. `dq_max` sau khi **bỏ frame 0** còn **29,65 / 15,82 / 18,37 / 31,91°** (−20 / −10 / +10 / +20 %) — vẫn bất đối xứng, giãn nặng hơn co. **Đọc phần chênh, không đọc trị tuyệt đối:** bản sạch đã có **1.865/7.839 frame (23,8 %)** chạm giới hạn, chủ yếu `waist_pitch` (745 frame); so baseline, +10 % là +137, +20 % là +301, −10 % là −72, tập trung ở `ankle_roll`. Chênh cỡ 10² frame **không đủ** giải thích 6,4 % vs 94,8 %; phần còn lại là **hình học tay/chân không với tới đích khi người cao hơn robot** — định tính, chưa tách định lượng.
+5. **`dr_rmse` 359/719 mm của N4 KHÔNG phải sai tư thế.** Con số **đối xứng theo |mức|** (−10: 358,57 · +10: 359,32 · −20: 718,53 · +20: 718,51), tỉ lệ với độ lớn scale, không phụ thuộc dấu ⇒ **quỹ đạo gốc bị scale**, không phải retarget hỏng dáng. Sai tư thế thật nằm ở `dq_mean`/`pct_frames_gt5deg`, và hai chỉ số đó **bất đối xứng**. **Cấm** viết "N4 làm retarget hỏng, lệch 719 mm".
 
 **Kết luận §6.4:** IK hội tụ **15/15** mức, không NaN/phân kỳ. Vô hại: trễ đúng pha (N2), mất frame ≤ 10 % (N3). Làm hỏng: nhiễu khớp từ **σ = 2° mỗi kênh** (biên độ khớp thực ≈ 3,5°), lệch tỉ lệ từ **±10 %** (N4, giãn nặng hơn). Cơ chế: sai số **không tích lũy theo thời gian** — chỉ **một frame biên** chịu trạng thái khởi tạo của IK rồi tắt nhanh; các mức hỏng còn lại do **bão hoà giới hạn khớp** (một phần) và **hình học tay/chân không với tới đích** (phần còn lại). Kết quả này **không đổi** kết luận tốc độ ở mục 7; nó thêm trục độ bền đầu vào.
 
@@ -313,14 +313,14 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 
 Nguồn `results/v5_sim2sim.csv` (thô `v5_raw.csv`; log `v5_<robot>_…`), bỏ warm-up:
 
-| Robot | DoF | n | Thống kê dùng | Giá trị ms | CV | rtf | So ngưỡng 33,3 ms |
+| Robot | DoF | n | Thống kê dùng | Giá trị ms | CV | rtf | So ngưỡng 33,33 ms |
 |---|---|---|---|---|---|---|---|
 | Booster T1 29dof | 27 | 5 | **trung vị** (CV > 5 %) | **13,034** | 11,32 % | **2,56** | đạt, dư 20,3 ms |
-| Unitree G1 | 29 | 3 | trung bình | **16,758** | 4,59 % | **1,99** | đạt, dư 16,6 ms |
-| ENGINEAI PM01 | 24 | 3 | trung bình | **34,975** | 3,01 % | **0,95** | **vượt 1,6 ms (4,9 %)** |
+| Unitree G1 | 29 | 3 | trung bình | **16,758** | 4,59 % | **1,99** | đạt, dư 16,5 ms |
+| ENGINEAI PM01 | 24 | 3 | trung bình | **34,975** | 3,01 % | **0,95** | **vượt 1,7 ms (5,0 %)** |
 | Unitree H1 | — | — | — | — | — | — | bị chặn (§6.6) |
 
-Quy tắc chọn: theo `docs/dinh_nghia_phep_do.md`, dùng **trung bình**; chỉ dùng **trung vị** khi CV > 5 % — ở đây chỉ T1 vượt ngưỡng (11,32 %), nên T1 báo trung vị 13,034 còn G1/PM01 báo trung bình. PM01 **ít khớp nhất nhưng chậm nhất**, gấp 2,7 lần T1 ⇒ nguyên nhân **không phải** số DoF. Ba giả thuyết (chưa tách): cấu hình IK nhiều key body hơn; số vòng solver chạm trần 10 nhiều hơn; mô hình MJCF/mesh nặng hơn. Thứ tự chạy đã kiểm soát (PM01 chạy đầu, nhiệt GPU 51–57 °C). PM01 vượt ngưỡng ở mức **cả tiến trình**; theo §6.1 của định nghĩa phép đo, vì không có `ms_per_frame`, trạng thái đúng là **"chưa kết luận được"** — không được nói "PM01 không đạt real-time".
+Quy tắc chọn: theo `docs/dinh_nghia_phep_do.md`, dùng **trung bình**; chỉ dùng **trung vị** khi CV > 5 % — ở đây chỉ T1 vượt ngưỡng (11,32 %), nên T1 báo trung vị 13,034 còn G1/PM01 báo trung bình. PM01 **ít khớp nhất nhưng chậm nhất**: **34,975 ms (mean)** so với **13,034 ms (median)** của T1; nếu so **cùng mean** thì PM01 chậm **2,8 lần** T1 ⇒ nguyên nhân **không phải** số DoF. Ba giả thuyết (chưa tách): cấu hình IK nhiều key body hơn; số vòng solver chạm trần 10 nhiều hơn; mô hình MJCF/mesh nặng hơn. Thứ tự chạy đã kiểm soát (PM01 chạy đầu, nhiệt GPU 51–57 °C). G1 trong V5 là **16,758 ms (−3,4 % so với V3 17,349)** — mức chênh này là **sai số giữa phiên** đã nêu ở §4.4, không phải tụt hiệu năng do đổi robot. PM01 vượt ngưỡng ở mức **cả tiến trình**; theo §6.1 của định nghĩa phép đo, vì không có `ms_per_frame`, trạng thái đúng là **"chưa kết luận được"** — không được nói "PM01 không đạt real-time".
 
 ![Hình 4](results/figures/v5_ms_per_frame_robots_2026-11-20.png)
 
@@ -334,25 +334,29 @@ Ba nguồn: (a) `--robot unitree_h1` → `invalid choice`, **exit 2** (argparse,
 
 Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cùng `walk1_subject1`, 3 pkl V5 `run1`, **7.839 frame** (khớp off-by-one ở §6.4).
 
-| Robot | `foot_slide` proxy TB (mm/s) | Trái / Phải | `min_body_height` tâm thân (mm) | `pct_frames_penetration` (%) | Frame khớp sát giới hạn (%) |
-|---|---|---|---|---|---|
-| Unitree G1 | **49,041** | 62,109 / 35,973 | **+9,886** | **0,000** | 23,791 |
-| Booster T1 29dof | 83,121 | 63,189 / 103,052 | **−7,641** | **2,130** | **43,322** |
-| ENGINEAI PM01 | **118,409** | 94,527 / 142,292 | +43,849 | 0,000 | 24,072 |
+| Robot | `foot_slide` proxy TB (mm/s) | Trái / Phải | `min_body_height` (gốc body thấp nhất, mm) | delta so vị trí nghỉ (mm) | `pct_frames_penetration` (%) | Frame khớp sát giới hạn (%) |
+|---|---|---|---|---|---|---|
+| Unitree G1 | **49,041** | 62,109 / 35,973 | **+9,886** | **−6,25** | **0,000** | 23,791 |
+| Booster T1 29dof | 83,121 | 63,189 / 103,052 | **−7,641** | **−44,29** | **2,130** | **43,322** |
+| ENGINEAI PM01 | **118,409** | 94,527 / 142,292 | +43,849 | **−1,10** | 0,000 | 24,072 |
 
-**Cột `pct_frames_penetration` là % frame có TÂM THÂN dưới −1 mm** (`xpos[1:,2] < −1 mm`); đây là **proxy**, không phải đo bề mặt/mesh, nên **không được đọc là bằng chứng không xuyên sàn**.
+**Công thức `foot_slide`.** Với mỗi bàn chân, một frame là **tiếp đất** khi `z_bàn_chân − min(z_bàn_chân) ≤ 30 mm`; `foot_slide` = **tổng dịch ngang `|Δxy|` trên các cặp frame liên tiếp cùng tiếp đất chia tổng thời gian tiếp đất**. Tính riêng chân trái và chân phải rồi lấy trung bình; đo tại **gốc (tâm) body bàn chân**.
+
+**Cột `pct_frames_penetration` là % frame có ÍT NHẤT MỘT BODY có gốc dưới −1 mm** (`xpos[1:,2] < −1 mm`, lấy min trên **mọi body**, không riêng thân); đây là **proxy**, không phải đo bề mặt/mesh, nên **không được đọc là bằng chứng không xuyên sàn**.
 
 ![Hình 5](results/figures/v6_quality.png)
 
-**Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` của 3 robot; đường đỏ là mức 0 của thang đo tâm thân, **không phải mặt đất**. Nguồn: `results/v6_quality.csv`.
+**Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` (gốc body thấp nhất) của 3 robot; **đường đỏ nét đứt là mặt đất z = 0**; **đường chấm đen là độ cao gốc body thấp nhất ở tư thế nghỉ của từng model**. Nguồn: `results/v6_quality.csv`.
 
-**Xếp hạng:** **G1 không có frame nào có tâm thân dưới −1 mm**, và `foot_slide` proxy thấp nhất (49,0 mm/s), 23,8 % frame khớp sát giới hạn. **T1** — có **2,13 % frame tâm thân dưới −1 mm** và tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` proxy cao nhất **118,4 mm/s, gấp 2,4 lần G1**, nhưng 0 % frame tâm thân dưới −1 mm.
+**Ngưỡng đặt trước và quyết định hậu kiểm (DEC-03).** Theo **DEC-03** (`docs/quyet_dinh.md`): `docs/dinh_nghia_phep_do.md` §1.2 đã **đặt trước ngày 2026-11-20** hai ngưỡng — `foot_slide ≤ 50 mm/s` và `min_body_height ∈ [−5, +5] mm`. Nhóm **giữ và áp** ngưỡng `foot_slide`: G1 **49,041 mm/s đạt sát**; T1 **83,121** và PM01 **118,409 mm/s không đạt**. Nhóm **rút** ngưỡng `min_body_height` bằng **quyết định hậu kiểm ngày 2026-11-21** vì đại lượng đo **gốc của body thấp nhất** trên mọi body, mà mỗi model có offset nghỉ riêng (G1 **+16,1** · T1 **+36,7** · PM01 **+45,0 mm**). Hai đại lượng thay thế — **delta so vị trí nghỉ** (G1 **−6,25** · T1 **−44,29** · PM01 **−1,10 mm**) và **`pct_frames_penetration`** (0 / 2,13 / 0 %) — là **hậu kiểm, không có ngưỡng**. Tóm lại: **một ngưỡng được áp dụng, một ngưỡng bị rút sau khi đo.**
 
-**`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot**, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: nếu đo tại **ngón chân**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
+**Xếp hạng:** **G1** — `foot_slide` thấp nhất **49,0 mm/s**, **đạt sát ngưỡng 50 mm/s**; 0 % frame có body nào có gốc dưới −1 mm; 23,8 % frame khớp sát giới hạn. **T1** — `foot_slide` **83,1 mm/s không đạt** ngưỡng đặt trước; **2,13 % frame có ít nhất một body có gốc dưới −1 mm**; tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` cao nhất **118,4 mm/s, gấp 2,4 lần G1, không đạt** ngưỡng đặt trước; 0 % frame có body nào có gốc dưới −1 mm.
 
-**`min_body_height` đo ở tâm thân, không so sánh tuyệt đối giữa robot:** mỗi model có offset nghiêng riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghiêng của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Cả `min_body_height` và `pct_frames_penetration` đều đo **tâm thân**, nên báo cáo chỉ nêu "tâm thân dưới −1 mm", **không** kết luận về bề mặt/mesh.
+**`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **gốc (tâm) body bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot** và để áp ngưỡng 50 mm/s đặt trước, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: nếu đo tại **ngón chân**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
 
-**Giới hạn phải nói thẳng:** nhóm **không đặt ngưỡng tuyệt đối** cho bốn chỉ số này **trước khi đo**, nên kết quả chỉ dùng để **so sánh giữa 3 robot**, **không** được viết "đạt" hay "không đạt". Đây là khác biệt so với ngưỡng 33,3 ms (đã chốt trước) và là hạn chế của phần chất lượng.
+**`min_body_height` đo ở gốc của body thấp nhất, không so tuyệt đối giữa robot:** mỗi model có offset nghỉ riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **+43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghỉ của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Báo cáo vì thế đọc thêm **delta so vị trí nghỉ** ở bảng trên, và chỉ gọi `pct_frames_penetration` là **% frame có ít nhất một body có gốc dưới −1 mm**, **không** kết luận về bề mặt/mesh.
+
+**Hai đại lượng hậu kiểm (DEC-03) không có ngưỡng đặt trước:** `delta so vị trí nghỉ` và `pct_frames_penetration` được thêm **sau khi đo**, nên chỉ dùng để **so sánh giữa 3 robot**, **không** được viết "đạt" hay "không đạt". Ngược lại, `foot_slide` **có** ngưỡng đặt trước 50 mm/s và **đã được áp**; chỉ số này mới là căn cứ kết luận "đạt/không đạt" của phần chất lượng.
 
 **Không phải kiểm chứng chéo:** tỷ lệ frame khớp sát giới hạn của G1 (**23,791 %**) trùng với baseline nhiễu V6 (**1.865/7.839 = 23,79 %**) vì `quality_metrics.py` và `v6_metrics.py` dùng **cùng logic, cùng ngưỡng 0,5°** trên **cùng một pkl** — đây là **cùng một phép đo**, không phải hai công cụ độc lập. Việc trùng khớp chỉ xác nhận hai script nhất quán với nhau.
 
@@ -366,21 +370,21 @@ Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và *
 
 ### 7.1 Câu kết luận
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,3 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7) chỉ cho phép **so sánh tương đối**: G1 **không có frame nào có tâm thân dưới −1 mm** và `foot_slide` proxy thấp nhất (49,0 mm/s); T1 có **2,13 % frame tâm thân dưới −1 mm**; PM01 có `foot_slide` proxy cao nhất **118,4 mm/s**. Không được so tuyệt đối vì `foot_slide` là proxy, `pct_frames_penetration` cũng đo tâm thân (không phải bề mặt/mesh), và `min_body_height` phụ thuộc offset từng model; nhóm cũng **không đặt ngưỡng tuyệt đối trước khi đo** — đó là lý do thứ ba khiến kết luận dừng ở "một phần".
+Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7): trong **hai ngưỡng đặt trước ngày 2026-11-20**, `foot_slide ≤ 50 mm/s` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; ngưỡng `min_body_height ±5 mm` đã **rút bằng quyết định hậu kiểm DEC-03 (2026-11-21)** vì đo **gốc body** và mỗi model một offset nghỉ, thay bằng delta so vị trí nghỉ (**−6,25 / −44,29 / −1,10 mm**) và `pct_frames_penetration` (**0 / 2,13 / 0 %**) — hai đại lượng hậu kiểm không có ngưỡng. Vì vậy đây là lý do thứ ba khiến kết luận dừng ở "một phần": chỉ **1/3 robot đạt** ngưỡng `foot_slide` đặt trước, và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm.
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
 1. Số 17,349 (trung bình, CV 2,13 % ≤ 5 %) lấy từ bản đo cũ đã Review PASS; không trộn đợt cũ `c62e74f` (15,171).
-2. Ngưỡng 33,3 ms chốt trước, không đổi sau khi thấy số.
+2. Ngưỡng 33,33 ms chốt trước, không đổi sau khi thấy số.
 3. Không dùng "tái lập được" cho toàn bộ paper — chỉ phần thời gian thực.
 4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**.
 5. Kết quả nhiễu (§6.4) không đổi kết luận tốc độ; nó chỉ thêm nhận định về độ bền.
 
 ### 7.3 Ba câu "chênh thì vì sao"
 
-**(a) Hai đợt V3 lệch 14,4 % — do máy, không do thuật toán.** 15,171 → 17,349 ms (mean), cùng máy/input/commit. 40 pkl trùng SHA256 tuyệt đối theo cặp ⇒ cùng đầu ra từng byte mà thời gian khác 14 % ⇒ môi trường chạy. Đợt mới chậm hơn nên chọn là bảo thủ.
+**(a) Hai đợt V3 lệch 14,4 % — do máy, không do thuật toán.** 15,171 → 17,349 ms (mean), cùng máy/input/commit. **37/40 file pkl thuộc 4 cặp trùng SHA256 tuyệt đối** (3 file lẻ một lần chạy) ⇒ cùng đầu ra từng byte mà thời gian khác 14 % ⇒ môi trường chạy. Đợt mới chậm hơn nên chọn là bảo thủ.
 
 **(b) PM01 chậm nhất dù ít khớp nhất.** 24 DoF / 34,975 ms vs 27 DoF / 13,034 ms. Số DoF không giải thích; ba giả thuyết IK/solver/model chưa tách. Đã kiểm soát thermal (PM01 chạy đầu).
 
@@ -388,7 +392,7 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 
 ### 7.4 Thiếu sót phải nêu
 
-- Bốn chỉ số chất lượng ánh xạ **không có ngưỡng tuyệt đối đặt trước**; `pct_frames_penetration` chỉ là proxy tâm thân, không phải bề mặt/mesh. Chỉ so sánh giữa 3 robot, không kết luận "đạt/không đạt" (§6.7).
+- Chất lượng ánh xạ: **hai ngưỡng đặt trước ngày 2026-11-20**; `foot_slide ≤ 50 mm/s` **được giữ và áp** (G1 49,0 đạt sát; T1 83,1 và PM01 118,4 không đạt), `min_body_height ±5 mm` **rút hậu kiểm** (DEC-03, 2026-11-21) vì đo gốc body và offset nghỉ khác nhau; `pct_frames_penetration` chỉ là proxy gốc body, không phải bề mặt/mesh. Hai đại lượng hậu kiểm không có ngưỡng đặt trước (§6.7).
 - `ms_per_frame` **chưa đo**; chỉ có số cả tiến trình (§4.5).
 - `CUDA_VISIBLE_DEVICES` **chưa xác minh** trên bản đo cũ.
 - Kết quả trên **một máy Windows**, không đại diện Linux.

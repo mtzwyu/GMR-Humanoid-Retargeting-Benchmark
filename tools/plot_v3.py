@@ -9,7 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = r"C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load(name):
@@ -29,12 +29,13 @@ if os.path.exists(v3_path):
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     ax.plot(xs, ys, marker="o", color="#1f77b4", label="unitree_g1")
     for x, y in zip(xs, ys):
-        ax.annotate(f"{y:.2f}", (x, y), textcoords="offset points", xytext=(0, 8), fontsize=8)
+        ax.annotate(f"{y:.2f}".replace(".", ","), (x, y), textcoords="offset points", xytext=(0, 8), fontsize=8)
     ax.axhline(33.333, color="crimson", linestyle="--", linewidth=1, label="ngưỡng 33,33 ms")
     ax.set_xlabel("lần đo")
     ax.set_ylabel("ms / frame (toàn tiến trình, Measure-Command)")
     ax.set_title("V3 — G1, walk1_subject1.bvh (7840 frame), không --rate_limit")
     ax.set_xticks(xs)
+    ax.margins(x=0.12)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8)
     fig.tight_layout()
@@ -67,7 +68,7 @@ if os.path.exists(v5_path):
     ax2.errorbar(labels, vals, yerr=[err_low, err_high], fmt="none", ecolor="black",
                  capsize=6, linewidth=1)
     for i, m in enumerate(vals):
-        ax2.annotate(f"{kinds[i]} {m:.2f}", (i, highs[i]), ha="center", va="bottom", fontsize=8)
+        ax2.annotate(f"{kinds[i]} {m:.2f}".replace(".", ","), (i, highs[i]), ha="center", va="bottom", fontsize=8)
     ax2.axhline(33.333, color="crimson", linestyle="--", linewidth=1, label="ngưỡng 33,33 ms")
     ax2.set_ylabel("ms / frame (toàn tiến trình, Measure-Command)")
     ax2.set_title("V5 sim2sim — mean nếu CV ≤ 5 %, median nếu CV > 5 %\nthanh sai số = min–max (cùng walk1_subject1.bvh)")

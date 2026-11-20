@@ -39,7 +39,7 @@ SLIDES = [
     (5, "0:50", "Duy", "chỉ đo được thời gian cả tiến trình, không phải retarget thuần"),
     (6, "0:50", "Duy", "hai cột tách bạch: paper không nêu, nhóm đo được 17,349 ms"),
     (7, "1:00", "Mạnh", "cài được trên Windows sau 4 lệnh và 6 sự cố"),
-    (8, "1:00", "Mạnh", "5 lần đo, tất cả dưới ngưỡng 33,3 ms"),
+    (8, "1:00", "Mạnh", "5 lần đo, tất cả dưới ngưỡng 33,33 ms"),
     (9, "0:50", "Trường", "đổi khối lượng không đổi một byte pkl"),
     (10, "1:00", "Trường", "nhiễu khớp hỏng từ 2 độ, trễ và mất frame vô hại"),
     (11, "0:50", "Trường", "chất lượng chỉ so sánh tương đối, không có ngưỡng tuyệt đối"),
@@ -281,7 +281,7 @@ def build():
     ]
     table(s, rows, 0.7, 2.0, 11.9, 2.3, [0.7, 6.5, 4.7], font_size=14, header_size=13, highlight_row=3)
     tb(s, 0.7, 4.40, 11.9, 0.6,
-       "Ngưỡng 33,3 ms là ngưỡng của nhóm (1000/30 từ LAFAN1), không phải ngưỡng của paper.",
+       "Ngưỡng 33,33 ms là ngưỡng của nhóm (1000/30 từ LAFAN1), không phải ngưỡng của paper.",
        size=15, color=TEXT, italic=True)
     card(s, 0.7, 5.15, 11.9, 0.95, fill=RGBColor(0xD9, 0xF2, 0xEE))
     tb(s, 0.95, 5.38, 11.4, 0.5,
@@ -304,9 +304,9 @@ def build():
     bullets(s, [
         "CV ≤ 5 %: báo trung bình — V3 17,349 · G1 16,758 · PM01 34,975",
         "CV > 5 %: báo trung vị — chỉ T1 13,034 (CV 11,32 %)",
-        "Ngưỡng 33,3 ms áp cho ms_per_frame; thiếu số thì dùng bảng bắc cầu §6.1",
+        "Ngưỡng 33,33 ms áp cho ms_per_frame; thiếu số thì dùng bảng bắc cầu §6.1",
     ], 0.7, 4.45, 9.5, 1.6, size=15)
-    stat(s, "33,3", "ngưỡng ms/frame", 10.5, 4.55, 2.2, 1.3, number_size=40)
+    stat(s, "33,33", "ngưỡng ms/frame", 10.7, 4.55, 2.0, 1.3, number_size=34)
     footer(s, 5)
     notes(s, 5)
 
@@ -349,7 +349,7 @@ def build():
     # 8 — V3
     s = new()
     title(s, "V3 — kết quả đo")
-    message(s, "5 lần đo độc lập, tất cả dưới ngưỡng 33,3 ms")
+    message(s, "5 lần đo độc lập, tất cả dưới ngưỡng 33,33 ms")
     picture(s, os.path.join(FIG, "v3_ms_per_frame_g1_2026-11-20.png"), 0.7, 2.0, 7.6, 4.2,
             caption="Nguồn: results/v3_runtime.csv — 5 lần đo, bỏ warm-up")
     stat(s, "17,349", "ms/frame · mean n=5 · CV 2,13 %", 8.7, 2.0, 3.9, 1.8, number_size=60)
@@ -365,7 +365,7 @@ def build():
     stat(s, "0 byte", "đầu ra thay đổi khi đổi khối lượng", 0.7, 2.0, 4.6, 2.0, number_size=60)
     bullets(s, [
         "Không có mass, friction hay lực tiếp xúc trong vòng lặp",
-        "40 pkl của cùng cặp (robot, motion) trùng SHA256 tuyệt đối",
+        "40 file pkl: 37 thuộc 4 cặp trùng hash, 3 file lẻ",
         "Vì vậy bảng “tụt theo ±20 % khối lượng” sẽ là bảng giả",
         "Thay bằng N1–N4: nhiễu khớp, trễ, mất frame, lệch tỉ lệ người",
     ], 5.7, 2.0, 7.0, 3.0, size=15)
@@ -396,9 +396,9 @@ def build():
     # 11 — chat luong
     s = new()
     title(s, "Chất lượng ánh xạ — 3 robot")
-    message(s, "Chỉ so sánh tương đối: không có ngưỡng tuyệt đối đặt trước")
+    message(s, "foot_slide ≤ 50 mm/s: G1 49,0 đạt sát · T1 83,1 và PM01 118,4 không đạt")
     rows = [
-        ["Robot", "foot_slide", "min_h", "tâm thân <−1mm", "sát giới hạn"],
+        ["Robot", "foot_slide", "min_body_height (mm)", "ít nhất 1 body <−1mm", "sát giới hạn"],
         ["G1", "49,0", "+9,9", "0 %", "23,8 %"],
         ["T1 29dof", "83,1", "−7,6", "2,13 %", "43,3 %"],
         ["PM01", "118,4", "+43,8", "0 %", "24,1 %"],
@@ -407,9 +407,9 @@ def build():
     picture(s, os.path.join(FIG, "v6_quality.png"), 0.6, 4.35, 5.2, 2.1,
             caption="Nguồn: results/v6_quality.csv")
     bullets(s, [
-        "foot_slide là proxy, đo ở tâm bàn chân — không phải “trượt tuyệt đối”",
-        "pct tâm thân <−1 mm là proxy, không phải đo bề mặt/mesh",
-        "min_body_height phụ thuộc offset từng model, không so tuyệt đối",
+        "foot_slide là proxy, đo ở gốc body bàn chân — không phải “trượt tuyệt đối”",
+        "pct frame có ít nhất một body gốc <−1 mm là proxy, không phải bề mặt/mesh",
+        "min_body_height phụ thuộc offset nghỉ từng model; ngưỡng đã rút hậu kiểm DEC-03",
     ], 6.0, 4.40, 6.7, 2.2, size=13, gap=8)
     footer(s, 11)
     notes(s, 11)
@@ -420,9 +420,9 @@ def build():
     message(s, "Giữ simulator, đổi embodiment, không huấn luyện lại")
     picture(s, os.path.join(FIG, "v5_ms_per_frame_robots_2026-11-20.png"), 0.7, 1.95, 7.2, 4.4,
             caption="Nguồn: results/v5_sim2sim.csv — mean/median theo CV, thanh min–max")
-    stat(s, "13,034", "T1 29dof · 2,56×", 8.2, 1.95, 4.4, 1.25, number_size=40)
-    stat(s, "16,758", "G1 · 1,99×", 8.2, 3.35, 4.4, 1.25, number_size=40)
-    stat(s, "34,975", "PM01 · 0,95× — chưa kết luận", 8.2, 4.75, 4.4, 1.25, number_size=40)
+    stat(s, "13,034", "T1 29dof · 2,56×", 8.2, 1.95, 4.4, 1.40, number_size=32)
+    stat(s, "16,758", "G1 · 1,99×", 8.2, 3.45, 4.4, 1.40, number_size=32)
+    stat(s, "34,975", "PM01 · 0,95× — chưa kết luận", 8.2, 4.95, 4.4, 1.40, number_size=32)
     footer(s, 12)
     notes(s, 12)
 
@@ -453,7 +453,7 @@ def build():
     tb(s, 0.7, 2.1, 11.9, 1.2,
        "Tái lập một phần", size=54, color=ACCENT, bold=True, font=HEAD)
     stat(s, "17,349", "ms/frame · 1,92× · 57,6 FPS", 0.7, 4.35, 3.7, 1.7, dark=True, number_size=40)
-    stat(s, "2/3", "robot dưới ngưỡng 33,3 ms", 4.8, 4.35, 3.7, 1.7, dark=True, number_size=40)
+    stat(s, "2/3", "robot dưới ngưỡng 33,33 ms", 4.8, 4.35, 3.7, 1.7, dark=True, number_size=40)
     stat(s, "0", "bảng paper tái lập được", 8.9, 4.35, 3.7, 1.7, dark=True, number_size=40)
     footer(s, 14, dark=True)
     notes(s, 14)
@@ -465,7 +465,7 @@ def build():
     stat(s, "4", "hạn chế đã ghi trong báo cáo", 9.4, 1.95, 3.2, 1.7, number_size=72)
     bullets(s, [
         "Chưa đo ms_per_frame — chỉ có số cả tiến trình",
-        "Chất lượng ánh xạ chỉ tương đối, chưa có ngưỡng tuyệt đối",
+        "Chất lượng: chỉ 1/3 robot đạt ngưỡng foot_slide ≤ 50 mm/s",
         "Một máy Windows, chưa xác minh CUDA_VISIBLE_DEVICES",
         "N4 còn bất đối xứng chưa tách định lượng",
     ], 0.7, 2.0, 8.3, 3.0, size=15)
@@ -488,7 +488,7 @@ def build():
         "Vì sao không đo ms_per_frame?",
         "Vì sao không train 3 seed?",
         "PM01 chậm vì ít khớp?",
-        "dr_rmse 719 mm có phải sai tư thế?",
+        "Nhiễu trễ có 36° ở frame 0 — lỗi tích lũy?",
         "Sim2sim không đúng nhiễu vật lý?",
         "Hai đợt lệch 14 %, số nào tin?",
         "So với paper thế nào?",
