@@ -1,14 +1,18 @@
 # Phụ kiện CHỈ cho đường Xsens (scripts/xsens_bvh_to_robot.py).
 #
-# Vì sao cần: general_motion_retargeting/utils/xsens.py import
-#   utils/xsens_vendor/bvh_edit/CurveEditor.py
-# và file đó cần PyQt6 + matplotlib — hai gói KHÔNG có trong requirements.txt
-# (requirements.txt là hợp đồng môi trường của đường BVH LAFAN1 đã chốt, KHÔNG đổi).
+# Cài SAU khi đã cài requirements.txt:
+#   pip install -r requirements.txt
+#   pip install -r requirements-xsens.txt
 #
-# Cài:  pip install -r requirements-xsens.txt
+# Vì sao cần PyQt6: general_motion_retargeting/utils/xsens.py import
+#   utils/xsens_vendor/bvh_edit/CurveEditor.py
+# và file đó cần PyQt6 (gói này KHÔNG có trong requirements.txt và không cần cho
+# đường BVH LAFAN1 — đó là hợp đồng môi trường đã chốt, KHÔNG đổi).
 PyQt6==6.12.1
-matplotlib==3.10.9
 
+# Ghi chú: matplotlib KHÔNG còn ở đây — nó đã nằm trong requirements.txt vì 4 script vẽ
+# trong tools/ (plot_v3.py, quality_plot.py, v6_plot.py, v6_plot_slide.py) đều import matplotlib.
+#
 # BẮT BUỘC trên Windows trước khi chạy, nếu không sẽ gặp
 #   UnicodeEncodeError: 'charmap' codec can't encode characters ... (cp1258)
 # do script in tiếng Trung ra console:
