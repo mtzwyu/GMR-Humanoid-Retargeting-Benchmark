@@ -1,0 +1,4 @@
+robot,n_frames,foot_slide_L,foot_slide_R,foot_slide_mean,min_body_height_mm,rest_offset_mm,pct_frames_penetration,joint_limit_saturation_pct,pkl,cmd
+unitree_g1,7839,62.109,35.973,49.041,9.886,16.136,0.0,23.791,results/pkl/v5_unitree_g1_walk1_subject1_run1.pkl,python tools/quality_metrics.py --robots unitree_g1 --out results\v6_quality.csv
+booster_t1_29dof,7839,63.189,103.052,83.121,-7.641,36.646,2.13,43.322,results/pkl/v5_booster_t1_29dof_walk1_subject1_run1.pkl,python tools/quality_metrics.py --robots booster_t1_29dof --out results\v6_quality.csv
+engineai_pm01,7839,94.527,142.292,118.409,43.849,44.95,0.0,24.072,results/pkl/v5_engineai_pm01_walk1_subject1_run1.pkl,python tools/quality_metrics.py --robots engineai_pm01 --out results\v6_quality.csv

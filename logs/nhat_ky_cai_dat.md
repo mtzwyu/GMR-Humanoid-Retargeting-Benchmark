@@ -232,3 +232,31 @@ Kiểm chứng trước khi chạy: driver `v6_run.py` chạy lại bản sạch
 **Kết luận (3 câu):** Ở +10 %/+20 % (người cao hơn robot) số frame bão hòa **cao hơn** −10 % (2.002 / 2.166 so với 1.793), và phần tăng tập trung ở `ankle_roll` (534/489 so với 310/344) — hướng đúng giả thuyết "robot không với tới nên khớp bị ghì ở giới hạn". Tuy vậy mức chênh (≈200–370 frame) **không đủ lớn** để giải thích trọn vẹn khoảng cách `pct_frames_gt5deg` (6,4 % so với 94,8 %), nên bão hòa chỉ là **một phần** lời giải; phần còn lại là hình học tay/chân không với tới đích. Lưu ý `dr_rmse` 359/719 mm của N4 **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn) chứ **không phải sai tư thế** — chỉ số này không dùng để kết luận về tư thế.
 
 Số thô: `results/v6_noise_sweep.csv` (thêm 2 cột bão hòa + `max_dev_frame_index`); đồ thị: `results/figures/v6_noise_vs_deviation.png` (3 panel); lệnh: `logs/lenh_da_chay.md` mục 11.
+
+## V6 — chất lượng ánh xạ (vế thứ 2 của đề tài)
+
+Đề tài HR-04 yêu cầu đo **tốc độ và chất lượng** ánh xạ. Mục trên đã có tốc độ; mục này đo chất lượng trên **pkl đã có của V5** (`v5_<robot>_walk1_subject1_run1.pkl`), **không chạy lại retarget**. Công cụ: `tools/quality_metrics.py`; số thô: `results/v6_quality.csv`; đồ thị: `results/figures/v6_quality.png`.
+
+**Định nghĩa (đặc tả Planner, đã sửa theo RV-37/38/39):**
+1. `foot_slide_L/R/mean` (mm/s) — frame **tiếp đất** của một bàn chân = độ cao **tâm thân** bàn chân trong **30 mm** so với chính mức thấp nhất của nó trong clip; tổng dịch ngang (xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia tổng thời gian tiếp đất; tính riêng trái/phải rồi lấy trung bình. **Đây là chỉ số PROXY, chỉ dùng để SO SÁNH TƯƠNG ĐỐI giữa 3 robot** (xem 2 giới hạn bên dưới).
+2. `min_body_height_mm` (mm) — độ cao **tâm thân (body origin) thấp nhất** trong cả clip so với `z = 0`; vì đo ở tâm thân nên mỗi model có **offset nghỉ** riêng, ghi ở cột `rest_offset_mm`.
+3. `pct_frames_penetration` (%) — % frame có **ít nhất 1 thân** dưới mặt đất (`z < −1 mm`). **Đây là cột duy nhất dùng để kết luận xuyên sàn.**
+4. `joint_limit_saturation_pct` (%) — % frame có **ít nhất 1 khớp NẰM TRONG 0,5° so với giới hạn** `qpos_lo/qpos_hi`, tức **bão hòa ở giới hạn**, **KHÔNG phải vượt giới hạn**.
+
+| Robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | rest_offset (mm) | % frame xuyên sàn | % frame bão hòa khớp |
+|---|---|---|---|---|---|---|---|
+| `unitree_g1` | 7.839 | 62,11 / 35,97 | **49,04** | +9,89 | +16,14 | **0,00** | 23,79 |
+| `booster_t1_29dof` | 7.839 | 63,19 / 103,05 | **83,12** | −7,64 | +36,65 | **2,13** | 43,32 |
+| `engineai_pm01` | 7.839 | 94,53 / 142,29 | **118,41** | +43,85 | +44,95 | **0,00** | 24,07 |
+
+**Đọc số (đã bỏ các suy diễn sai):**
+- **Xuyên sàn chỉ đọc theo `pct_frames_penetration`:** T1 29dof **2,13 %** (≈ 167 frame; frame 3897 có `left_toe_link` xuống −7,64 mm), G1 và PM01 **0 %**.
+- `min_body_height_mm` **không** dùng để xếp hạng "sạch": G1 +9,89 / T1 −7,64 / PM01 +43,85 mm nhưng offset nghỉ lần lượt +16,14 / +36,65 / +44,95 mm → PM01 cao "hơn" chủ yếu vì **tâm thân bàn chân của model nằm cao hơn**, không phải vì ánh xạ tốt hơn. Muốn so mức tụt so với tư thế nghỉ thì trừ `rest_offset_mm`.
+- `foot_slide_mean`: PM01 **118,4** > T1 **83,1** > G1 **49,0** mm/s — chỉ nói **tương đối** giữa 3 robot, không phải mm/s tuyệt đối của bàn chân thật (xem giới hạn bên dưới).
+
+**Hai giới hạn của `foot_slide` (RV-38):**
+- "Tiếp đất" định nghĩa theo **mức thấp nhất của chính bàn chân đó** (không phải `z = 0`): nếu dùng ngưỡng tuyệt đối `z ≤ 30 mm` thì **G1 và PM01 không có frame tiếp đất nào** → không đo được.
+- Đo ở **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi tâm thân vẫn dịch ngang và bị tính là trượt. Reviewer đo lại tại **ngón chân**: G1 **84,3** thay vì 49,0; T1 **169,2** thay vì 83,1.
+- Việc **không trừ vị trí root** là đúng theo đặc tả, giữ nguyên.
+
+**Ngưỡng đạt:** `docs/dinh_nghia_phep_do.md` hiện **chưa đặt ngưỡng** cho 4 chỉ số này, nên mục này chỉ **báo số thô**, không kết luận đạt/không đạt. Nếu cần ngưỡng, phải chốt trong `dinh_nghia_phep_do.md` trước rồi mới đối chiếu.
