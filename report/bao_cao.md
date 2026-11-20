@@ -436,7 +436,7 @@ Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. 
 
 #### 8.2.2 Đặng Duy Mạnh — MSSV 2001240271 — Run, dựng môi trường và thu bằng chứng — 30%
 
-Tôi là người cài và chạy GMR trên Windows. Khó nhất là khâu cài: `proxsuite` fail vì thiếu MSVC, tôi phải ghim `proxsuite==0.7.2.post1`; rồi phát hiện SMPL-X yêu cầu license nên chuyển sang BVH LAFAN1 — quyết định đó cứu cả đề tài, vì nếu không có nó nhóm không có dữ liệu chuyển động nào để chạy. Khi người xem báo robot cúi gập người, tôi đo góc khớp ba clip và tìm ra `walk4_subject1` vốn là clip đi khom lưng của LAFAN1: pipeline không sai, nó tái hiện trung thực. Việc khó nhất về mặt tinh thần là tự phát hiện bảng CSV của mình có bốn dòng ghi cờ `--rate_limit` chưa từng được truyền, và tôi báo lại nhóm để rút kết luận thay vì giữ số cho đẹp. Tôi cũng chứng minh retarget là tất định bằng SHA256 trên 56 file `.pkl` và ghi lại provenance của phép thử nhiễu, để người chấm tự kiểm được mà không cần tải dữ liệu nặng.
+Tôi là người cài và chạy GMR trên Windows. Khó nhất là khâu cài: `proxsuite` fail vì thiếu MSVC, tôi phải ghim `proxsuite==0.7.2.post1`; rồi phát hiện SMPL-X yêu cầu license nên chuyển sang BVH LAFAN1 — quyết định đó cứu cả đề tài, vì nếu không có nó nhóm không có dữ liệu chuyển động nào để chạy. Khi người xem báo robot cúi gập người, tôi đo góc khớp ba clip và tìm ra `walk4_subject1` vốn là clip đi khom lưng của LAFAN1: pipeline không sai, nó tái hiện trung thực. Việc khó nhất về mặt tinh thần là tự phát hiện bảng CSV của mình có bốn dòng ghi cờ `--rate_limit` chưa từng được truyền, và tôi báo lại nhóm để rút kết luận thay vì giữ số cho đẹp. Tôi cũng băm 56 file `.pkl` để chứng minh retarget tất định (37 file trong 4 cặp trùng hash tuyệt đối), ghi provenance cho phép thử nhiễu, và sau đó chạy thật phép thử đổi khối lượng ±20% cùng ma sát — kết quả buộc nhóm phải bỏ câu "không đổi một byte" cho khối lượng, vì hash có đổi dù chuyển động chỉ lệch 1,5e-9 rad.
 
 #### 8.2.3 Trương Thái Vỹ — MSSV 2001240577 — Code, công cụ đo và dựng video — 20%
 
@@ -446,7 +446,7 @@ Tôi viết hai công cụ của nhóm là `scripts/measure_runtime.py` và `scr
 
 Tôi phụ trách phản biện, và nguyên tắc của tôi là chỉ đọc cái đã nằm trong nhánh, không nghe mô tả. Việc đáng kể nhất là bốn dòng CSV ghi lệnh có `--rate_limit` trong khi lệnh thật không hề truyền cờ đó: tôi xác nhận bằng ba nguồn độc lập — đọc mã PowerShell, đối chiếu log ghi 64 FPS (một bộ giới hạn 30 Hz không thể ra 64), và chạy lại thư viện trong env được 21,4 Hz — rồi yêu cầu rút kết luận đó khỏi báo cáo. Tôi cũng bắt được việc đặt tên `joint_limit_violation` cho một chỉ số thực chất chỉ là "khớp nằm sát giới hạn", và bác bỏ câu "hai công cụ độc lập cho cùng kết quả" vì hai script dùng chung logic và chung ngưỡng trên cùng một tệp. Ngoài ra tôi chỉ ra `foot_slide` chỉ là chỉ số proxy, `min_body_height` phụ thuộc offset nghỉ của từng model, và `dq_max` bị frame 0 làm phóng đại. Bài học của tôi là review không phải đọc lại cho kỹ, mà là chủ động tìm cách bác bỏ con số của chính nhóm mình.
 
-Mọi số lần ngược được tới `results/` và dòng `END`; mọi số paper nằm ở cột "bài báo"; video/pkl/LAFAN1 không commit.
+Mọi số truy ngược được tới `results/` và dòng `END`; mọi số paper nằm ở cột "bài báo"; video/pkl/LAFAN1 không commit.
 
 # TÀI LIỆU THAM KHẢO
 
