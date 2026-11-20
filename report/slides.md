@@ -235,7 +235,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 ---
 
-## Q&A 3 phút — 5 câu đã chuẩn bị
+## Q&A 3 phút — 7 câu đã chuẩn bị
 
 | # | Câu hỏi dễ bị hỏi | Trả lời ngắn (1 hơi) |
 |---|---|---|
@@ -256,4 +256,4 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 - [ ] 3 video 60 s mở sẵn, đã thử loa/màn hình
 - [ ] Tập 2 lần: lần 1 bấm giờ từng slide, lần 2 bỏ slide nào vượt
 - [ ] Chốt người nói từng slide theo bảng thời lượng
-- [ ] In 1 bản Q&A 6 câu cho cả nhóm
+- [ ] In 1 bản Q&A 7 câu cho cả nhóm

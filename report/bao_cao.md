@@ -340,15 +340,17 @@ Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cù
 | Booster T1 29dof | 83,121 | 63,189 / 103,052 | **−7,641** | **2,130** | **43,322** |
 | ENGINEAI PM01 | **118,409** | 94,527 / 142,292 | +43,849 | 0,000 | 24,072 |
 
+**Cột `pct_frames_penetration` là % frame có TÂM THÂN dưới −1 mm** (`xpos[1:,2] < −1 mm`); đây là **proxy**, không phải đo bề mặt/mesh, nên **không được đọc là bằng chứng không xuyên sàn**.
+
 ![Hình 5](results/figures/v6_quality.png)
 
 **Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` của 3 robot; đường đỏ là mức 0 của thang đo tâm thân, **không phải mặt đất**. Nguồn: `results/v6_quality.csv`.
 
-**Xếp hạng:** **G1 sạch nhất** — `pct_frames_penetration` 0 %, `foot_slide` proxy thấp nhất (49,0 mm/s), 23,8 % frame khớp sát giới hạn. **T1** — xuyên sàn **2,13 % frame** và tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` proxy cao nhất **118,4 mm/s, gấp 2,4 lần G1**, nhưng `pct_frames_penetration` 0 %.
+**Xếp hạng:** **G1 không có frame nào có tâm thân dưới −1 mm**, và `foot_slide` proxy thấp nhất (49,0 mm/s), 23,8 % frame khớp sát giới hạn. **T1** — có **2,13 % frame tâm thân dưới −1 mm** và tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` proxy cao nhất **118,4 mm/s, gấp 2,4 lần G1**, nhưng 0 % frame tâm thân dưới −1 mm.
 
 **`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot**, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: nếu đo tại **ngón chân**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
 
-**`min_body_height` đo ở tâm thân, không so sánh tuyệt đối giữa robot:** mỗi model có offset nghiêng riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghiêng của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Kết luận xuyên sàn **chỉ** dựa trên cột `pct_frames_penetration`: **T1 2,13 %, G1 và PM01 0 %**.
+**`min_body_height` đo ở tâm thân, không so sánh tuyệt đối giữa robot:** mỗi model có offset nghiêng riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghiêng của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Cả `min_body_height` và `pct_frames_penetration` đều đo **tâm thân**, nên báo cáo chỉ nêu "tâm thân dưới −1 mm", **không** kết luận về bề mặt/mesh.
 
 **Giới hạn phải nói thẳng:** nhóm **không đặt ngưỡng tuyệt đối** cho bốn chỉ số này **trước khi đo**, nên kết quả chỉ dùng để **so sánh giữa 3 robot**, **không** được viết "đạt" hay "không đạt". Đây là khác biệt so với ngưỡng 33,3 ms (đã chốt trước) và là hạn chế của phần chất lượng.
 
@@ -366,7 +368,7 @@ Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và *
 
 > **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,3 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7) chỉ cho phép **so sánh tương đối**: G1 sạch nhất (`pct_frames_penetration` 0 %, `foot_slide` proxy 49,0 mm/s), T1 xuyên sàn **2,13 % frame**, PM01 có `foot_slide` proxy cao nhất **118,4 mm/s**. Không được so tuyệt đối vì `foot_slide` là chỉ số proxy và `min_body_height` phụ thuộc offset tâm thân của từng model; nhóm cũng **không đặt ngưỡng tuyệt đối trước khi đo** — đó là lý do thứ ba khiến kết luận dừng ở "một phần".
+Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7) chỉ cho phép **so sánh tương đối**: G1 **không có frame nào có tâm thân dưới −1 mm** và `foot_slide` proxy thấp nhất (49,0 mm/s); T1 có **2,13 % frame tâm thân dưới −1 mm**; PM01 có `foot_slide` proxy cao nhất **118,4 mm/s**. Không được so tuyệt đối vì `foot_slide` là proxy, `pct_frames_penetration` cũng đo tâm thân (không phải bề mặt/mesh), và `min_body_height` phụ thuộc offset từng model; nhóm cũng **không đặt ngưỡng tuyệt đối trước khi đo** — đó là lý do thứ ba khiến kết luận dừng ở "một phần".
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
@@ -386,7 +388,7 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 
 ### 7.4 Thiếu sót phải nêu
 
-- Bốn chỉ số chất lượng ánh xạ **không có ngưỡng tuyệt đối đặt trước**; chỉ so sánh giữa 3 robot, không kết luận "đạt/không đạt" (§6.7).
+- Bốn chỉ số chất lượng ánh xạ **không có ngưỡng tuyệt đối đặt trước**; `pct_frames_penetration` chỉ là proxy tâm thân, không phải bề mặt/mesh. Chỉ so sánh giữa 3 robot, không kết luận "đạt/không đạt" (§6.7).
 - `ms_per_frame` **chưa đo**; chỉ có số cả tiến trình (§4.5).
 - `CUDA_VISIBLE_DEVICES` **chưa xác minh** trên bản đo cũ.
 - Kết quả trên **một máy Windows**, không đại diện Linux.
@@ -402,7 +404,7 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 | 1 | Trần Nguyễn Khánh Duy | 2001230120 | Planner · Research · Writing 1, 2, 7 | `main` · `gmr-research` · `gmr-writing` | `v1_tuyen_bo.md`, `paper_notes.md`, `dinh_nghia_phep_do.md`, `quyet_dinh.md`, mục 1–2–7 | commit `f0a8fff`; Review PASS 5/5 |
 | 2 | Đặng Duy Mạnh | 2001240271 | Run · Writing 3 | `gmr-run` (`task/v2-cai-dat` → `v3-runtime` → `v5-sim2sim` → `v6-noise`) | nhật ký, `lenh_da_chay.md`, `requirements.txt`, CSV V3/V5/V6, ảnh, video | `f467075`, `5c05497`, `4e23df0`; 20/20 log `END` |
 | 3 | Trương Thái Vỹ | 2001240577 | Code · Writing 5 | `gmr-code` (`task/code-scripts` → `code-scripts3` → `v4-phan-tich`) | `measure_runtime.py`, test, `NOTES.md`, mục 5 | `5f9cdd5`; 12 test PASS |
-| 4 | Hà Mạnh Trường | 2045240326 | Review · Writing 6 | `gmr-review` (`task/review-qa`) | `review_notes.md`, checklist 5 điểm, 31 ticket RV | 7 PR; RV-13 phát hiện cờ giả |
+| 4 | Hà Mạnh Trường | 2045240326 | Review · Writing 6 | `gmr-review` (`task/review-qa`) | `review_notes.md`, checklist 5 điểm, 44 ticket RV (RV-01…RV-44) | 14 PR; RV-13 phát hiện cờ giả |
 
 ### 8.2 Tự thuật
 
@@ -422,7 +424,7 @@ Tôi viết hai công cụ của nhóm: `measure_runtime.py` và `build_demo.py`
 
 #### 8.2.4 Hà Mạnh Trường — MSSV 2045240326 — Review, phản biện độc lập — 20%
 
-Tôi phụ trách phản biện, và nguyên tắc của tôi là chỉ đọc cái đã nằm trong nhánh, không nghe mô tả. Việc đáng kể nhất là bốn dòng CSV ghi lệnh có `--rate_limit` trong khi lệnh thật không hề truyền cờ đó; tôi xác nhận bằng ba nguồn độc lập — đọc mã PowerShell, đối chiếu log ghi 64 FPS (một bộ giới hạn 30 Hz không thể ra 64), và chạy lại thư viện trong env được 21,4 Hz — rồi yêu cầu rút kết luận đó khỏi báo cáo. Tôi cũng bắt được báo cáo dùng trung vị trong khi định nghĩa đã chốt là dùng mean khi CV dưới 5%, và phải nêu lại ba lần vì lỗi lặp ở ba tài liệu khác nhau. Bài học của tôi là review không phải đọc lại cho kỹ, mà là chủ động tìm cách bác bỏ con số của chính nhóm mình. Tôi tự đánh giá 20%.
+Tôi phụ trách phản biện, và nguyên tắc của tôi là chỉ đọc cái đã nằm trong nhánh, không nghe mô tả. Việc đáng kể nhất là bốn dòng CSV ghi lệnh có `--rate_limit` trong khi lệnh thật không hề truyền cờ đó; tôi xác nhận bằng ba nguồn độc lập — đọc mã PowerShell, đối chiếu log ghi 64 FPS (một bộ giới hạn 30 Hz không thể ra 64), và chạy lại thư viện trong env được 21,4 Hz — rồi yêu cầu rút kết luận đó khỏi báo cáo. Tôi cũng bắt được việc đặt tên `joint_limit_violation` trong khi thực chất chỉ là **saturation**, và claim "hai công cụ độc lập" là sai; bắt `foot_slide` là proxy; và bắt `dq_max` bị frame 0 thổi lên. Bài học của tôi là review không phải đọc lại cho kỹ, mà là chủ động tìm cách bác bỏ con số của chính nhóm mình. Tôi tự đánh giá 20%.
 
 Mọi số lần ngược được tới `results/` và dòng `END`; mọi số paper nằm ở cột "bài báo"; video/pkl/LAFAN1 không commit.
 
