@@ -94,7 +94,7 @@ Nhưng báo cáo lại dùng nhãn **"tái lập một phần"**, vì nhóm bổ
 
 **Vấn đề.** Hướng dẫn môn mô tả sim2sim tối thiểu là đổi **tham số vật lý** (khối lượng khâu ±20%, ma sát, 1–3 bước trễ điều khiển) rồi vẽ hiệu năng theo mức nhiễu. Đề tài HR-04 lại chốt sim2sim **mức 3**: cùng một chuyển động → ≥ 3 robot. Nhóm đã làm mức 3, **chưa** làm phép thử nhiễu.
 
-**Phân tích.** GMR là retargeting **động học dựa trên tối ưu** — không có physics, không có khối lượng/ma sát trong vòng tính. Đổi khối lượng ±20% **không làm đổi một byte** `.pkl` (đã chứng minh bằng SHA256 trùng trên 40 lần chạy). Vậy phép thử "nhiễu vật lý" **không áp dụng được**, không phải nhóm bỏ qua.
+**Phân tích.** GMR là retargeting **động học dựa trên tối ưu** — không có physics động lực trong vòng tính. **Đã chạy thật (`results/v7_physics_perturb.csv`):** đổi ma sát 1,5 cho 72 geom → SHA256 `.pkl` **trùng tuyệt đối** baseline, `max|Δq| = 0`; đổi khối lượng ±20% (31 thẻ inertial) → SHA256 **khác**, nhưng `max|Δq| = 1,5e-9 rad` (~1e-7 độ), tức chỉ là nhiễu số dấu phẩy động, chuyển động không đổi. Vậy phép thử nhiễu vật lý **gần như không áp dụng được**, và khác biệt chỉ ở mức epsilon — không phải nhóm bỏ qua.
 
 **Quyết định: C** — giữ mức 3, **và** bổ sung 4 phép thử nhiễu có tác dụng thật lên đầu vào: nhiễu khớp, trễ điều khiển, mất frame, lệch tỉ lệ người. Đặc tả chi tiết: `docs/v6_noise_spec.md`.
 
