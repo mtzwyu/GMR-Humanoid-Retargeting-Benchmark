@@ -57,15 +57,15 @@ python scripts/xsens_bvh_to_robot.py `
 
 Chạy `tools/quality_metrics.py` trên pkl trên (fps đọc từ pkl = 120):
 
-| robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | % frame xuyên sàn | % frame chạm giới hạn khớp |
-|---|---|---|---|---|---|---|
-| `unitree_h1_2` | 4.249 | 467,78 / 737,79 | **602,79** | **+241,71** | 0,00 | 64,65 |
+| robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | rest_offset (mm) | % frame xuyên sàn | % frame bão hòa khớp |
+|---|---|---|---|---|---|---|---|
+| `unitree_h1_2` | 4.249 | 467,78 / 737,79 | **602,79** | **+241,71** | +46,80 | 0,00 | 64,65 |
 
 **Đọc số — kèm 3 cảnh báo:**
-0. **HAI CON SỐ `foot_slide_mean = 602,79 mm/s` VÀ `joint_limit_violation_pct = 64,65 %` KHÔNG ĐƯỢC dùng để so sánh với 3 robot G1/T1_29dof/PM01** — khác motion (boxing vs đi bộ), khác định dạng (Xsens vs LAFAN1), khác tần số (120 Hz vs 30 Hz). Chỉ ghi để chứng minh đường H1_2 chạy được và có sinh số đo được.
+0. **HAI CON SỐ `foot_slide_mean = 602,79 mm/s` VÀ `joint_limit_saturation_pct = 64,65 %` KHÔNG ĐƯỢC dùng để so sánh với 3 robot G1/T1_29dof/PM01** — khác motion (boxing vs đi bộ), khác định dạng (Xsens vs LAFAN1), khác tần số (120 Hz vs 30 Hz). Chỉ ghi để chứng minh đường H1_2 chạy được và có sinh số đo được.
 1. Đây là **motion khác** (boxing 120 Hz, định dạng Xsens), **không** so sánh trực tiếp với `walk1_subject1` của G1/T1/PM01. Foot slide 602,8 mm/s cao hơn nhiều so với đi bộ (49–118 mm/s) nhưng bài boxing có xoay/đổi trụ liên tục nên **không kết luận được gì về chất lượng tương đối**.
-2. `min_body_height_mm = +241,71 mm` đo theo **gốc (origin) của body**, đúng định nghĩa đã chốt — con số này **KHÔNG có nghĩa là robot lơ lửng 24 cm**; muốn kết luận phải đo theo mesh/geom, việc đó ngoài phạm vi ticket này.
-3. `joint_limit_violation_pct` 64,65 % cho thấy bài boxing đẩy nhiều khớp tới giới hạn — cũng là hiện tượng của motion, không phải của tốc độ.
+2. `min_body_height_mm = +241,71 mm` đo theo **tâm thân (body origin)**, đúng định nghĩa đã chốt. Offset nghỉ của model H1_2 là **+46,80 mm**, nên trong clip này tâm thân thấp nhất vẫn cao hơn vị trí nghỉ **~195 mm** — dấu hiệu bàn chân không đặt xuống sàn, nhưng muốn kết luận chắc phải đo theo mesh/geom (ngoài phạm vi ticket này). **Không** đồng nghĩa “robot lơ lửng 24 cm” chỉ từ một con số tâm thân.
+3. `joint_limit_saturation_pct` 64,65 % (bão hòa ở giới hạn, không phải vượt giới hạn) cho thấy bài boxing đẩy nhiều khớp tới giới hạn — cũng là hiện tượng của motion, không phải của tốc độ.
 
 Số thô: `results/v5_h1_quality.csv`.
 
