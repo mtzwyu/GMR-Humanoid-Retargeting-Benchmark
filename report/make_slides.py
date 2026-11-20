@@ -4,6 +4,7 @@ Chay: python report/make_slides.py
 Sau do QA bang LibreOffice -> PDF -> PNG (xem README/lenh trong phan bao cao).
 """
 import os
+import csv
 
 from PIL import Image
 from pptx import Presentation
@@ -16,6 +17,7 @@ from pptx.oxml.ns import qn
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIG = os.path.join(ROOT, "results", "figures")
 OUT = os.path.join(ROOT, "report", "slides.pptx")
+ASSETS = os.path.join(ROOT, "report", "assets")
 
 # Teal Trust
 LIGHT = RGBColor(0xF7, 0xFA, 0xFB)
@@ -202,7 +204,62 @@ def notes(slide, n):
     )
 
 
+def make_charts():
+    """Ve lai 2 bieu do voi dau phay thap phan, dung so trong CSV."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FuncFormatter
+
+    os.makedirs(ASSETS, exist_ok=True)
+    comma = FuncFormatter(lambda x, p: ("%.1f" % x).replace(".", ","))
+
+    # V3
+    path = os.path.join(ROOT, "results", "v3_runtime.csv")
+    rows = [r for r in csv.DictReader(open(path, encoding="utf-8-sig")) if r["phase"].startswith("measure")]
+    vals = [float(r["ms_per_frame_process"]) for r in rows]
+    fig, ax = plt.subplots(figsize=(7.4, 3.1), dpi=220)
+    xs = list(range(1, len(vals) + 1))
+    ax.plot(xs, vals, "o-", color="#028090", lw=2.4, ms=5)
+    for x, v in zip(xs, vals):
+        ax.annotate(("%.2f" % v).replace(".", ","), (x, v), textcoords="offset points",
+                    xytext=(0, 8), ha="center", fontsize=9, color="#12343B")
+    ax.axhline(33.33, ls="--", color="#C0392B", lw=1.2)
+    ax.text(len(vals), 34.4, "ngưỡng 33,33 ms", color="#C0392B", ha="right", fontsize=9)
+    ax.set_ylim(15, 36)
+    ax.set_xticks(xs)
+    ax.set_xticklabels([str(i) for i in xs])
+    ax.set_xlabel("lần đo")
+    ax.set_ylabel("ms/frame (cả tiến trình)")
+    ax.yaxis.set_major_formatter(comma)
+    ax.grid(alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(os.path.join(ASSETS, "v3_slide.png"), facecolor="white")
+    plt.close(fig)
+
+    # V5
+    labels = ["T1 29dof", "G1", "PM01"]
+    vals5 = [13.034, 16.758, 34.975]
+    colors = ["#02C39A", "#028090", "#C0392B"]
+    fig, ax = plt.subplots(figsize=(7.0, 3.2), dpi=220)
+    bars = ax.bar(labels, vals5, color=colors)
+    for b, v in zip(bars, vals5):
+        ax.annotate(("%.3f" % v).replace(".", ","), (b.get_x() + b.get_width() / 2, v),
+                    textcoords="offset points", xytext=(0, 5), ha="center", fontsize=10,
+                    color="#12343B")
+    ax.axhline(33.33, ls="--", color="#C0392B", lw=1.2)
+    ax.text(-0.45, 35.2, "ngưỡng 33,33 ms", color="#C0392B", ha="left", fontsize=9)
+    ax.set_ylim(0, 40)
+    ax.set_ylabel("ms/frame (cả tiến trình)")
+    ax.yaxis.set_major_formatter(comma)
+    ax.grid(axis="y", alpha=0.25)
+    fig.tight_layout()
+    fig.savefig(os.path.join(ASSETS, "v5_slide.png"), facecolor="white")
+    plt.close(fig)
+
+
 def build():
+    make_charts()
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
@@ -350,7 +407,7 @@ def build():
     s = new()
     title(s, "V3 — kết quả đo")
     message(s, "5 lần đo độc lập, tất cả dưới ngưỡng 33,33 ms")
-    picture(s, os.path.join(FIG, "v3_ms_per_frame_g1_2026-11-20.png"), 0.7, 2.0, 7.6, 4.2,
+    picture(s, os.path.join(ASSETS, "v3_slide.png"), 0.7, 2.0, 7.6, 4.2,
             caption="Nguồn: results/v3_runtime.csv — 5 lần đo, bỏ warm-up")
     stat(s, "17,349", "ms/frame · mean n=5 · CV 2,13 %", 8.7, 2.0, 3.9, 1.8, number_size=60)
     stat(s, "57,6", "FPS · realtime_factor 1,92", 8.7, 4.05, 3.9, 1.6, number_size=60)
@@ -399,9 +456,9 @@ def build():
     message(s, "foot_slide ≤ 50 mm/s: G1 49,0 đạt sát · T1 83,1 và PM01 118,4 không đạt")
     rows = [
         ["Robot", "foot_slide", "min_body_height (mm)", "ít nhất 1 body <−1mm", "sát giới hạn"],
-        ["G1", "49,0", "+9,9", "0 %", "23,8 %"],
-        ["T1 29dof", "83,1", "−7,6", "2,13 %", "43,3 %"],
-        ["PM01", "118,4", "+43,8", "0 %", "24,1 %"],
+        ["G1", "49,0", "+9,9", "0,00 %", "23,79 %"],
+        ["T1 29dof", "83,1", "−7,6", "2,13 %", "43,32 %"],
+        ["PM01", "118,4", "+43,8", "0,00 %", "24,07 %"],
     ]
     table(s, rows, 0.6, 2.0, 11.9, 2.1, [2.0, 2.3, 2.0, 2.8, 2.8], font_size=12, header_size=11, first_col_bold=True)
     picture(s, os.path.join(FIG, "v6_quality.png"), 0.6, 4.35, 5.2, 2.1,
@@ -418,8 +475,8 @@ def build():
     s = new()
     title(s, "Sim2sim — cùng motion, 3 robot")
     message(s, "Giữ simulator, đổi embodiment, không huấn luyện lại")
-    picture(s, os.path.join(FIG, "v5_ms_per_frame_robots_2026-11-20.png"), 0.7, 1.95, 7.2, 4.4,
-            caption="Nguồn: results/v5_sim2sim.csv — mean/median theo CV, thanh min–max")
+    picture(s, os.path.join(ASSETS, "v5_slide.png"), 0.7, 1.95, 7.2, 4.4,
+            caption="Nguồn: results/v5_sim2sim.csv — mean/median theo CV")
     stat(s, "13,034", "T1 29dof · 2,56×", 8.2, 1.95, 4.4, 1.40, number_size=32)
     stat(s, "16,758", "G1 · 1,99×", 8.2, 3.45, 4.4, 1.40, number_size=32)
     stat(s, "34,975", "PM01 · 0,95× — chưa kết luận", 8.2, 4.95, 4.4, 1.40, number_size=32)
