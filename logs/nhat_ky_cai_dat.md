@@ -83,6 +83,8 @@ Lần ghi đầu bị lỗi font (`Out-File -Encoding utf8` chèn UTF-8 vào fil
 
 Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nhất, dùng **trung vị 17,272 ms/frame** (n = 5). Biên độ thô: 16,853–17,852 ms/frame.
 
+**RV-17 — tên cột (Review yêu cầu, đã sửa):** đổi `ms_per_frame` → **`ms_per_frame_process`** trong `results/v3_runtime.csv` và `results/v5_sim2sim.csv`, vì tử số là wall-clock của **toàn tiến trình** (nạp model + dựng IK + retarget từng frame + render viewer + ghi pkl), **không** phải riêng hàm `retarget()`. Số giữ nguyên, không tính lại. Đồ thị V3 cũng được vẽ lại theo đúng 5 lần đo (bỏ panel `--rate_limit` đã rút).
+
 **RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
 
 Đo riêng thư viện để hiểu bản chất cờ này (tự đo, 300 lần gọi `sleep()`):

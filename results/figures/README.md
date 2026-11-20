@@ -28,14 +28,14 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 
 | Ảnh | Nội dung | Lệnh / công cụ sinh ra | Ngày |
 |---|---|---|---|
-| `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame theo từng lần đo, 2 panel: không `--rate_limit` (4 lần) và có `--rate_limit` (3 lần); đường ngưỡng 33,33 ms — **slide "kết quả V3"** | `python third_party/_run/plot_v3.py` (đọc `results/v3_runtime.csv`) | 2026-11-20 |
+| `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame theo từng lần đo (5 lần, **không** `--rate_limit`), đường ngưỡng 33,33 ms — **slide "kết quả V3"** | `python third_party/_run/plot_v3.py` (đọc `results/v3_runtime.csv`) | 2026-11-20 |
 | `v5_ms_per_frame_robots_2026-11-20.png` | ms/frame theo robot cho V5 sim2sim (G1 17,34 · T1 29dof 13,44 · PM01 34,99) — **slide "sim2sim"** | `python third_party/_run/plot_v3.py` (đọc `results/v5_sim2sim.csv`) | 2026-11-20 |
 
 ## 4. Ảnh mở file CSV kết quả
 
 | Ảnh | Nội dung | Lệnh / công cụ sinh ra | Ngày |
 |---|---|---|---|
-| `v3_csv_open_notepad_2026-11-20.png` | Notepad đang mở `results/v3_runtime.csv`: thấy header `mode, phase, robot, input, frames, motion_duration_s, wall_clock_s, ms_per_frame, realtime_factor, exit_code, cmd, log, note` và các dòng số — **slide "dữ liệu thô"** | `Start-Process notepad results\v3_runtime.csv` rồi `orca computer get-app-state --app notepad` | 2026-11-20 |
+| `v3_csv_open_notepad_2026-11-20.png` | Notepad đang mở `results/v3_runtime.csv`: thấy header `mode, phase, robot, input, frames, motion_duration_s, wall_clock_s, ms_per_frame_process, realtime_factor, exit_code, cmd, log, note` và các dòng số — **slide "dữ liệu thô"**. *Lưu ý: ảnh chụp từ phiên bản CSV trước RV-13/RV-17 (còn cột `ms_per_frame`), số liệu đã thay đổi sau đó — ảnh chỉ minh hoạ định dạng tệp.* | `Start-Process notepad results\v3_runtime.csv` rồi `orca computer get-app-state --app notepad` | 2026-11-20 |
 
 ## 5. Khung ảnh trích từ video demo (25 / 50 / 75 %)
 
