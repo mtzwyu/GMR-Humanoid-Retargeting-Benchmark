@@ -4,7 +4,7 @@ Ngày: 2026-11-21 · Người làm: Đặng Duy Mạnh (Run) · Nhánh: `task/h1
 
 ## 1. Tóm tắt một dòng
 
-**Blocker của H1 là blocker cấp (định dạng motion × robot), không phải bản thân robot H1.** Cùng một robot họ Unitree, `unitree_h1_2` **chạy được** khi đổi đầu vào sang BVH Xsens; `unitree_h1` không có cấu hình IK cho bất kỳ định dạng offline nào trong repo.
+**Blocker của H1 là blocker cấp (định dạng motion × robot), không phải bản thân robot H1.** Cùng một robot họ Unitree, `unitree_h1_2` **chạy được** khi đổi đầu vào sang BVH Xsens; `unitree_h1` chỉ có cấu hình IK cho định dạng **SMPL-X** (`smplx_to_h1.json`), mà đường đó bị chặn bởi license — **không có cấu hình nào cho BVH LAFAN1 hay BVH Xsens**.
 
 ## 2. Vì sao H1 không có trong V5
 
@@ -72,6 +72,6 @@ Số thô: `results/v5_h1_quality.csv`.
 ## 5. Kết luận
 
 - **Ba robot chính thức của V5 vẫn là `unitree_g1`, `booster_t1_29dof`, `engineai_pm01`** — không đổi.
-- H1 (LAFAN1) bị chặn vì **thiếu cặp (định dạng × robot)**: không có `bvh_lafan1_to_h1.json`, README ghi TBD, và đường SMPL-X bị license.
+- H1 (LAFAN1) bị chặn vì **thiếu cặp (định dạng × robot)**: không có `bvh_lafan1_to_h1.json`, README ghi cột BVH = TBD; trong khi đó H1 **có** cấu hình SMPL-X (`smplx_to_h1.json`) nhưng đường SMPL-X bị chặn bởi license.
 - H1_2 **chạy được** ngay khi đổi sang BVH Xsens (`bvh_xsens_to_h1_2.json`) → chứng minh **robot họ H1 không phải nguyên nhân**; nguyên nhân là **cặp định dạng × robot**.
 - Muốn đưa H1 vào so sánh ngang hàng với 3 robot kia thì cần **một motion chung** cho cả 4 robot: hoặc bổ sung `bvh_lafan1_to_h1(_2).json` (việc của Code, cần Review), hoặc có license SMPL-X để dùng chung nguồn AMASS.
