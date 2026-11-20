@@ -63,7 +63,7 @@ Pipeline **không lỗi**. So sánh 3 motion qua cùng một pipeline, cùng rob
 | Motion | frames | `waist_pitch` | `hip_pitch` | `knee` | `root z` | Nhận xét |
 |---|---|---|---|---|---|---|
 | `walk4_subject1.bvh` (đang dùng) | 4.917 | **29,5° ± 1,7** | **−56°** | 37–39° | 0,766 | Gập hông quá mức, gối khuỵu, thân gập |
-| `walk1_subject1.bvh` | 7.839 | 18,9° ± 6,0 | −11° | 27–29° | 0,781 | Đi bộ bình thường |
+| `walk1_subject1.bvh` | 7.840 | 18,9° ± 6,0 | −11° | 27–29° | 0,781 | Đi bộ bình thường |
 | `dance1_subject2.bvh` (repo đánh dấu `[x]`) | 3.944 | 18,6° ± 8,7 | −23° | 48–49° | 0,754 | Nhảy, gối gập nhiều là bình thường |
 
 **Nguyên nhân:** `walk4_subject1.bvh` là clip **đi bộ khom lưng** của LAFAN1 (hông gập −56°, không phải tư thế đi thường). Retargeting tái hiện **trung thực** chuyển động đó — robot không sai, chỉ là replay đúng một clip khom.
@@ -76,3 +76,5 @@ Bằng chứng phụ: `waist_pitch` của walk4 gần như hằng số (std 1,7�
 **Trạng thái:** đã xác định nguyên nhân, chờ chạy lại V3
 
 **Ảnh hưởng tới báo cáo:** ghi rõ trong `results/v3_runtime.csv` là input đã đổi từ `walk4_subject1` sang `walk1_subject1`. Đây là nội dung tốt cho mục 3 (nhật ký) và mục 7 (vì sao chênh).
+
+> Ghi ch�: con s? **7.839** xu?t hi?n trong ph�p so s�nh V6 l� do vh_to_robot.py c?a repo c� off-by-one (break tr�?c khi append) n�n baseline m?t frame cu?i; �? d�i clip l� **7.840 frame** nh� trong esults/v3_runtime.csv.
