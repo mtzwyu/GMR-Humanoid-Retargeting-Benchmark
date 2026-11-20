@@ -140,102 +140,128 @@ python scripts/vis_robot_motion.py --robot unitree_g1 --robot_motion_path out/un
    - BVH: chính là `--motion_fps` bạn truyền (mặc định 30), **không đọc từ header BVH**.
    - Vì vậy fps trong `.pkl` **không dùng** để kết luận về tốc độ chạy.
 3. **`retarget()` chỉ là một phần thời gian chạy.** Cả 2 script còn mở cửa sổ MuJoCo
-   (`RobotMotionViewer`) và vẽ từng frame; đo bằng `Measure-Command`/`wall_s` là đo
-   **toàn bộ tiến trình**, gồm khởi tạo model + render. Vì vậy `measure_runtime.py`
-   tách hẳn hai cột: `ms_per_frame_retarget` (đúng định nghĩa `t_i`/`ms_per_frame`
-   trong `docs/dinh_nghia_phep_do.md` §1.1, dùng để kết luận) và
-   `ms_per_frame_process` (cả tiến trình, chỉ để chẩn đoán). Xem §5.
+   (`RobotMotionViewer`) và vẽ từng frame; đo bằng `Measure-Command`/wall-clock là đo
+   **toàn bộ tiến trình**, gồm khởi tạo model + render. Vì vậy CSV tách hẳn hai nhóm cột:
+   nhóm `ms_per_frame*` (chỉ `retarget()`, đúng định nghĩa `t_i`/`ms_per_frame` trong
+   `docs/dinh_nghia_phep_do.md` §1.1, dùng để kết luận) và nhóm `*_process` (cả tiến
+   trình, chỉ chẩn đoán). Xem §5.
 4. Không có `--save_path` ⇒ không có `.pkl`; có `--loop` ⇒ không bao giờ thoát.
 5. Script cần màn hình (mở cửa sổ MuJoCo). Máy không GUI phải dùng Xvfb/WSLg, hoặc
    sửa viewer — đó là phạm vi `patches/`, không phải `measure_runtime.py`.
 
 ---
 
-## 5. `scripts/measure_runtime.py`
+## 5. `scripts/measure_runtime.py` — giao diện chính thức
 
-### Hai đại lượng, hai mục đích
+Một lệnh chạy trọn giao thức (N warm-up + M lần đo, mỗi lần một process mới) và xuất
+2 file: bảng tổng hợp (1 dòng/lần chạy) và bảng raw (1 dòng/frame).
 
-| Cột | Đo cái gì | Dùng để |
+### Cờ chính thức (RV-20 — Research sửa V1 theo bảng này)
+
+| Cờ | Mặc định | Ý nghĩa |
 |---|---|---|
-| `ms_per_frame_retarget` | `median(t_i)` với `t_i = perf_counter() sau − trước` **chỉ** quanh `retargeter.retarget(frame)`; bỏ `--warmup-frames` frame đầu | **Kết luận tuyên bố tốc độ** (`fps_out = 1000 / cột này`, `realtime_factor = fps_out / fps_src`) |
-| `ms_per_frame_process` | `wall_s * 1000 / frames` của **cả tiến trình** entry script: khởi tạo model, dựng viewer, render từng frame, ghi `.pkl` | Chẩn đoán "chạy một lệnh GMR mất bao lâu"; **không** dùng để kết luận |
+| `--motion PATH...` | — | file motion; alias `--bvh-file`, `--bvh_file` |
+| `--robot NAME...` | `unitree_g1` | robot GMR |
+| `--runs N` | 4 | **tổng** số lần chạy, gồm warm-up (4 = 1 warm-up + 3 đo) |
+| `--warmup-runs N` | 1 | N lần đầu bị loại khỏi mọi phép tính; alias `--warmup_runs` |
+| `--warmup-frames N` | 30 | bỏ N frame đầu **trong từng lần chạy**; alias `--warmup_frames` |
+| `--out PATH` | `v3_runtime.csv` | bảng tổng hợp; alias cũ `--csv` |
+| `--raw-out PATH` | `<out>_raw.csv` | bảng raw từng frame; alias `--raw_out` |
+| `--fps-src F` | 30 | fps phát của dữ liệu nguồn (LAFAN1 = 30); alias `--fps_src` |
+| `--script {bvh,smplx}` | suy ra từ đuôi file motion | entry script GMR |
+| `--gmr-dir`, `--python` | clone trong repo / python hiện tại | vị trí repo GMR, python env gmr |
+| `--dry-run` | tắt | dữ liệu giả, không gọi GMR |
+| `--frames N` | 300 | số frame clip giả (chỉ `--dry-run`) |
+| `--work-dir` | thư mục tạm | nơi ghi `.pkl`/`.json` tạm |
+| `--retarget-only`, `--out-json` | — | nội bộ: probe đo `retarget()`, do script tự gọi |
 
-Vì sao phải tách: `docs/dinh_nghia_phep_do.md` §1.1 định nghĩa `ms_per_frame` là trung vị
-`t_i` chỉ bọc `retarget()`, còn §3 **cấm** dựng `RobotMotionViewer` trong lúc đo và cấm
-dùng FPS render. Nếu chỉ có một cột wall-clock thì con số vừa sai định nghĩa vừa không
-so sánh được giữa các máy (GPU/display/render khác nhau). Cột process được giữ lại vì
-CSV cũ đã có và vì nó trả lời câu hỏi vận hành khác.
+Quy ước `run`: `run = 1..--runs`; mọi `run <= --warmup-runs` có `included = 0` và bị loại
+khỏi phép tính cuối. Số lần đo thực = `--runs - --warmup-runs` (phải ≥ 1).
+Có thể trộn `.bvh` và `.npz` trong cùng một lệnh: mỗi motion tự suy ra entry script riêng
+(bỏ trống `--script`), và `bvh_file` chỉ điền cho dòng BVH.
 
-### Chạy thật (tab Run, env `gmr`)
+### Lệnh chạy (đúng V1 §3.2)
 
 ```powershell
 conda run -n gmr python scripts/measure_runtime.py `
-  --motion <file>.npz `
+  --bvh_file <LAFAN1>/walk1_subject1.bvh `
   --robot unitree_g1 `
-  --script smplx --runs 3 `
-  --csv measure_runtime.csv
+  --runs 4 --warmup_runs 1 --warmup_frames 30 `
+  --fps_src 30 `
+  --out results/v3_runtime.csv `
+  --raw_out results/v3_runtime_raw.csv
 ```
 
-- `conda run -n gmr` để `sys.executable` là python của env; nếu gọi bằng python ngoài,
-  truyền thêm `--python <đường dẫn python env gmr>`.
-- Với BVH: `--script bvh --motion <file>.bvh`.
-- Mỗi dòng CSV chạy **hai tiến trình**:
-  1. entry script GMR (`smplx_to_robot.py` / `bvh_to_robot.py`) → `wall_s`, `frames`, `cmd`;
-  2. probe `measure_runtime.py --retarget-only` → mảng `t_i` từng frame, **không dựng
-     viewer**, có `--warmup-frames 30` bỏ 30 frame đầu theo §3. `retarget_cmd` là lệnh
-     tái lập đúng probe này.
-- Cả hai tiến trình được đặt `CUDA_VISIBLE_DEVICES=""` (docs §2.2) và `PYTHONPATH` trỏ
-  `--gmr-dir`.
-- `--warmup-frames` mặc định **30** (≈ 1 s ở 30 fps) theo §3; nếu motion ngắn hơn, script
-  báo lỗi chứ không lặng lẽ lấy mẫu rỗng.
+`--bvh_file` là alias của `--motion`, `--script` tự suy ra `bvh`, nên lệnh V1 chạy nguyên
+văn. Nếu gọi bằng python ngoài env, thêm `--python <python env gmr>`.
 
-### Cách đọc `fps` và `frames`
+### Mỗi lần chạy đo hai tiến trình
 
-- `fps` = `frames / wall_s` — thông lượng **cả tiến trình**, **không phải** `fps_out`.
-  `fps_out` phải tính từ `1000 / ms_per_frame_retarget`.
-- `frames` lấy từ `.pkl` nên vẫn là `T-1` so với input (§4.1) và **không** trừ 30 frame
-  warm-up. Chỉ `ms_per_frame_retarget` bị trừ warm-up.
+1. **Entry script GMR** (`bvh_to_robot.py` / `smplx_to_robot.py`) → nhóm `_process`.
+   Wall-clock bấm quanh cả process: khởi động interpreter + model + viewer + render +
+   ghi `.pkl`. Vì gồm cả khởi động interpreter nên đây là **cận trên** của `T_process`
+   (cùng tinh thần `Measure-Command` ở V1 §3.1). Lệnh đầy đủ nằm ở `process_cmd`.
+2. **Probe `--retarget-only`** — **không dựng viewer** (docs §3 cấm) → mảng `t_i`,
+   `t_init_s`, số frame, phiên bản package. Lệnh đầy đủ nằm ở `cmd`.
 
-### Còn thiếu so với hợp đồng `results/v3_runtime.csv` (§5.1)
+Cả hai tiến trình được đặt `CUDA_VISIBLE_DEVICES=""` (docs §2.2) và `PYTHONPATH` trỏ
+`--gmr-dir`.
 
-Script này là công cụ đo/chẩn đoán, **chưa** phát ra đúng hợp đồng §5.1. Các cột còn
-thiếu: `ms_per_frame_mean`, `ms_per_frame_p95`, `fps_src`, `realtime_factor`, `t_init_s`,
-`n_warmup_frames`, `bvh_file`, đánh dấu `run=1` là warm-up rồi loại khỏi phép tính,
-thông tin máy (`cpu, ram_gb, os, python, numpy, mujoco,
-mink, torch, git_head, cuda_visible`), `timestamp`, và file raw từng frame (§5.2).
-Đừng trỏ `--csv` vào `results/v3_runtime.csv` rồi coi là đã đạt §5.1 — việc đó thuộc
-ticket riêng.
+### Cột file tổng hợp
+
+25 cột đầu **đúng nguyên văn thứ tự §5.1**:
+
+| Nhóm | Cột | Ý nghĩa |
+|---|---|---|
+| định danh | `run, robot, motion, bvh_file` | `bvh_file` chỉ điền khi chạy BVH, ngược lại rỗng |
+| đếm frame | `n_frames, n_warmup_frames` | `n_frames` = số frame **được tính** = tổng − warm-up frame |
+| nguồn | `fps_src` | từ `--fps-src`, phải khớp header dữ liệu nguồn |
+| retarget | `ms_per_frame, ms_per_frame_mean, ms_per_frame_p95` | median / mean / p95 của `t_i` sau khi bỏ warm-up |
+| dẫn xuất | `fps_out, realtime_factor` | `fps_out = 1000 / ms_per_frame`; `realtime_factor = fps_out / fps_src` |
+| khởi tạo | `t_init_s` | thời gian `GMR(...)` đo trong probe, không cộng vào `t_i` |
+| máy | `cpu, ram_gb, os, python, numpy, mujoco, mink, torch` | bốn phiên bản package đọc trong env gmr |
+| môi trường | `git_head, cuda_visible` | HEAD ngắn của repo GMR; `cuda_visible` luôn rỗng (ép CPU) |
+| tái lập | `cmd, timestamp` | lệnh probe + ISO-8601 có múi giờ |
+
+5 cột cuối là phần V1 §3.3 bắt buộc thêm (không đổi tên cột nào của §5.1):
+
+| Cột | Ý nghĩa |
+|---|---|
+| `n_frames_total` | tổng frame của clip nạp vào, chưa trừ warm-up frame |
+| `ms_per_frame_process` | `wall_s * 1000 / n_frames_total` của cả tiến trình entry script |
+| `fps_out_process` | `n_frames_total / wall_s` |
+| `realtime_factor_process` | `fps_out_process / fps_src` |
+| `process_cmd` | lệnh entry script đầy đủ, để tái lập nhóm `_process` |
+
+### RV-19 — tên đại lượng
+
+- **Đã bỏ** hai cột trần `ms_per_frame` (process cũ) và `fps`: chúng đo cả tiến trình
+  nhưng tên không nói gì, trái §1.1 và rất dễ bị chép vào báo cáo như số retargeting.
+- `ms_per_frame` bây giờ **là** đại lượng retarget của §1.1 (median `t_i`); mọi số process
+  đều mang hậu tố `_process`. Không suy `ms_per_frame` từ `_process`, không nhân hệ số.
+- `--runs` đổi nghĩa thành **tổng số lần chạy** (trước đây là số lần đo) để khớp V1 §3.2;
+  cột `run_id` đổi tên thành `run` theo §5.1.
+
+### File raw (§5.2)
+
+`run, motion, robot, frame, included, ms`
+
+- `included = 0` cho **toàn bộ** frame của các run warm-up và cho `--warmup-frames` frame
+  đầu của mỗi run đo; `1` cho phần còn lại. `ms` là `t_i` của retarget, 3 chữ số thập phân.
+- Tổng số dòng = `số motion × số robot × --runs × số frame`; số dòng `included = 1`
+  = `số motion × số robot × (--runs − --warmup-runs) × (số frame − warm-up frame)`.
 
 ### Chạy khô (không cần env, dùng cho test/Review)
 
 ```powershell
 python scripts/measure_runtime.py --dry-run
-python scripts/measure_runtime.py --dry-run --csv "$env:TEMP\dry.csv" --robot unitree_g1 --runs 3 --frames 120
+python scripts/measure_runtime.py --dry-run --out "$env:TEMP\dry.csv" --runs 4 --warmup-runs 1 --frames 200
 ```
 
-`--dry-run` **không gọi GMR, không import GMR**: nó sinh `.pkl` giả đúng cấu trúc, đếm
-frame từ đó, giả định retarget 22 ms/frame và overhead 0,5 s cho cả tiến trình (nên
-`ms_per_frame_process` luôn lớn hơn `ms_per_frame_retarget`).
+`--dry-run` **không gọi GMR, không import GMR**: giả định 30 frame đầu 40 ms, phần còn lại
+22 ms, `t_init_s = 0,5`, overhead process 0,5 s, phiên bản package ghi `dry-run`.
 → **Số trong CSV dry-run là số giả, tuyệt đối không được chép vào báo cáo.**
 Mặc định dry-run ghi vào thư mục tạm để không rơi rác vào repo.
-
-### Cột CSV (hợp đồng với Review)
-
-| Cột | Ý nghĩa |
-|---|---|
-| `run_id` | lần chạy thứ mấy, 1..`--runs`, lặp lại cho từng cặp (robot, motion) |
-| `robot` | tên robot GMR |
-| `motion` | file motion đầu vào, đúng như đã truyền |
-| `wall_s` | tổng thời gian tiến trình entry script, giây (3 chữ số thập phân) |
-| `frames` | số frame đọc từ `.pkl` đầu ra |
-| `ms_per_frame` | `wall_s * 1000 / frames` (cột cũ, giữ nguyên) |
-| `fps` | `frames / wall_s` (thông lượng cả tiến trình) |
-| `cmd` | lệnh entry script đầy đủ đã chạy |
-| `ms_per_frame_retarget` | trung vị `t_i` sau khi bỏ warm-up, ms, 1 chữ số thập phân |
-| `ms_per_frame_process` | `ms_per_frame` làm tròn 1 chữ số thập phân (đại lượng chẩn đoán) |
-| `retarget_cmd` | lệnh probe `--retarget-only` đầy đủ đã chạy, để tái lập cột retarget |
-
-Thứ tự dòng: motion → robot → run. Một dòng = một lần chạy (2 tiến trình).
 
 ---
 
@@ -247,14 +273,18 @@ python -m pytest scripts/ -q
 
 - Chỉ cần Python chuẩn + pytest; **không cần** env `gmr`, không cần mạng, không cần
   `third_party/GMR`. Test gọi CLI qua subprocess, đúng lệnh Review sẽ chạy.
+- Test khoá **nguyên văn** 25 cột §5.1 ở đầu header (thứ tự + tên), 5 cột V1 thêm sau,
+  và header raw §5.2.
+- Test giao thức: `--runs 4 --warmup-runs 1` ⇒ 4 dòng `run=1..4`, `included = 1` đúng
+  `3 × (số frame − 30)` dòng, `run=1` toàn `included = 0`.
 - Test dựng một package `general_motion_retargeting` giả (thư mục tạm) trong đó `__init__`
   và bước load dữ liệu ngủ 0,1–0,3 s, chỉ `retarget()` ngủ 4 ms. Nhờ vậy test chứng minh
-  `ms_per_frame_retarget` **không** cộng thời gian load/khởi tạo: nếu cộng, con số sẽ vọt
-  lên hàng trăm ms.
+  `ms_per_frame` **không** cộng thời gian load/khởi tạo: nếu cộng, con số sẽ vọt lên hàng
+  trăm ms; đồng thời `ms_per_frame_process` phải lớn hơn hẳn (đo cả process).
 - Một test khác làm 30 lời gọi `retarget()` đầu chậm 50 ms và 30 lời gọi sau nhanh 2 ms;
-  trung vị phải < 20 ms, tức là warm-up đã bị loại đúng.
-- Test sẽ fail nếu ai đổi tên/thiếu cột CSV, đổi công thức, bỏ warm-up, hoặc để dry-run
-  phụ thuộc GMR.
+  trung vị phải < 20 ms, tức là warm-up frame đã bị loại đúng.
+- Test sẽ fail nếu ai đổi tên/thiếu cột CSV, đổi công thức, bỏ warm-up, đổi nghĩa `--runs`,
+  hoặc để dry-run phụ thuộc GMR.
 
 ---
 
@@ -269,7 +299,8 @@ README repo, mục **"Speed Benchmark"** (không phải bảng trong paper):
 
 Đây là tuyên bố duy nhất về tốc độ trong repo. Theo `docs/dinh_nghia_phep_do.md` §6,
 **paper không nêu bất kỳ con số thời gian nào**, nên mọi câu "nhanh/chậm hơn paper"
-là bịa. Cách kiểm chứng đúng: đo bằng `ms_per_frame_retarget` trên đúng CPU, tính
-`fps_out = 1000 / ms_per_frame_retarget`, rồi so `fps_out` với khoảng trong bảng README
-(ghi rõ CPU và số lõi). Cột README và cột nhóm đo phải để **hai cột riêng** trong báo cáo.
-Ngưỡng kết luận C5 là `realtime_factor ≥ 1,00`, không phải so với bảng README.
+là bịa. Cách kiểm chứng đúng: đo bằng `ms_per_frame` (median `t_i` của retarget) trên
+đúng CPU, lấy `fps_out` và `realtime_factor` do script tính, rồi so `fps_out` với khoảng
+trong bảng README (ghi rõ CPU và số lõi). Cột README và cột nhóm đo phải để **hai cột
+riêng** trong báo cáo. Ngưỡng kết luận C5 là `realtime_factor ≥ 1,00`, không phải so với
+bảng README; nhóm `_process` chỉ dùng để bắc cầu theo `docs/dinh_nghia_phep_do.md` §6.1.

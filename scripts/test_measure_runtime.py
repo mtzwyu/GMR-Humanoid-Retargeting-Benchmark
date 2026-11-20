@@ -1,15 +1,13 @@
 """Test cho scripts/measure_runtime.py.
 
-Chỉ dùng thư viện chuẩn + pytest, KHÔNG import general_motion_retargeting,
-KHÔNG cần conda env gmr. Mọi test chạy script qua subprocess đúng như
-lệnh mà Review sẽ tái lập.
+Chỉ dùng thư viện chuẩn + pytest, KHÔNG cần conda env gmr, KHÔNG cần mạng.
+Test gọi CLI qua subprocess đúng như lệnh Review/Run sẽ chạy.
 
-Hai đại lượng được kiểm riêng:
-- `ms_per_frame_retarget`: chỉ bọc `retargeter.retarget(frame)` (theo
-  docs/dinh_nghia_phep_do.md §1.1), phải loại thời gian load dữ liệu và
-  khởi tạo `GMR(...)`.
-- `ms_per_frame_process`: toàn tiến trình GMR (khởi tạo + render + ghi pkl),
-  chỉ là số chẩn đoán.
+Hợp đồng được khoá ở đây:
+- cột tổng hợp = docs/dinh_nghia_phep_do.md §5.1 + 4 cột bắt buộc của V1 §3.3;
+- file raw = §5.2;
+- `ms_per_frame*` chỉ đo `retarget()`, `ms_per_frame_process` đo cả tiến trình;
+- giao thức 1..N warm-up + M lần đo chạy bằng một lệnh.
 """
 
 import csv
@@ -20,19 +18,45 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "measure_runtime.py"
 
-COLUMNS = [
-    "run_id",
+# Nguyên văn header §5.1 (không đổi thứ tự, không đổi tên).
+CONTRACT_5_1 = [
+    "run",
     "robot",
     "motion",
-    "wall_s",
-    "frames",
+    "bvh_file",
+    "n_frames",
+    "n_warmup_frames",
+    "fps_src",
     "ms_per_frame",
-    "fps",
+    "ms_per_frame_mean",
+    "ms_per_frame_p95",
+    "fps_out",
+    "realtime_factor",
+    "t_init_s",
+    "cpu",
+    "ram_gb",
+    "os",
+    "python",
+    "numpy",
+    "mujoco",
+    "mink",
+    "torch",
+    "git_head",
+    "cuda_visible",
     "cmd",
-    "ms_per_frame_retarget",
-    "ms_per_frame_process",
-    "retarget_cmd",
+    "timestamp",
 ]
+
+EXTRA_COLUMNS_V1 = [
+    "n_frames_total",
+    "ms_per_frame_process",
+    "fps_out_process",
+    "realtime_factor_process",
+    "process_cmd",
+]
+
+COLUMNS = CONTRACT_5_1 + EXTRA_COLUMNS_V1
+RAW_COLUMNS = ["run", "motion", "robot", "frame", "included", "ms"]
 
 
 def run_cli(*args, cwd=None, env=None):
@@ -51,36 +75,128 @@ def read_csv(path):
         return reader.fieldnames, list(reader)
 
 
-def test_dry_run_writes_required_columns(tmp_path):
-    out = tmp_path / "runtime.csv"
+def test_summary_has_contract_columns_and_full_protocol(tmp_path):
+    out = tmp_path / "v3_runtime.csv"
 
     result = run_cli(
         "--dry-run",
-        "--csv",
+        "--out",
         str(out),
         "--robot",
         "unitree_g1",
-        "booster_t1",
         "--runs",
-        "3",
+        "4",
+        "--warmup-runs",
+        "1",
         cwd=tmp_path,
     )
 
     assert result.returncode == 0, result.stderr
     header, rows = read_csv(out)
     assert header == COLUMNS
-    assert len(rows) == 6  # 2 robot x 3 lần chạy
+    assert header[: len(CONTRACT_5_1)] == CONTRACT_5_1
+    assert [int(row["run"]) for row in rows] == [1, 2, 3, 4]
 
 
-def test_dry_run_metrics_are_consistent(tmp_path):
-    out = tmp_path / "runtime.csv"
+def test_raw_file_marks_warmup_run_and_warmup_frames(tmp_path):
+    out = tmp_path / "summary.csv"
+    raw = tmp_path / "raw.csv"
+
+    result = run_cli(
+        "--dry-run",
+        "--out",
+        str(out),
+        "--raw-out",
+        str(raw),
+        "--runs",
+        "4",
+        "--warmup-runs",
+        "1",
+        "--frames",
+        "100",
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    header, rows = read_csv(raw)
+    assert header == RAW_COLUMNS
+    assert len(rows) == 4 * 100
+
+    run1 = [row for row in rows if row["run"] == "1"]
+    assert {row["included"] for row in run1} == {"0"}  # cả lần warm-up bị loại
+    run2 = [row for row in rows if row["run"] == "2"]
+    assert [row["included"] for row in run2[:30]] == ["0"] * 30
+    assert set(row["included"] for row in run2[30:]) == {"1"}
+    assert sum(int(row["included"]) for row in rows) == 3 * 70
+
+
+def test_retarget_metrics_follow_definition(tmp_path):
+    out = tmp_path / "summary.csv"
+
+    result = run_cli(
+        "--dry-run",
+        "--out",
+        str(out),
+        "--runs",
+        "2",
+        "--warmup-runs",
+        "1",
+        "--frames",
+        "300",
+        "--warmup-frames",
+        "30",
+        cwd=tmp_path,
+    )
+
+    assert result.returncode == 0, result.stderr
+    _, rows = read_csv(out)
+    row = rows[0]
+    # Dry-run: 30 frame đầu 40 ms (bị loại), 270 frame còn lại đúng 22,0 ms.
+    assert int(row["n_frames_total"]) == 300
+    assert int(row["n_frames"]) == 270
+    assert int(row["n_warmup_frames"]) == 30
+    assert row["ms_per_frame"] == "22.0"
+    assert row["ms_per_frame_mean"] == "22.0"
+    assert row["ms_per_frame_p95"] == "22.0"
+    assert row["fps_out"] == "45.5"  # 1000 / 22,0
+    assert row["realtime_factor"] == "1.52"  # 45,5 / 30
+    assert row["fps_src"] == "30"
+    assert row["t_init_s"] == "0.500"
+    # Process là đại lượng khác: 300 frame x 22 ms + 0,5 s overhead.
+    assert float(row["ms_per_frame_process"]) > float(row["ms_per_frame"])
+    assert float(row["realtime_factor_process"]) < float(row["realtime_factor"])
+
+
+def test_machine_columns_are_filled(tmp_path):
+    out = tmp_path / "summary.csv"
+
+    result = run_cli("--dry-run", "--out", str(out), "--runs", "2", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    _, rows = read_csv(out)
+    row = rows[0]
+    for column in ["cpu", "ram_gb", "os", "python", "git_head", "timestamp", "cmd"]:
+        assert row[column], column
+    for column in ["numpy", "mujoco", "mink", "torch"]:
+        assert row[column] == "dry-run", column
+
+
+def test_v1_style_flags_and_aliases(tmp_path):
+    out = tmp_path / "summary.csv"
+    raw = tmp_path / "raw.csv"
 
     result = run_cli(
         "--dry-run",
         "--csv",
         str(out),
-        "--robot",
-        "unitree_g1",
+        "--raw_out",
+        str(raw),
+        "--bvh_file",
+        "walk1_subject1.bvh",
+        "--warmup_runs",
+        "1",
+        "--warmup_frames",
+        "10",
         "--runs",
         "2",
         "--frames",
@@ -90,94 +206,72 @@ def test_dry_run_metrics_are_consistent(tmp_path):
 
     assert result.returncode == 0, result.stderr
     _, rows = read_csv(out)
-    assert [row["run_id"] for row in rows] == ["1", "2"]
-    for row in rows:
-        wall_s = float(row["wall_s"])
-        frames = int(row["frames"])
-        assert frames == 120  # lấy từ file .pkl giả, không phải hằng số
-        assert abs(float(row["ms_per_frame"]) - wall_s * 1000.0 / frames) < 0.01
-        assert abs(float(row["fps"]) - frames / wall_s) < 0.01
-        assert (
-            abs(float(row["ms_per_frame_process"]) - wall_s * 1000.0 / frames)
-            < 0.05
-        )
-        # Chỉ bọc retarget() thì luôn nhanh hơn cả tiến trình.
-        assert 0 < float(row["ms_per_frame_retarget"]) < float(
-            row["ms_per_frame_process"]
-        )
+    row = rows[0]
+    assert row["bvh_file"] == "walk1_subject1.bvh"  # suy ra --script bvh
+    assert "--script bvh" in row["cmd"]
+    assert "bvh_to_robot.py" in row["process_cmd"]
+    assert int(row["n_warmup_frames"]) == 10
+    assert int(row["n_frames"]) == 110
+    assert raw.exists()
 
 
-def test_cmd_columns_are_reproducible(tmp_path):
-    out = tmp_path / "runtime.csv"
+def test_smplx_has_empty_bvh_file_and_quoted_cmd(tmp_path):
+    out = tmp_path / "summary.csv"
 
     result = run_cli(
         "--dry-run",
-        "--csv",
+        "--out",
         str(out),
-        "--robot",
-        "unitree_g1",
-        "--runs",
-        "1",
         "--motion",
         "my motion.npz",
+        "--runs",
+        "2",
         cwd=tmp_path,
     )
 
     assert result.returncode == 0, result.stderr
     _, rows = read_csv(out)
-    cmd = rows[0]["cmd"]
-    assert "smplx_to_robot.py" in cmd
-    assert "--smplx_file" in cmd
-    assert '"my motion.npz"' in cmd  # đường dẫn có dấu cách vẫn copy-paste được
-    assert "--robot unitree_g1" in cmd
-    assert "--save_path" in cmd
-
-    retarget_cmd = rows[0]["retarget_cmd"]
-    assert "measure_runtime.py" in retarget_cmd
-    assert "--retarget-only" in retarget_cmd
-    assert '"my motion.npz"' in retarget_cmd
+    row = rows[0]
+    assert row["bvh_file"] == ""
+    assert "measure_runtime.py" in row["cmd"]
+    assert "--retarget-only" in row["cmd"]
+    assert '"my motion.npz"' in row["cmd"]
 
 
-def test_bvh_script_uses_bvh_flag(tmp_path):
-    out = tmp_path / "runtime.csv"
+def test_mixed_motion_types_use_their_own_entry_script(tmp_path):
+    out = tmp_path / "summary.csv"
 
     result = run_cli(
         "--dry-run",
-        "--script",
-        "bvh",
-        "--csv",
+        "--out",
         str(out),
-        "--robot",
-        "unitree_g1",
-        "--runs",
-        "1",
         "--motion",
         "walk.bvh",
+        "run.npz",
+        "--runs",
+        "2",
         cwd=tmp_path,
     )
 
     assert result.returncode == 0, result.stderr
     _, rows = read_csv(out)
-    assert "bvh_to_robot.py" in rows[0]["cmd"]
-    assert "--bvh_file" in rows[0]["cmd"]
-    assert "--script bvh" in rows[0]["retarget_cmd"]
-
-
-def test_real_run_requires_motion(tmp_path):
-    out = tmp_path / "runtime.csv"
-
-    result = run_cli("--csv", str(out), cwd=tmp_path)
-
-    assert result.returncode != 0
-    assert not out.exists()
+    bvh_rows = [row for row in rows if row["motion"] == "walk.bvh"]
+    npz_rows = [row for row in rows if row["motion"] == "run.npz"]
+    assert bvh_rows and npz_rows
+    assert bvh_rows[0]["bvh_file"] == "walk.bvh"
+    assert npz_rows[0]["bvh_file"] == ""
+    assert "bvh_to_robot.py" in bvh_rows[0]["process_cmd"]
+    assert "smplx_to_robot.py" in npz_rows[0]["process_cmd"]
+    assert "--script bvh" in bvh_rows[0]["cmd"]
+    assert "--script smplx" in npz_rows[0]["cmd"]
 
 
 def test_dry_run_needs_no_gmr_checkout(tmp_path):
-    out = tmp_path / "runtime.csv"
+    out = tmp_path / "summary.csv"
 
     result = run_cli(
         "--dry-run",
-        "--csv",
+        "--out",
         str(out),
         "--gmr-dir",
         str(tmp_path / "khong_ton_tai"),
@@ -188,33 +282,35 @@ def test_dry_run_needs_no_gmr_checkout(tmp_path):
     assert out.exists()
 
 
+def test_real_run_requires_motion(tmp_path):
+    out = tmp_path / "summary.csv"
+
+    result = run_cli("--out", str(out), cwd=tmp_path)
+
+    assert result.returncode != 0
+    assert not out.exists()
+
+
 def test_help_works_on_windows_console(tmp_path):
     result = run_cli("--help", cwd=tmp_path)
 
     assert result.returncode == 0, result.stderr
-    assert "--dry-run" in result.stdout
+    assert "--warmup-runs" in result.stdout
 
 
 STUB_ENTRY = """
-import argparse, os, pickle, time
+import argparse, os, time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--smplx_file")
+parser.add_argument("--bvh_file")
 parser.add_argument("--robot")
 parser.add_argument("--save_path")
 args = parser.parse_args()
 
-time.sleep(0.2)
-frames = int(os.environ.get("STUB_PKL_FRAMES", "5"))
-data = {"fps": 30, "root_pos": None, "root_rot": None,
-        "dof_pos": [[0.0] * 29] * frames, "local_body_pos": None,
-        "link_body_list": None}
-with open(args.save_path, "wb") as f:
-    pickle.dump(data, f)
+time.sleep(float(os.environ.get("STUB_S", "0.5")))
 """
 
-# Package general_motion_retargeting giả: __init__ và load dữ liệu ngủ
-# (bị loại khỏi phép đo retarget), chỉ retarget() là được bấm giờ.
 FAKE_PKG_INIT = """
 import os, time
 
@@ -241,14 +337,14 @@ def load_smplx_file(path, folder):
     return {}, None, None, 1.70
 
 def get_smplx_data_offline_fast(data, body_model, output, tgt_fps=30):
-    return [{}] * int(os.environ.get("FAKE_FRAMES", "60")), 30.0
+    return [{}] * int(os.environ.get("FAKE_FRAMES", "40")), 30.0
 """
 
 FAKE_LAFAN1 = """
 import os
 
 def load_bvh_file(path, format="lafan1"):
-    return [{}] * int(os.environ.get("FAKE_FRAMES", "60")), 1.70
+    return [{}] * int(os.environ.get("FAKE_FRAMES", "40")), 1.70
 """
 
 
@@ -261,83 +357,72 @@ def make_fake_gmr(tmp_path):
     (pkg / "utils" / "smpl.py").write_text(FAKE_SMPL, encoding="utf-8")
     (pkg / "utils" / "lafan1.py").write_text(FAKE_LAFAN1, encoding="utf-8")
     (gmr / "scripts").mkdir()
-    (gmr / "scripts" / "smplx_to_robot.py").write_text(STUB_ENTRY, encoding="utf-8")
+    (gmr / "scripts" / "bvh_to_robot.py").write_text(STUB_ENTRY, encoding="utf-8")
     (gmr / "assets").mkdir()
     return gmr
 
 
-def test_real_mode_times_entry_script(tmp_path):
+def test_real_mode_separates_retarget_from_init_and_process(tmp_path):
     gmr = make_fake_gmr(tmp_path)
-    out = tmp_path / "runtime.csv"
-
-    result = run_cli(
-        "--csv",
-        str(out),
-        "--gmr-dir",
-        str(gmr),
-        "--motion",
-        "walk.npz",
-        "--robot",
-        "unitree_g1",
-        "--runs",
-        "1",
-        "--python",
-        sys.executable,
-        cwd=tmp_path,
-    )
-
-    assert result.returncode == 0, result.stderr
-    _, rows = read_csv(out)
-    row = rows[0]
-    assert int(row["frames"]) == 5
-    assert float(row["wall_s"]) >= 0.2
-    assert float(row["fps"]) > 0
-
-
-def test_retarget_column_excludes_init_and_data_loading(tmp_path):
-    gmr = make_fake_gmr(tmp_path)
-    out = tmp_path / "runtime.csv"
+    out = tmp_path / "summary.csv"
+    raw = tmp_path / "raw.csv"
     env = {
         **os.environ,
         "FAKE_INIT_S": "0.3",
         "FAKE_LOAD_S": "0.1",
         "FAKE_FRAMES": "40",
         "FAKE_FAST_S": "0.004",
-        "FAKE_SLOW_CALLS": "0",
+        "STUB_S": "0.5",
     }
 
     result = run_cli(
-        "--csv",
+        "--out",
         str(out),
+        "--raw-out",
+        str(raw),
         "--gmr-dir",
         str(gmr),
         "--motion",
-        "walk.npz",
-        "--robot",
-        "unitree_g1",
+        "walk.bvh",
         "--runs",
-        "1",
-        "--python",
-        sys.executable,
+        "2",
+        "--warmup-runs",
+        "0",
         "--warmup-frames",
         "10",
+        "--fps-src",
+        "60",
+        "--python",
+        sys.executable,
         cwd=tmp_path,
         env=env,
     )
 
     assert result.returncode == 0, result.stderr
     _, rows = read_csv(out)
-    retarget_ms = float(rows[0]["ms_per_frame_retarget"])
-    process_ms = float(rows[0]["ms_per_frame_process"])
-    # Nếu thời gian load (0,1 s) hoặc init (0,3 s) bị tính vào, con số sẽ
-    # vượt xa 15 ms/frame; nếu đo cả tiến trình thì ~0,2 s/5 frame = 40 ms.
+    assert len(rows) == 2
+    row = rows[0]
+    retarget_ms = float(row["ms_per_frame"])
+    # init 0,3 s + load 0,1 s không được lọt vào t_retarget (nếu lọt: > 100 ms).
     assert 1.0 < retarget_ms < 15.0
-    assert process_ms > retarget_ms
+    assert float(row["t_init_s"]) > 0.2
+    # Cả tiến trình 0,5 s / 40 frame = 12,5 ms/frame > 2 lần retarget.
+    assert float(row["ms_per_frame_process"]) > 2 * retarget_ms
+    assert int(row["n_frames_total"]) == 40
+    assert int(row["n_frames"]) == 30
+    assert row["fps_src"] == "60"
+    assert abs(
+        float(row["realtime_factor"]) - float(row["fps_out"]) / 60.0
+    ) < 0.01
+    assert row["numpy"]  # phiên bản thật từ env đang chạy (hoặc not-installed)
+    _, raw_rows = read_csv(raw)
+    assert len(raw_rows) == 2 * 40
+    assert sum(int(r["included"]) for r in raw_rows) == 2 * 30
 
 
-def test_retarget_median_drops_30_warmup_frames(tmp_path):
+def test_median_drops_warmup_frames_of_each_run(tmp_path):
     gmr = make_fake_gmr(tmp_path)
-    out = tmp_path / "runtime.csv"
+    out = tmp_path / "summary.csv"
     env = {
         **os.environ,
         "FAKE_INIT_S": "0.01",
@@ -346,19 +431,20 @@ def test_retarget_median_drops_30_warmup_frames(tmp_path):
         "FAKE_SLOW_CALLS": "30",
         "FAKE_SLOW_S": "0.05",
         "FAKE_FAST_S": "0.002",
+        "STUB_S": "0.01",
     }
 
     result = run_cli(
-        "--csv",
+        "--out",
         str(out),
         "--gmr-dir",
         str(gmr),
         "--motion",
-        "walk.npz",
-        "--robot",
-        "unitree_g1",
+        "walk.bvh",
         "--runs",
         "1",
+        "--warmup-runs",
+        "0",
         "--python",
         sys.executable,
         cwd=tmp_path,
@@ -367,6 +453,6 @@ def test_retarget_median_drops_30_warmup_frames(tmp_path):
 
     assert result.returncode == 0, result.stderr
     _, rows = read_csv(out)
-    # 30 frame đầu cố tình chậm 50 ms; bỏ chúng đi thì trung vị phải < 20 ms.
-    # Nếu quên bỏ warm-up, trung vị của 60 mẫu sẽ ≈ 26 ms.
-    assert float(rows[0]["ms_per_frame_retarget"]) < 20.0
+    # 30 frame đầu cố tình 50 ms; bỏ đi thì trung vị phải < 20 ms.
+    # Nếu quên bỏ, trung vị của 60 mẫu sẽ ~26 ms.
+    assert float(rows[0]["ms_per_frame"]) < 20.0
