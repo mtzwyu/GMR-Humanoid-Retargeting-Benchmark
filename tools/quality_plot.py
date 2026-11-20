@@ -33,9 +33,13 @@ heights = [float(r["min_body_height_mm"]) for r in rows]
 bars = ax.bar(labels, heights, color=colors, width=0.55)
 ax.axhline(0, color="crimson", linestyle="--", linewidth=1.2, label="mặt đất z = 0")
 for i, h in enumerate(heights):
+    rest = float(rows[i]["rest_offset_mm"])
+    ax.plot([i - 0.27, i + 0.27], [rest, rest], color="black", linewidth=1.4, linestyle=":",
+            zorder=4)
     ax.annotate(f"{h:.1f}", (i, h), ha="center", va="bottom" if h >= 0 else "top", fontsize=9)
+ax.plot([], [], color="black", linestyle=":", linewidth=1.4, label="offset nghỉ của model")
 ax.set_ylabel("min body height (mm)")
-ax.set_title("Độ cao thấp nhất của bất kỳ thân nào (âm = xuyên sàn)")
+ax.set_title("Độ cao tâm thân thấp nhất (âm = tâm thân dưới mặt đất)")
 ax.legend(fontsize=8)
 ax.grid(axis="y", alpha=0.3)
 

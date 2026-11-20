@@ -63,15 +63,20 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 | `quality_metrics.py` | Tính 4 chỉ số chất lượng trên pkl đã có (**không chạy lại retarget**) | `python tools\quality_metrics.py --out results\v6_quality.csv` |
 | `quality_plot.py` | Vẽ 2 panel: `foot_slide` theo robot (cột = trung bình 2 chân, chấm = trái/phải) và `min_body_height` theo robot (có đường 0) | `python tools\quality_plot.py` |
 
-**Định nghĩa từng chỉ số** (nguồn: đặc tả của Planner, 2026-11-21):
+**Định nghĩa từng chỉ số** (nguồn: đặc tả của Planner, 2026-11-21; đã sửa theo RV-37/38/39):
 
 1. **`foot_slide_L` / `foot_slide_R` / `foot_slide_mean`** (mm/s)
-   Với mỗi bàn chân: một frame là **tiếp đất** khi độ cao thân bàn chân nằm trong **30 mm** so với chính mức thấp nhất của nó trong cả clip.
+   Với mỗi bàn chân: một frame là **tiếp đất** khi độ cao **tâm thân** bàn chân nằm trong **30 mm** so với chính mức thấp nhất của nó trong cả clip.
    Tổng dịch ngang (mặt phẳng xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia cho tổng thời gian tiếp đất → mm/s.
    Tính riêng chân trái, chân phải; `mean` là trung bình hai chân.
-2. **`min_body_height_mm`** (mm) — độ cao **thấp nhất của bất kỳ thân (body) nào** so với mặt đất `z = 0` trong toàn clip. **Âm nghĩa là xuyên sàn**.
-3. **`pct_frames_penetration`** (%) — phần trăm frame có **ít nhất 1 thân** dưới mặt đất (`z < -1 mm`).
-4. **`joint_limit_violation_pct`** (%) — phần trăm frame có **ít nhất 1 khớp** cách giới hạn `qpos_lo`/`qpos_hi` dưới **0,5°** (dùng lại đúng công cụ của V6).
+   ⚠️ **Đây là chỉ số PROXY, chỉ dùng để SO SÁNH TƯƠNG ĐỐI giữa 3 robot**, vì hai lý do:
+   (a) "tiếp đất" được định nghĩa theo **mức thấp nhất của chính bàn chân đó** (không phải mặt phẳng `z = 0`), nên nếu dùng ngưỡng tuyệt đối `z ≤ 30 mm` thì G1 và PM01 **không có frame tiếp đất nào**;
+   (b) đo tại **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm thân vẫn dịch ngang → số đo cao hơn thực tế (Reviewer đo tại ngón chân: G1 84,3 thay vì 49,0; T1 169,2 thay vì 83,1).
+   Việc **không trừ vị trí root** là đúng (giữ nguyên theo đặc tả).
+2. **`min_body_height_mm`** (mm) — độ cao **tâm thân (body origin) thấp nhất** trong toàn clip, so với mặt đất `z = 0`.
+   Vì đo ở tâm thân nên **mỗi model có một offset nghỉ khác nhau** — cột `rest_offset_mm` ghi offset đó (đo ở tư thế mặc định `qpos0`): G1 **+16,14**, T1 29dof **+36,65**, PM01 **+44,95 mm**. Muốn so "thấp hơn vị trí nghỉ bao nhiêu" thì phải trừ `rest_offset_mm`.
+3. **`pct_frames_penetration`** (%) — phần trăm frame có **ít nhất 1 thân** dưới mặt đất (`z < -1 mm`). **Đây là cột duy nhất dùng để kết luận xuyên sàn.**
+4. **`joint_limit_saturation_pct`** (%) — phần trăm frame có **ít nhất 1 khớp NẰM TRONG 0,5° so với giới hạn** `qpos_lo`/`qpos_hi`, tức **bão hòa ở giới hạn**, **KHÔNG phải vượt giới hạn**.
 
 Thân bàn chân dùng để đo: `unitree_g1` → `left_ankle_roll_link`/`right_ankle_roll_link`; `booster_t1_29dof` → `left_foot_link`/`right_foot_link`; `engineai_pm01` → `LINK_FOOT_L`/`LINK_FOOT_R`; `unitree_h1_2` → `left_ankle_roll_link`/`right_ankle_roll_link`.
 
