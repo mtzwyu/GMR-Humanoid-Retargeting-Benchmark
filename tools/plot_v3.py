@@ -42,32 +42,35 @@ if os.path.exists(v3_path):
     fig.savefig(out1, dpi=130)
     print("saved", out1)
 
-# ---------- V5: trung vị + min–max ----------
+# ---------- V5: mean nếu CV <= 5 %, median nếu CV > 5 % (docs/dinh_nghia_phep_do.md §4) ----------
 v5_path = os.path.join(ROOT, "results", "v5_sim2sim.csv")
 if os.path.exists(v5_path):
     v5 = [r for r in load("v5_sim2sim.csv")
           if r["status"] == "ok" and r["phase"].startswith("measure")]
     order = [("engineai_pm01", "#d62728"), ("booster_t1_29dof", "#2ca02c"), ("unitree_g1", "#1f77b4")]
-    labels, meds, lows, highs, ns = [], [], [], [], []
+    labels, vals, lows, highs, kinds = [], [], [], [], []
     for rb, color in order:
         v = [float(r["ms_per_frame_process"]) for r in v5 if r["robot"] == rb]
         if v:
-            labels.append(f"{rb}\n(n={len(v)})")
-            meds.append(statistics.median(v))
+            mean, sd = statistics.mean(v), statistics.stdev(v) if len(v) > 1 else 0.0
+            cv = 100 * sd / mean
+            use_mean = cv <= 5.0
+            labels.append(f"{rb}\n(n={len(v)}, CV {cv:.1f}%)")
+            vals.append(mean if use_mean else statistics.median(v))
+            kinds.append("mean" if use_mean else "median")
             lows.append(min(v))
             highs.append(max(v))
-            ns.append(len(v))
     fig2, ax2 = plt.subplots(figsize=(7.6, 4.4))
-    bars = ax2.bar(labels, meds, color=[c for _, c in order], width=0.55)
-    err_low = [m - lo for m, lo in zip(meds, lows)]
-    err_high = [hi - m for m, hi in zip(meds, highs)]
-    ax2.errorbar(labels, meds, yerr=[err_low, err_high], fmt="none", ecolor="black",
+    bars = ax2.bar(labels, vals, color=[c for _, c in order], width=0.55)
+    err_low = [m - lo for m, lo in zip(vals, lows)]
+    err_high = [hi - m for m, hi in zip(vals, highs)]
+    ax2.errorbar(labels, vals, yerr=[err_low, err_high], fmt="none", ecolor="black",
                  capsize=6, linewidth=1)
-    for i, m in enumerate(meds):
-        ax2.annotate(f"median {m:.2f}", (i, highs[i]), ha="center", va="bottom", fontsize=8)
+    for i, m in enumerate(vals):
+        ax2.annotate(f"{kinds[i]} {m:.2f}", (i, highs[i]), ha="center", va="bottom", fontsize=8)
     ax2.axhline(33.333, color="crimson", linestyle="--", linewidth=1, label="ngưỡng 33,33 ms")
     ax2.set_ylabel("ms / frame (toàn tiến trình, Measure-Command)")
-    ax2.set_title("V5 sim2sim — trung vị ms/frame, thanh sai số = min–max\n(cùng walk1_subject1.bvh)")
+    ax2.set_title("V5 sim2sim — mean nếu CV ≤ 5 %, median nếu CV > 5 %\nthanh sai số = min–max (cùng walk1_subject1.bvh)")
     ax2.set_ylim(0, max(highs) * 1.18)
     ax2.legend(fontsize=8)
     ax2.grid(axis="y", alpha=0.3)

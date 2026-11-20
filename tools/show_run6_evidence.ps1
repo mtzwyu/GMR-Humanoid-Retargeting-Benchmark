@@ -20,5 +20,5 @@ Write-Host ""
 Write-Host "DONG TUONG UNG TRONG results/v3_runtime.csv:" -ForegroundColor Yellow
 Write-Host ("  phase={0}  wall_clock_s={1}  ms_per_frame_process={2}  realtime_factor={3}" -f $row.phase, $row.wall_clock_s, $row.ms_per_frame_process, $row.realtime_factor)
 Write-Host ""
-Write-Host "SO DUNG CHO BAO CAO: trung vi n=5 = 17,272 ms/frame (CV 2,13%);" -ForegroundColor Green
-Write-Host "  33,333 / 17,272 = 1,93 lan nhanh hon thoi gian thuc." -ForegroundColor Green
+Write-Host "SO CHOT CUA BAO CAO: mean n=5 = 17,349 ms/frame, CV 2,13 phan tram, 33,333/17,349 = 1,92x" -ForegroundColor Green
+Write-Host "  -> dong END tren day la cua MOT lan chay (measure_5), dung lam bang chung." -ForegroundColor Green

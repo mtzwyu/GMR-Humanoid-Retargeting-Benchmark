@@ -39,10 +39,10 @@ S4c,results/media/v5_sim2sim_g1_t1_pm01.mp4,45.0,10.0,sim2sim ENGINEAI PM01,segm
 
 Kế hoạch ghi "quay bằng viewer của GMR (có vẽ điểm khớp người, `human_point_scale=0.1`)". Đã thử đúng cách đó: `RobotMotionViewer(record_video=True)` + `human_motion_data=retargeter.scaled_human_data` → **video ra chỉ có robot, không có điểm khớp người**, vì `robot_motion_viewer.py` vẽ marker vào `self.viewer.user_scn` (scene của **cửa sổ**) còn video được ghi bằng một `mj.Renderer` riêng — marker không đi vào file mp4.
 
-Cách đã dùng: `third_party/_run/record_s1c.py` lấy **đúng** `retargeter.scaled_human_data` (dữ liệu người sau scale của GMR), vẽ bộ xương + trục khớp dài **0,1 m** vào scene của renderer, trên sàn phẳng, camera bám khớp `Hips`. Vẫn là dữ liệu người của GMR và cùng engine MuJoCo; khác duy nhất là không phải cửa sổ viewer gốc. **Không sửa `scripts/` hay thư viện repo.**
+Cách đã dùng: `tools/record_s1c.py` lấy **đúng** `retargeter.scaled_human_data` (dữ liệu người sau scale của GMR), vẽ bộ xương + trục khớp dài **0,1 m** vào scene của renderer, trên sàn phẳng, camera bám khớp `Hips`. Vẫn là dữ liệu người của GMR và cùng engine MuJoCo; khác duy nhất là không phải cửa sổ viewer gốc. **Không sửa `scripts/` hay thư viện repo.**
 
 ## Số liệu để đặt phụ đề
 
-- S2: `17,272 ms/frame` (trung vị n = 5) → nhanh hơn **1,93×** thời gian thực (33,333 / 17,272). *(Số 1,96 là của V5 G1 — không dùng cho S2.)*
-- S4: T1 29dof **13,0** ms · G1 **17,0** ms · PM01 **35,5** ms (trung vị).
+- S2: **`17,349 ms/frame`** (mean n = 5, CV 2,13 %) → nhanh hơn **1,92×** thời gian thực (33,333 / 17,349). *(1,93× là của một lần chạy riêng `measure_5` = 17,272 ms; 1,96 là của V5 G1 — không dùng cho S2.)*
+- S4: T1 29dof **13,0** ms (median, CV 11,3 %) · G1 **16,8** ms (mean, CV 4,6 %) · PM01 **35,0** ms (mean, CV 3,0 %).
 - S5 (nếu dùng): `results/figures/v6_noise_vs_deviation.png`.
