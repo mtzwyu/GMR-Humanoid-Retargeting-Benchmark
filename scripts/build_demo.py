@@ -62,7 +62,7 @@ DEFAULTS = {
     "s1_sub": "Một clip chuyển động người: 7.840 frame, 261,3 giây",
     "s2_sub": (
         "Retarget sang Unitree G1: 17,3 ms/frame\n"
-        "Nhanh hơn thời gian thực 2 lần"
+        "cả tiến trình (cận trên) · 2× thời gian thực"
     ),
     "s3_sub": (
         "Trái: clip gốc khom lưng (không phải lỗi retarget)\n"
@@ -70,7 +70,8 @@ DEFAULTS = {
     ),
     "s4_sub": (
         "Cùng một chuyển động, 3 robot:\n"
-        "T1 13,0 · G1 17,0 · PM01 35,5 ms/frame"
+        "G1 17,0 · T1 13,0 · PM01 35,5 ms/frame\n"
+        "cả tiến trình (cận trên)"
     ),
     "s5_sub": (
         "Nhiễu khớp 0,5 độ vẫn an toàn\n"
@@ -88,9 +89,9 @@ DEFAULTS = {
     "s6_kicker": "KẾT LUẬN",
     "s6_title": "TÁI LẬP MỘT PHẦN",
     "s6_m1_value": "17,3 ms",
-    "s6_m1_label": "ms/frame",
+    "s6_m1_label": "ms/frame · cả tiến trình (cận trên)",
     "s6_m2_value": "2×",
-    "s6_m2_label": "thời gian thực",
+    "s6_m2_label": "thời gian thực (cận trên)",
     "s6_m3_value": "3 robot",
     "s6_m3_label": "sim2sim · G1 · T1 · PM01",
     "s6_footer": "Phần thời gian thực tái lập được · số của paper thì không",
@@ -124,8 +125,8 @@ def find_ffmpeg(explicit):
         import imageio_ffmpeg
 
         return Path(imageio_ffmpeg.get_ffmpeg_exe())
-    except Exception:
-        pass
+    except ImportError as exc:
+        log(f"khong import duoc imageio_ffmpeg ({exc}); thu duong dan co dinh/PATH")
     if KNOWN_FFMPEG.exists():
         return KNOWN_FFMPEG
     found = shutil.which("ffmpeg")
@@ -255,19 +256,55 @@ def build_settings(args):
     settings = dict(DEFAULTS)
     manifest_values, shots = parse_manifest(Path(args.manifest).resolve())
     settings.update(manifest_values)
-    for pair in args.set:
-        key, _, value = pair.partition("=")
-        key = key.strip()
-        if key not in DEFAULTS:
-            raise SystemExit(f"--set: khong biet khoa '{key}'")
-        settings[key] = value.strip()
+
     script_doc = Path(args.script_doc).resolve()
     subtitles = parse_script_doc(script_doc)
     if subtitles:
         settings.update(subtitles)
         log(f"phu de: {script_doc}")
+        # video_script.md có thể ghi "17,3 ms/frame" cho số process; định nghĩa
+        # §1.1 cấm gọi tên trần như vậy. Thay bằng bản đã ghi rõ "cả tiến trình".
+        for key in ("s2_sub", "s4_sub"):
+            text = settings.get(key, "")
+            if "ms/frame" in text and "cả tiến trình" not in text:
+                log(
+                    f"CANH BAO: {key} trong {script_doc.name} ghi 'ms/frame' "
+                    "nhung so la process -> dung ban da sua "
+                    "(can Writing sua video_script.md)"
+                )
+                settings[key] = DEFAULTS[key]
     elif not script_doc.exists():
         log(f"khong thay {script_doc} -> dung phu de mac dinh")
+
+    # --set phải thắng mọi nguồn phía trên, kể cả duration lấy từ shot trong manifest.
+    for pair in args.set:
+        key, _, value = pair.partition("=")
+        key = key.strip()
+        if key not in DEFAULTS:
+            raise SystemExit(f"--set: khong biet khoa '{key}'")
+        if key in manifest_values:
+            source = "manifest"
+        elif key.startswith("duration_s") and {
+            "duration_s1": "S1",
+            "duration_s2": "S2",
+            "duration_s3": "S3a",
+            "duration_s4": "S4a",
+        }.get(key) in shots:
+            source = "manifest (shot)"
+        elif key in subtitles:
+            source = "video_script.md"
+        else:
+            source = "DEFAULTS"
+        settings[key] = value.strip()
+        log(f"--set {key}={value.strip()} (de len {source})")
+
+    # Thời lượng S1-S4 lấy từ shot trong manifest, trừ khi bị --set ghi đè.
+    set_keys = {pair.partition("=")[0].strip() for pair in args.set}
+    for shot, index in (("S1", 1), ("S2", 2), ("S3a", 3), ("S4a", 4)):
+        key = f"duration_s{index}"
+        if key not in set_keys and shot in shots:
+            settings[key] = f"{shots[shot]['duration']:g}"
+
     return settings, shots
 
 
@@ -279,13 +316,16 @@ def require_shot(shots, key):
 
 def resolve_source(value, media_dir):
     """Manifest ghi đường dẫn repo; ưu tiên --media-dir theo tên file."""
+    direct = Path(value)
+    if direct.is_absolute():
+        return direct
     candidate = media_dir / Path(value).name
     if candidate.exists():
         return candidate
-    direct = Path(value)
-    if not direct.is_absolute():
-        direct = REPO_ROOT / direct
-    return direct
+    repo_path = REPO_ROOT / direct
+    if repo_path.exists():
+        return repo_path
+    return candidate  # báo lỗi tại nơi Run nên đặt file
 
 
 def num(settings, key):
@@ -499,19 +539,6 @@ class Builder:
             out_name, ["-loop", "1", "-i", str(image)], ",".join(filters), duration
         )
 
-    def pan_scene(self, image, out_name, duration, subtitle_key, sequential=False):
-        filters = [
-            "scale=1280:720:force_original_aspect_ratio=increase",
-            f"crop=1280:720:x='(in_w-out_w)*t/{duration:.3f}':y='(in_h-out_h)/2'",
-            "fps=30",
-            self.subtitle(subtitle_key, sequential=sequential, duration=duration),
-            "setsar=1",
-            "format=yuv420p",
-        ]
-        self.encode(
-            out_name, ["-loop", "1", "-i", str(image)], ",".join(filters), duration
-        )
-
     def fit_scene(self, image, out_name, duration, subtitle_key, sequential=False):
         """Scale-to-fit, chừa dải đen 100 px dưới cho phụ đề; KHÔNG crop."""
         band = 100
@@ -670,11 +697,8 @@ def main(argv=None):
     if not shots:
         log(f"khong thay manifest {manifest} -> dung placeholder cho S1-S4")
 
-    # Thời lượng S1-S4 lấy từ manifest nếu có, ngược lại DEFAULTS.
+    # Thời lượng đã được build_settings chốt: shot trong manifest, trừ khi --set.
     durations = {f"S{i}": num(settings, f"duration_s{i}") for i in range(7)}
-    for shot, key in (("S1", "S1"), ("S2", "S2"), ("S3", "S3a"), ("S4", "S4a")):
-        if key in shots:
-            durations[shot] = shots[key]["duration"]
     visible = [durations[f"S{i}"] for i in range(7)]
     transition = num(settings, "transition")
     log(
@@ -708,17 +732,12 @@ def main(argv=None):
 
     s1 = require_shot(shots, "S1")
     s1_clip = resolve_source(s1["source"], media_dir)
-    if s1_clip.exists():
-        builder.clip_scene(s1_clip, s1["start"], "s1.mp4", encoded[1], "s1_sub")
-    else:
-        fallback = figures_dir / "fix_dance1_frame2000_g1_2026-11-20.png"
-        if fallback.exists():
-            log(f"thieu clip S1 {s1_clip} -> dung anh tinh + pan")
-        else:
-            fallback = workdir / "s1_placeholder.png"
-            make_placeholder("Đang chờ clip chuyển động người (S1)", fallback)
-            log(f"thieu clip S1 {s1_clip} -> dung placeholder")
-        builder.pan_scene(fallback, "s1.mp4", encoded[1], "s1_sub")
+    if not s1_clip.exists():
+        raise SystemExit(
+            f"thieu clip S1: {s1_clip}. Can quay/chuyen s1_human_input.mp4; "
+            "khong dung anh robot thay the vi se gay hieu sai."
+        )
+    builder.clip_scene(s1_clip, s1["start"], "s1.mp4", encoded[1], "s1_sub")
 
     s2 = require_shot(shots, "S2")
     s2_clip = resolve_source(s2["source"], media_dir)
@@ -728,19 +747,22 @@ def main(argv=None):
     s3a, s3b = require_shot(shots, "S3a"), require_shot(shots, "S3b")
     if abs(s3a["duration"] - s3b["duration"]) > 1e-6:
         raise SystemExit("S3a va S3b phai cung duration de hstack")
+    s3_left = resolve_source(s3a["source"], media_dir)
+    s3_right = resolve_source(s3b["source"], media_dir)
+    require(s3_left)
+    require(s3_right)
     builder.split_scene(
-        resolve_source(s3a["source"], media_dir),
-        s3a["start"],
-        resolve_source(s3b["source"], media_dir),
-        s3b["start"],
-        encoded[3],
+        s3_left, s3a["start"], s3_right, s3b["start"], encoded[3]
     )
 
     s4 = [require_shot(shots, key) for key in ("S4a", "S4b", "S4c")]
     if len({round(item["duration"], 3) for item in s4}) != 1:
         raise SystemExit("S4a/S4b/S4c phai cung duration de ghep 3 cot")
+    s4_sources = [resolve_source(item["source"], media_dir) for item in s4]
+    for source in s4_sources:
+        require(source)
     builder.columns_scene(
-        [resolve_source(item["source"], media_dir) for item in s4],
+        s4_sources,
         [item["start"] for item in s4],
         encoded[4],
         "s4_sub",
