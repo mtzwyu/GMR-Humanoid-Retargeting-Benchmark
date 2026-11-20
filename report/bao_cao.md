@@ -138,7 +138,7 @@ Nhật ký đầy đủ: `logs/nhat_ky_cai_dat.md` (15 mục + 4 FIX + MEDIA + R
 | Mục | Giá trị |
 |---|---|
 | Máy / OS | LENOVO 83GS, Windows 11 Home Single Language 10.0.26300 |
-| CPU / RAM / GPU | i5-12450HX 8 nhân/12 luồng · ~15,7 GiB · RTX 4050 Laptop 6 GiB (**không dùng** khi đo) |
+| CPU / RAM / GPU | i5-12450HX 8 nhân/12 luồng · ~15,7 GiB · RTX 4050 Laptop 6 GiB (**render OpenGL; tính toán CPU**) |
 | Conda / Python | conda 26.7.1 · Python 3.10.21, env `gmr` |
 | Gói chính | `mujoco 3.17.0`, `mink 1.3.0`, `torch 2.14.1`, `smplx 0.1.28`, `daqp 0.11.2`, **`proxsuite 0.7.2.post1` (ghim)** |
 | `requirements.txt` | 45 dòng từ `pip freeze` thật, có `-e git+…GMR@25f56db…` |
@@ -195,7 +195,7 @@ Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so �
 ### 4.5 Hạn chế phép đo
 
 1. Chỉ có số **cả tiến trình**, là cận trên; không phải thời gian riêng `retarget()`.
-2. Không xác minh `CUDA_VISIBLE_DEVICES` — "chạy CPU" là suy luận từ mã, không phải bằng chứng cấu hình.
+2. **GPU (V7, `results/v7_gpu_check.csv`):** tính toán chạy **CPU** — `torch 2.14.1+cpu`, `cuda.is_available() = False`, `device_count = 0`; headless **2,359 ms/frame** (≈ **424 fps**). Render chạy **GPU thật qua OpenGL**: `GL_VENDOR = NVIDIA Corporation`, `GL_RENDERER = NVIDIA GeForce RTX 4050 Laptop GPU/PCIe/SSE2` (`tools/gl_info.py`); đặt `CUDA_VISIBLE_DEVICES=""` chỉ lệch 0,8 % (2,377 so với 2,359 ms). Chênh **~15 ms/frame** giữa V3 (17,349 ms, có viewer) và headless là **chi phí render trên GPU**, không phải GPU tính toán. Vì vậy **17,3 ms là cận trên của cả tiến trình có render GPU**, không phải "CPU-only" và cũng không phải throughput thuần `retarget()`; nhiệt GPU 51–57 °C ở V5 là do chính các lần chạy có viewer.
 3. Một máy Windows 11, trong khi README chỉ test Ubuntu 22.04/20.04.
 4. Đồng hồ Windows thô (hạt `sleep` ~15,6 ms) ảnh hưởng nhỏ với wall-clock; T1 trong V5 có CV 11,32 % > 5 % nên báo trung vị.
 
@@ -230,11 +230,24 @@ GMR là **retargeting dựa trên tối ưu hình học**, không phải học t
 
 ### 6.2 Vì sao không dùng nhiễu vật lý (DEC-02)
 
-Hướng dẫn môn mô tả sim2sim tối thiểu bằng **đổi tham số vật lý** (khối lượng ±20 %, ma sát, trễ 1–3 bước). Nhóm không làm vậy vì phép thử **vô nghĩa với pipeline này**:
+Hướng dẫn môn mô tả sim2sim tối thiểu bằng **đổi tham số vật lý** (khối lượng ±20 %, ma sát, trễ 1–3 bước). Nhóm không lập bảng "tụt theo mức nhiễu vật lý" vì tham số vật lý **gần như không đi vào vòng tính** — đã kiểm chứng trực tiếp ở §6.2.1:
 
-1. **Không có physics trong vòng tính.** Mỗi frame chỉ giải bài toán ngược trên vị trí/hướng khớp (Mink, ≤ 10 vòng); không tích phân lực, không ma sát, không lực tiếp xúc. Khối lượng khâu không xuất hiện ở bất kỳ bước nào.
-2. **Đổi khối lượng không đổi một byte pkl.** Đường tính chỉ dùng qpos, chiều dài khâu, hệ số scale, giới hạn khớp. Tính tất định đã kiểm bằng SHA256 trên **40 file pkl**: **37 file thuộc 4 cặp (robot, motion) trùng hash tuyệt đối** (khác đợt, có/không `--rate_limit`), **3 file lẻ một lần chạy**. Cùng đầu vào ⇒ cùng đầu ra từng byte, không có nguồn ngẫu nhiên.
-3. **Bảng "tụt theo mức nhiễu vật lý" sẽ là bảng giả** vì mọi mức ±20 % cho cùng kết quả. Nhóm từ chối làm bảng đó và thay bằng bốn phép thử nhiễu có tác dụng thật lên đầu vào bài toán ngược (DEC-02, `docs/v6_noise_spec.md`).
+1. **Không có physics trong vòng tính.** Mỗi frame chỉ giải bài toán ngược trên vị trí/hướng khớp (Mink, ≤ 10 vòng); không tích phân lực, không ma sát, không lực tiếp xúc. Khối lượng khâu không xuất hiện trong hàm mục tiêu hay ràng buộc của IK (chỉ ảnh hưởng ở mức epsilon số thực — V7).
+2. **Tham số vật lý gần như không đổi qpos — nhưng không phải "không đổi một byte" cho mọi tham số.** V7 (§6.2.1): **ma sát ×1,5** trên 72 geom → **SHA256 trùng tuyệt đối** baseline, `max|dq| = 0`; **khối lượng ±20 %** trên 31 thẻ inertial → **SHA256 khác** baseline nhưng `max|dq| = 1,5e-9 rad` (≈ 1e-7°), tức **chuyển động không đổi**, chỉ nhiễu số thực. Tính tất định với **cùng đầu vào** vẫn đúng: **37/40 file pkl thuộc 4 cặp trùng hash tuyệt đối**, 3 file lẻ một lần chạy.
+3. **Bảng "tụt theo mức nhiễu vật lý" vẫn là bảng giả, nhưng lý do phải nói đúng:** ma sát không đổi gì; khối lượng ±20 % chỉ lệch **1,5e-9 rad**, không có xu hướng tụt theo mức. Nhóm từ chối lập bảng đó và thay bằng bốn phép thử nhiễu có tác dụng thật lên đầu vào bài toán ngược (DEC-02, `docs/v6_noise_spec.md`).
+
+### 6.2.1 Kiểm chứng trực tiếp tham số vật lý (V7)
+
+Nguồn: `results/v7_physics_perturb.csv` (nhánh `task/physics-perturb`), cùng `walk1_subject1` → G1; baseline `g1_walk1_subject1_run1.pkl` (`e7e3b906…`). Mỗi điều kiện sửa XML rồi chạy lại `tools/v7_run.py`:
+
+| Điều kiện | Thay đổi | SHA256 pkl (rút gọn) | Giống baseline | `max\|dq\|` (rad) |
+|---|---|---|---|---|
+| baseline | — | `e7e3b906…` | — | 0 |
+| ma sát ×1,5 | 72 geom | `e7e3b906…` | **có, tuyệt đối** | **0** |
+| khối lượng ×1,2 | 31 thẻ inertial | `597d0402…` | không | **1,5e-9** |
+| khối lượng ×0,8 | 31 thẻ inertial | `eecef802…` | không | **1,5e-9** |
+
+**Kết luận V7:** ma sát **không vào vòng tính** (hash trùng tuyệt đối); khối lượng có vào nhưng chỉ ở mức **epsilon số thực** — `1,5e-9 rad ≈ 1e-7°`, không phải thay đổi chuyển động. Câu đúng là "**gần như không đổi**", không phải "không đổi một byte" cho mọi tham số: chỉ **ma sát** mới trùng byte; **khối lượng** đổi hash nhưng không đổi qpos ở mức có nghĩa.
 
 ### 6.3 Bốn phép thử
 
@@ -370,19 +383,20 @@ Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và *
 
 ### 7.1 Câu kết luận
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
+> **Tuyên bố thời gian thực tái lập được trên CPU (1,92× ngưỡng đặt trước); chất lượng ánh xạ chỉ tái lập một phần (1/3 robot đạt ngưỡng `foot_slide`, một robot xuyên sàn 2,13% frame).** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7): trong **hai ngưỡng đặt trước ngày 2026-11-20**, `foot_slide ≤ 50 mm/s` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; ngưỡng `min_body_height ±5 mm` đã **rút bằng quyết định hậu kiểm DEC-03 (2026-11-21)** vì đo **gốc body** và mỗi model một offset nghỉ, thay bằng delta so vị trí nghỉ (**−6,3 / −44,3 / −1,1 mm**) và `pct_frames_penetration` (**0,00 / 2,13 / 0,00 %**) — hai đại lượng hậu kiểm không có ngưỡng. Vì vậy đây là lý do thứ ba khiến kết luận dừng ở "một phần": chỉ **1/3 robot đạt** ngưỡng `foot_slide` đặt trước, và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm.
+**Vì sao không dùng một nhãn chung (DEC-04).** Tiêu chí **đặt trước** chỉ phủ vế **tốc độ** (`realtime_factor ≥ 1,00`), nên vế đó giữ nguyên nhãn **"tái lập được"**. Vế **chất lượng ánh xạ** được đo **sau**, trong hai ngưỡng đặt trước ngày 2026-11-20 chỉ có `foot_slide ≤ 50 mm/s` áp cho cả 3 robot, và kết quả chỉ **1/3 robot đạt** — T1 xuyên sàn **2,13 % frame** — nên vế này là **"một phần"**. Dùng một nhãn chung sẽ hoặc hạ nhãn tuyên bố chính, hoặc nâng nhãn vế chất lượng; cả hai đều sai. V5 củng cố vế tốc độ: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Vế chất lượng (§6.7): `foot_slide` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; `min_body_height ±5 mm` đã **rút bằng DEC-03 (2026-11-21)**, thay bằng delta so vị trí nghỉ (**−6,3 / −44,3 / −1,1 mm**) và `pct_frames_penetration` (**0,00 / 2,13 / 0,00 %**).
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
 1. Số 17,349 (trung bình, CV 2,13 % ≤ 5 %) lấy từ bản đo cũ đã Review PASS; không trộn đợt cũ `c62e74f` (15,171).
 2. Ngưỡng 33,33 ms chốt trước, không đổi sau khi thấy số.
-3. Không dùng "tái lập được" cho toàn bộ paper — chỉ phần thời gian thực.
-4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**.
+3. Không dùng "tái lập được" cho toàn bộ paper — chỉ vế tốc độ; ba bảng I/II/III của paper ngoài phạm vi.
+4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**. Tính toán chạy CPU (headless **2,36 ms/frame**); **17,3 ms là cả tiến trình có render GPU**, nên là cận trên.
 5. Kết quả nhiễu (§6.4) không đổi kết luận tốc độ; nó chỉ thêm nhận định về độ bền.
+6. V7 (§6.2.1) xác nhận trực tiếp: ma sát ×1,5 trùng hash tuyệt đối; khối lượng ±20 % chỉ lệch `1,5e-9 rad` — tham số vật lý gần như không vào vòng tính, nên không có bảng tụt theo mức.
 
-**Vì sao vẫn là "tái lập một phần" dù `realtime_factor_process` = 1,92 ≥ 1,00?** Quy tắc chốt trước chỉ áp cho **tốc độ**; phần **chất lượng ánh xạ** chỉ **1/3 robot đạt** ngưỡng `foot_slide ≤ 50 mm/s` và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm. Một kết luận "tái lập toàn vẹn" phải đứng trên cả hai trục tốc độ và chất lượng ánh xạ; ở đây trục tốc độ đạt, trục chất lượng chỉ đạt một phần, nên kết luận dừng ở **"tái lập một phần"**.
+**Vì sao tách nhãn thay vì hạ nhãn tuyên bố chính?** `realtime_factor_process` = 1,92 ≥ 1,00 nên theo tiêu chí đặt trước, vế tốc độ **tái lập được**; hạ xuống "một phần" sẽ là sửa tiêu chí sau khi thấy kết quả. Vế chất lượng chỉ đạt một phần vì **1/3 robot đạt `foot_slide`** và T1 xuyên sàn **2,13 % frame** — hai vế mang hai nhãn riêng (DEC-04).
 
 ### 7.3 Ba câu "chênh thì vì sao"
 
@@ -396,7 +410,7 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 
 - Chất lượng ánh xạ: **hai ngưỡng đặt trước ngày 2026-11-20**; `foot_slide ≤ 50 mm/s` **được giữ và áp** (G1 49,0 đạt sát; T1 83,1 và PM01 118,4 không đạt), `min_body_height ±5 mm` **rút hậu kiểm** (DEC-03, 2026-11-21) vì đo gốc body và offset nghỉ khác nhau; `pct_frames_penetration` chỉ là proxy gốc body, không phải bề mặt/mesh. Hai đại lượng hậu kiểm không có ngưỡng đặt trước (§6.7).
 - `ms_per_frame` **chưa đo**; chỉ có số cả tiến trình (§4.5).
-- `CUDA_VISIBLE_DEVICES` **chưa xác minh** trên bản đo cũ.
+- Bản đo cũ V3 **không ghi** `CUDA_VISIBLE_DEVICES`; V7 đã kiểm lại (đặt rỗng, lệch 0,8 %, cùng SHA256).
 - Kết quả trên **một máy Windows**, không đại diện Linux.
 - Bất đối xứng N4 mới giải thích **định tính**, chưa định lượng phần đóng góp.
 - Ba bảng I/II/III của paper **ngoài phạm vi**.
@@ -418,7 +432,7 @@ Bản nháp được viết lại từ nhật ký làm việc và lịch sử co
 
 #### 8.2.1 Trần Nguyễn Khánh Duy — MSSV 2001230120 — Nhóm trưởng, Planner + Research — 30%
 
-Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. Việc khó nhất là phát hiện paper arXiv:2510.02252 **không công bố một con số ms/frame hay FPS nào** — mọi bảng số của paper đều là kết quả policy đã huấn luyện, cần GPU và IsaacSim nên nằm ngoài phạm vi giai đoạn 1. Tôi chọn phương án C: đo tuyên bố "real-time trên CPU" lấy từ README, đồng thời trình bày rõ ba bảng định lượng của paper và lý do nhóm không tái lập được, để kết luận là "tái lập một phần" thay vì một câu trả lời né tránh. Trước khi bất kỳ ai chạy lần nào, tôi viết `docs/dinh_nghia_phep_do.md` quy định đo đại lượng gì, lấy mấy lần, bỏ warm-up, và chọn `mean` hay `median` theo CV — quy tắc này về sau phải áp lại ba lần vì có ba nơi dùng sai. Bài học lớn nhất của tôi là tôi đã đọc thiếu phần cuối README nên bỏ sót bảng Speed Benchmark của chính repo, và chỉ biết khi người khác soi lại; từ đó tôi hiểu người viết không thể tự kiểm tra mình.
+Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. Việc khó nhất là phát hiện paper arXiv:2510.02252 **không công bố một con số ms/frame hay FPS nào** — mọi bảng số của paper đều là kết quả policy đã huấn luyện, cần GPU và IsaacSim nên nằm ngoài phạm vi giai đoạn 1. Tôi chọn phương án C: đo tuyên bố "real-time trên CPU" lấy từ README, đồng thời trình bày rõ ba bảng định lượng của paper và lý do nhóm không tái lập được, để kết luận **tách hai vế** — tốc độ tái lập được, chất lượng ánh xạ một phần — thay vì một câu trả lời né tránh. Trước khi bất kỳ ai chạy lần nào, tôi viết `docs/dinh_nghia_phep_do.md` quy định đo đại lượng gì, lấy mấy lần, bỏ warm-up, và chọn `mean` hay `median` theo CV — quy tắc này về sau phải áp lại ba lần vì có ba nơi dùng sai. Bài học lớn nhất của tôi là tôi đã đọc thiếu phần cuối README nên bỏ sót bảng Speed Benchmark của chính repo, và chỉ biết khi người khác soi lại; từ đó tôi hiểu người viết không thể tự kiểm tra mình.
 
 #### 8.2.2 Đặng Duy Mạnh — MSSV 2001240271 — Run, dựng môi trường và thu bằng chứng — 30%
 

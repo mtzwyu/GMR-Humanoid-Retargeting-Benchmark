@@ -46,8 +46,8 @@ SLIDES = [
     (10, "0:40", "Duy", "process ≤ 33,33 ms là điều kiện đủ"),
     (11, "1:00", "Trường", "cùng motion, 3 robot, 2/3 dưới ngưỡng"),
     (12, "0:30", "Trường", "PM01 chậm nhất dù ít khớp nhất"),
-    (13, "1:00", "Trương Thái Vỹ + Hà Mạnh Trường", "khối lượng không đổi pkl → thay bằng N1–N4"),
-    (14, "0:50", "Duy", "tái lập một phần"),
+    (13, "1:00", "Trương Thái Vỹ + Hà Mạnh Trường", "ma sát trùng hash, khối lượng lệch 1,5e-9 rad → N1–N4"),
+    (14, "0:50", "Duy", "tốc độ tái lập được, chất lượng một phần"),
     (15, "0:40", "Duy", "ba bài học và việc còn mở"),
     (16, "1:00", "cả nhóm", "mời hỏi, 7 câu đã chuẩn bị"),
 ]
@@ -448,9 +448,12 @@ def build():
     tb(s, 8.5, 5.45, 4.1, 0.8,
        "5 điểm: 17,522 · 17,246 · 17,852 · 16,853 · 17,272",
        size=12, color=MUTED, italic=True)
-    tb(s, 0.7, 6.45, 11.9, 0.4,
+    tb(s, 0.7, 6.32, 11.9, 0.3,
        "Mốc README repo: 35–45 FPS (i9-13900K) · 60–70 FPS (Threadripper) — không nêu điều kiện đo.",
-       size=12, color=MUTED)
+       size=11, color=MUTED)
+    tb(s, 0.7, 6.62, 11.9, 0.3,
+       "Tính toán CPU (~2,4 ms/frame headless); 17,349 ms là cả tiến trình có render GPU.",
+       size=11, color=MUTED)
     footer(s, 9)
     notes(s, 9)
 
@@ -514,16 +517,16 @@ def build():
 
     # 13 — nhiễu N1–N4
     s = new()
-    title(s, "Nhiễu: vì sao không dùng ±20 % khối lượng")
-    message(s, "Đổi khối lượng không đổi một byte pkl → phép thử đó sẽ là bảng giả")
+    title(s, "Nhiễu: tham số vật lý gần như không vào vòng tính")
+    message(s, "Ma sát ×1,5 trùng hash tuyệt đối; khối lượng ±20 % chỉ lệch 1,5e-9 rad")
     picture(s, os.path.join(FIG, "v6_noise_slide.png"), 0.6, 1.85, 7.2, 4.05,
-            caption="Nguồn: results/v6_noise_sweep.csv — 15 mức, 1 lần/mức")
+            caption="Nguồn: results/v6_noise_sweep.csv; V7: results/v7_physics_perturb.csv")
     bullets(s, [
-        "GMR tối ưu động học: không có mass/friction trong vòng tính",
-        "SHA256: 40 pkl — 37 thuộc 4 cặp trùng hash, 3 file lẻ",
-        "Thay bằng N1–N4: khớp · trễ · mất frame · lệch tỉ lệ người",
-        "N1 hỏng từ 2° (87,7 % frame) · N2/N3 vô hại · N4 hỏng từ ±10 %",
-        "dr_rmse 719 mm của N4 là scale quỹ đạo, không phải sai tư thế",
+        "GMR tối ưu động học: mass/friction gần như không vào vòng tính",
+        "V7: ma sát ×1,5 (72 geom) → SHA256 trùng, max|dq| = 0",
+        "V7: khối lượng ±20 % (31 body) → SHA256 khác, max|dq| = 1,5e-9 rad",
+        "Nên bảng “tụt theo ±20 %” là bảng giả; nhóm thay bằng N1–N4",
+        "N1 hỏng từ 2° · N2/N3 vô hại · N4 hỏng từ ±10 %; dr_rmse 719 mm là scale",
     ], 7.95, 1.95, 4.8, 4.6, size=12, gap=10)
     footer(s, 13)
     notes(s, 13)
@@ -531,24 +534,25 @@ def build():
     # 14 — kết luận
     s = new(True)
     title(s, "Kết luận", dark=True, size=40)
-    message(s, "Phần thời gian thực tái lập được; ba bảng số của paper thì không", dark=True)
-    tb(s, 0.7, 2.05, 11.9, 1.0, "Tái lập một phần", size=52, color=ACCENT, bold=True, font=HEAD)
-    card(s, 0.7, 3.3, 5.85, 2.55, fill=RGBColor(0x0B, 0x45, 0x4E))
-    tb(s, 0.95, 3.45, 5.3, 0.4, "ĐƯỢC", size=16, color=ACCENT, bold=True, font=HEAD)
+    message(s, "Tách hai vế: tốc độ tái lập được trên CPU; chất lượng ánh xạ chỉ một phần", dark=True)
+    tb(s, 0.7, 1.92, 11.9, 0.8, "Tốc độ: tái lập được", size=44, color=ACCENT, bold=True, font=HEAD)
+    tb(s, 0.7, 2.68, 11.9, 0.5, "Chất lượng ánh xạ: một phần", size=26, color=WHITE, bold=True, font=HEAD)
+    card(s, 0.7, 3.4, 5.85, 2.35, fill=RGBColor(0x0B, 0x45, 0x4E))
+    tb(s, 0.95, 3.55, 5.3, 0.4, "TỐC ĐỘ — ĐƯỢC", size=16, color=ACCENT, bold=True, font=HEAD)
     bullets(s, [
         "17,349 ms · 1,92× · 57,6 FPS",
         "2/3 robot dưới ngưỡng 33,33 ms",
-        "Đạt ngưỡng nhóm đặt trước",
-    ], 0.95, 3.9, 5.3, 1.8, dark=True, size=14, gap=8)
-    card(s, 6.75, 3.3, 5.85, 2.55, fill=RGBColor(0x0B, 0x45, 0x4E))
-    tb(s, 7.0, 3.45, 5.3, 0.4, "KHÔNG", size=16, color=RGBColor(0xFF, 0xB4, 0xA8), bold=True, font=HEAD)
+        "Đạt tiêu chí đặt trước",
+    ], 0.95, 4.0, 5.3, 1.65, dark=True, size=14, gap=8)
+    card(s, 6.75, 3.4, 5.85, 2.35, fill=RGBColor(0x0B, 0x45, 0x4E))
+    tb(s, 7.0, 3.55, 5.3, 0.4, "CHẤT LƯỢNG — MỘT PHẦN", size=16, color=RGBColor(0xFF, 0xB4, 0xA8), bold=True, font=HEAD)
     bullets(s, [
-        "Bảng I/II/III của paper",
-        "Cần 84 policy, IsaacSim, GPU",
-        "Không có cấu hình trong paper",
-    ], 7.0, 3.9, 5.3, 1.8, dark=True, size=14, gap=8)
-    tb(s, 0.7, 6.1, 11.9, 0.5,
-       "“Đạt ngưỡng nhóm đặt, không phải tái lập bảng của paper.”",
+        "1/3 robot đạt foot_slide ≤ 50 mm/s",
+        "T1 xuyên sàn 2,13 % frame",
+        "Bảng I/II/III paper: ngoài phạm vi",
+    ], 7.0, 4.0, 5.3, 1.65, dark=True, size=14, gap=8)
+    tb(s, 0.7, 6.0, 11.9, 0.5,
+       "“Tốc độ đạt ngưỡng nhóm đặt; chất lượng ánh xạ một phần; bảng paper không tái lập.”",
        size=15, color=WHITE, italic=True)
     footer(s, 14, dark=True)
     notes(s, 14)
