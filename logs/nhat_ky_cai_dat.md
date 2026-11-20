@@ -60,11 +60,19 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 |---|---|
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
 | V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | 14,03 · 15,14 · 16,34 ms/frame (thêm lần đo thứ 4 trong cửa sổ console: 13,12 ms/frame) |
-| V3 có `--rate_limit` (1 warm-up + 3 lần đo) | 15,85 · 17,40 · 17,17 ms/frame |
+| V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13 bên dưới: cờ không được truyền vào lệnh thật) |
 | V5 sim2sim (cùng motion, 3 robot) | G1 **17,34** ms/frame · T1 29dof **13,44** · PM01 **34,99** |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
 
-**Bất thường đo được cần ghi lại (không phán đúng sai):** nhóm `--rate_limit` chạy **124–136 s** cho motion 261,3 s, tức nhanh hơn thời gian thực (~1,9–2,1×) chứ không bị ép về đúng 30 fps. Nguyên nhân khả dĩ: `loop_rate_limiters.RateLimiter(frequency=30)` dựa trên `sleep` của Windows có độ phân giải timer thô. Vì vậy `realtime_factor` của nhóm có `--rate_limit` **không** xấp xỉ 1,00. Ghi số nguyên trạng, không hiệu chỉnh.
+**RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
+
+Đo riêng thư viện để hiểu bản chất cờ này (tự đo, 300 lần gọi `sleep()`):
+
+```
+RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
+```
+
+→ Trên Windows, `RateLimiter(30)` chỉ đạt **21,42 Hz (46,68 ms/lần)** vì `sleep` của Windows có độ phân giải timer thô. **Kết luận: cờ `--rate_limit` không dùng để đo throughput** — nó là công cụ phát lại cho mắt người xem, không phải bộ đo. Mọi số V3/V5 báo cáo đều ở chế độ **không** `--rate_limit`.
 
 **Ghi chú về đơn vị đo:** cột `ms_per_frame` = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
 

@@ -67,11 +67,18 @@ python scripts/bvh_to_robot.py --bvh_file ../data/lafan1/walk1_subject1.bvh --fo
 python scripts/bvh_to_robot.py --bvh_file ../data/lafan1/walk1_subject1.bvh --format lafan1 --robot unitree_g1 --save_path ../../results/pkl/out.pkl --rate_limit
 ```
 
-## 5. Đo V3 (1 warm-up + 3 lần đo × 2 chế độ)
+## 5. Đo V3 (1 warm-up + 3 lần đo, KHÔNG dùng `--rate_limit`)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File third_party\_run\measure_v3.ps1   # sinh results\_v3_tmp.csv
 powershell -NoProfile -ExecutionPolicy Bypass -File third_party\_run\build_csv.ps1    # gộp thành results\v3_runtime.csv
+```
+
+Kiểm tra bản chất cờ `--rate_limit` (không dùng cờ này để đo throughput):
+
+```powershell
+& "C:\Users\xpaga\miniconda3\envs\gmr\python.exe" -c "import time; from loop_rate_limiters import RateLimiter; rl=RateLimiter(frequency=30, warn=False); n=300; t0=time.perf_counter(); [rl.sleep() for _ in range(n)]; dt=time.perf_counter()-t0; print(f'{n/dt:.2f} Hz, {dt/n*1000:.2f} ms/lan')"
+# do duoc: 21.42 Hz, 46.68 ms/lan tren Windows
 ```
 
 Một lần đo lẻ (ví dụ lần đo hiển thị trong ảnh bằng chứng):
