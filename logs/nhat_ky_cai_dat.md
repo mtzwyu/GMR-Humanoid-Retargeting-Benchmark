@@ -129,3 +129,34 @@ RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
 | `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 3 pkl V5, mỗi robot 600 frame | 7.431.439 byte | 450 (G1) / 900 (T1) / 1350 (PM01) |
 
 Ảnh: `results/figures/slide_*.png`; caption + vị trí chèn slide ghi ở `results/figures/README.md`; bảng nguồn/lệnh/thời lượng ở `results/media/README.md`.
+
+## RV-23 — Hai đợt đo V3 và tính tất định của retarget
+
+Mục này là **căn cứ số cho Writing viết mục 7** (độ tin cậy của phép đo).
+
+### (a) So sánh hai đợt đo V3 (cùng input `walk1_subject1.bvh`, cùng G1, đều **không** `--rate_limit`)
+
+| Đợt | Commit | n | Giá trị đo (ms/frame) | Đại diện | Vì sao phải chạy lại |
+|---|---|---|---|---|---|
+| Đợt cũ | `c62e74f` | 3 | 14,034 · 15,139 · 16,339 | mean **15,171** | log thiếu dòng `END` (wall time chỉ in ra console) → Review chặn merge ở RV-14 |
+| Đợt mới | `f467075` | 5 | 17,522 · 17,246 · 17,852 · 16,853 · 17,272 | **median 17,272** (mean 17,349) | sau khi sửa định dạng dòng `END` (UTF-8 → UTF-16) và chạy lại toàn bộ |
+
+Chênh lệch: **+14,36 %** nếu so mean với mean (17,349 / 15,171); **+13,85 %** nếu so median mới với mean cũ. Nguyên nhân chạy lại **không** phải vì số xấu mà vì **định dạng log hỏng** (RV-14) — nhưng đợt mới là đợt duy nhất có log đối chiếu được, nên **lấy đợt mới làm số chính thức**: median **17,272 ms/frame** (n = 5, CV 2,13 %). Số đợt cũ chỉ giữ để đối chiếu.
+
+### (b) Retarget là tất định — bằng chứng SHA256 trên 38 file pkl
+
+Băm toàn bộ `results/pkl/*.pkl` (SHA256). Kết quả: **mọi lần chạy của cùng một cặp (robot, motion) cho ra file pkl giống nhau từng byte**, bất kể đợt đo, bất kể có/không `--rate_limit`:
+
+| Nhóm pkl | Số file | SHA256 (rút gọn) | Gồm |
+|---|---|---|---|
+| G1 + `walk1_subject1` | **20** | `E7E3B906F22D3869…` | 6 pkl V3 mới (`run1..run6`), 1 pkl console (`…_evidence`), 4 pkl V3 cũ (`…_no_rate_limit_1..4`), 4 pkl cũ có cờ (`…_rate_limit_1..4`), 4 pkl V5 G1 (`run1..4`), 1 pkl V5 G1 bản đầu |
+| T1 29dof + `walk1_subject1` | 5 | `4E7161873D508ABE…` | V5 `run1..4` + bản đầu |
+| PM01 + `walk1_subject1` | 5 | `57B693A8AAC72FE8…` | V5 `run1..4` + bản đầu |
+| G1 + `walk4_subject1` | 5 | `37F0ACD2DD0EFF3C…` | warmup + `no_rate_limit_1..4` |
+| G1 + `dance1_subject2` | 1 | `7A8FFEBE9C2BAE6F…` | KI-01 |
+| G1 + `walk3_subject1` | 1 | `C9488E53DD93B7C8…` | KI-01 |
+| T1 29dof + `walk4_subject1` | 1 | `2C6498E50CDBE0EF…` | KI-01 |
+
+Đọc bảng: **hash chỉ trùng trong cùng cặp (robot, motion)**; khác robot thì khác hash vì số dof khác nhau (G1 29 · T1 29dof 27 · PM01 24), khác motion cũng khác hash. (Lưu ý: không phải "15 pkl đều `E7E3B906…`" — con số đúng là **20 pkl** thuộc nhóm G1 + `walk1_subject1`.)
+
+**Kết luận:** chênh lệch 14,4 % giữa hai đợt đo **không** đến từ thuật toán (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU) — đúng bản chất của phép đo wall-clock toàn tiến trình.
