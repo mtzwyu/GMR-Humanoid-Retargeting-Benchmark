@@ -1,0 +1,16 @@
+# Phụ kiện CHỈ cho đường Xsens (scripts/xsens_bvh_to_robot.py).
+#
+# Vì sao cần: general_motion_retargeting/utils/xsens.py import
+#   utils/xsens_vendor/bvh_edit/CurveEditor.py
+# và file đó cần PyQt6 + matplotlib — hai gói KHÔNG có trong requirements.txt
+# (requirements.txt là hợp đồng môi trường của đường BVH LAFAN1 đã chốt, KHÔNG đổi).
+#
+# Cài:  pip install -r requirements-xsens.txt
+PyQt6==6.12.1
+matplotlib==3.10.9
+
+# BẮT BUỘC trên Windows trước khi chạy, nếu không sẽ gặp
+#   UnicodeEncodeError: 'charmap' codec can't encode characters ... (cp1258)
+# do script in tiếng Trung ra console:
+#   PowerShell:  $env:PYTHONIOENCODING = 'utf-8'
+#   cmd.exe:     set PYTHONIOENCODING=utf-8

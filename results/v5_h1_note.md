@@ -62,8 +62,9 @@ Chạy `tools/quality_metrics.py` trên pkl trên (fps đọc từ pkl = 120):
 | `unitree_h1_2` | 4.249 | 467,78 / 737,79 | **602,79** | **+241,71** | 0,00 | 64,65 |
 
 **Đọc số — kèm 3 cảnh báo:**
+0. **HAI CON SỐ `foot_slide_mean = 602,79 mm/s` VÀ `joint_limit_violation_pct = 64,65 %` KHÔNG ĐƯỢC dùng để so sánh với 3 robot G1/T1_29dof/PM01** — khác motion (boxing vs đi bộ), khác định dạng (Xsens vs LAFAN1), khác tần số (120 Hz vs 30 Hz). Chỉ ghi để chứng minh đường H1_2 chạy được và có sinh số đo được.
 1. Đây là **motion khác** (boxing 120 Hz, định dạng Xsens), **không** so sánh trực tiếp với `walk1_subject1` của G1/T1/PM01. Foot slide 602,8 mm/s cao hơn nhiều so với đi bộ (49–118 mm/s) nhưng bài boxing có xoay/đổi trụ liên tục nên **không kết luận được gì về chất lượng tương đối**.
-2. `min_body_height_mm` đo theo **gốc (origin) của body**, đúng định nghĩa đã chốt; với H1_2 gốc bàn chân nằm cao hơn mặt sàn nên con số +241,7 mm **không** đồng nghĩa "robot lơ lửng 24 cm" — muốn kết luận phải đo theo mesh/geom, việc đó ngoài phạm vi ticket này.
+2. `min_body_height_mm = +241,71 mm` đo theo **gốc (origin) của body**, đúng định nghĩa đã chốt — con số này **KHÔNG có nghĩa là robot lơ lửng 24 cm**; muốn kết luận phải đo theo mesh/geom, việc đó ngoài phạm vi ticket này.
 3. `joint_limit_violation_pct` 64,65 % cho thấy bài boxing đẩy nhiều khớp tới giới hạn — cũng là hiện tượng của motion, không phải của tốc độ.
 
 Số thô: `results/v5_h1_quality.csv`.
