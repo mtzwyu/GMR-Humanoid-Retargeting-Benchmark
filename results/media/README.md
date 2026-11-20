@@ -8,6 +8,7 @@ File `.mp4` nằm trong thư mục này nhưng **đã bị `.gitignore` chặn**
 
 | Tệp | pkl nguồn | Lệnh sinh | Thời lượng | Frame đã trích (25 / 50 / 75 %) |
 |---|---|---|---|---|
+| `s1_human_input.mp4` | không dùng pkl — lấy `retargeter.scaled_human_data` của `walk1_subject1.bvh` (frame 300–599) | `python third_party/_run/record_s1c.py --start 300 --frames 300 --out results/media/s1_human_input.mp4` | **10,00 s** · 300 frame · 1280×720 | chưa trích |
 | `v3_walk1_g1.mp4` | `results/pkl/g1_walk1_subject1_run1.pkl` (G1, walk1_subject1; SHA256 trùng với pkl `g1_walk1_subject1_no_rate_limit_1.pkl` đã dùng lúc ghi clip → nội dung y hệt) | `python third_party/_run/record_clip.py --robot unitree_g1 --robot_motion_path <pkl> --video_path results/media/v3_walk1_g1.mp4 --frames 1800 --start 0` | 60,00 s · 1800 frame | 450 / 900 / 1350 |
 | `v3_walk4_g1.mp4` | `results/pkl/g1_walk4_no_rate_limit_1.pkl` (G1, walk4_subject1 — clip khom lưng, KI-01) | `python third_party/_run/record_clip.py --robot unitree_g1 --robot_motion_path <pkl> --video_path results/media/v3_walk4_g1.mp4 --frames 1800 --start 0` | 60,00 s · 1800 frame | 450 / 900 / 1350 |
 | `v5_sim2sim_g1_t1_pm01.mp4` | 3 pkl `results/pkl/v5_{unitree_g1,booster_t1_29dof,engineai_pm01}_walk1_subject1_run1.pkl` (bản đo lại của RV-15; SHA256 trùng với pkl cũ nên nội dung chuyển động y hệt) | ghi 3 đoạn 600 frame (`--start 300`) rồi `ffmpeg -f concat -c copy` | 60,00 s · 1800 frame (3 × 20 s) | 450 (G1) / 900 (T1) / 1350 (PM01) |
