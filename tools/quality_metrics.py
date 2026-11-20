@@ -8,7 +8,8 @@
 #   min_body_height_mm   : do cao thap nhat cua BAT KY than nao so voi mat dat z=0 trong ca clip.
 #                          Am = xuyen san.
 #   pct_frames_penetration: % frame co it nhat 1 than duoi mat dat (z < -1 mm).
-#   joint_limit_violation_pct: % frame co it nhat 1 khop cach qpos_lo/qpos_hi duoi 0,5 do.
+#   joint_limit_saturation_pct: % frame co it nhat 1 khop NAM TRONG 0,5 do so voi gioi han
+#                               qpos_lo/qpos_hi (bao hoa, KHONG phai vuot gioi han).
 #
 # Dung: python tools\quality_metrics.py --out results\v6_quality.csv
 import argparse
@@ -86,6 +87,11 @@ for robot in [r.strip() for r in a.robots.split(",") if r.strip()]:
     model = mj.MjModel.from_xml_path(str(ROBOT_XML_DICT[robot]))
     data = mj.MjData(model)
 
+    # offset nghi cua model: do cao tam than thap nhat khi o tu the mac dinh (qpos0)
+    data.qpos[:] = model.qpos0
+    mj.mj_forward(model, data)
+    rest_offset_mm = float(data.xpos[1:, 2].min()) * 1000.0
+
     lname, rname = FOOT_BODIES[robot]
     lid, rid = model.body(lname).id, model.body(rname).id
     lpos, rpos, min_h, pen = [], [], [], 0
@@ -108,14 +114,15 @@ for robot in [r.strip() for r in a.robots.split(",") if r.strip()]:
         "foot_slide_R": round(slide_r, 3),
         "foot_slide_mean": round(float(np.nanmean([slide_l, slide_r])), 3),
         "min_body_height_mm": round(min(min_h) * 1000.0, 3),
+        "rest_offset_mm": round(rest_offset_mm, 3),
         "pct_frames_penetration": round(100.0 * pen / len(qpos), 3),
-        "joint_limit_violation_pct": round(joint_limit_pct(qpos, model), 3),
+        "joint_limit_saturation_pct": round(joint_limit_pct(qpos, model), 3),
         "pkl": pkl_rel.replace(os.sep, "/"),
         "cmd": f"python tools/quality_metrics.py --robots {robot} --out {a.out}",
     })
     print(f"{robot:18s} slide L={slide_l:8.2f} R={slide_r:8.2f} mean={np.nanmean([slide_l, slide_r]):8.2f} mm/s | "
           f"min_z={min(min_h)*1000:8.2f} mm | pen={100.0*pen/len(qpos):6.2f}% | "
-          f"limit={rows[-1]['joint_limit_violation_pct']:6.2f}%")
+          f"limit={rows[-1]['joint_limit_saturation_pct']:6.2f}% | rest={rest_offset_mm:5.2f} mm")
 
 out = os.path.join(ROOT, a.out)
 with open(out, "w", newline="", encoding="utf-8") as f:

@@ -237,22 +237,26 @@ Số thô: `results/v6_noise_sweep.csv` (thêm 2 cột bão hòa + `max_dev_fram
 
 Đề tài HR-04 yêu cầu đo **tốc độ và chất lượng** ánh xạ. Mục trên đã có tốc độ; mục này đo chất lượng trên **pkl đã có của V5** (`v5_<robot>_walk1_subject1_run1.pkl`), **không chạy lại retarget**. Công cụ: `tools/quality_metrics.py`; số thô: `results/v6_quality.csv`; đồ thị: `results/figures/v6_quality.png`.
 
-**Định nghĩa (đúng đặc tả Planner):**
-1. `foot_slide_L/R/mean` (mm/s) — frame **tiếp đất** của một bàn chân = độ cao thân bàn chân trong **30 mm** so với chính mức thấp nhất của nó trong clip; tổng dịch ngang (xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia tổng thời gian tiếp đất; tính riêng trái/phải rồi lấy trung bình.
-2. `min_body_height_mm` (mm) — độ cao thấp nhất của **bất kỳ thân nào** so với mặt đất `z = 0` trong cả clip; **âm = xuyên sàn**.
-3. `pct_frames_penetration` (%) — % frame có **ít nhất 1 thân** dưới mặt đất (`z < −1 mm`).
-4. `joint_limit_violation_pct` (%) — % frame có **ít nhất 1 khớp** cách `qpos_lo/qpos_hi` dưới **0,5°** (dùng lại công cụ V6).
+**Định nghĩa (đặc tả Planner, đã sửa theo RV-37/38/39):**
+1. `foot_slide_L/R/mean` (mm/s) — frame **tiếp đất** của một bàn chân = độ cao **tâm thân** bàn chân trong **30 mm** so với chính mức thấp nhất của nó trong clip; tổng dịch ngang (xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia tổng thời gian tiếp đất; tính riêng trái/phải rồi lấy trung bình. **Đây là chỉ số PROXY, chỉ dùng để SO SÁNH TƯƠNG ĐỐI giữa 3 robot** (xem 2 giới hạn bên dưới).
+2. `min_body_height_mm` (mm) — độ cao **tâm thân (body origin) thấp nhất** trong cả clip so với `z = 0`; vì đo ở tâm thân nên mỗi model có **offset nghỉ** riêng, ghi ở cột `rest_offset_mm`.
+3. `pct_frames_penetration` (%) — % frame có **ít nhất 1 thân** dưới mặt đất (`z < −1 mm`). **Đây là cột duy nhất dùng để kết luận xuyên sàn.**
+4. `joint_limit_saturation_pct` (%) — % frame có **ít nhất 1 khớp NẰM TRONG 0,5° so với giới hạn** `qpos_lo/qpos_hi`, tức **bão hòa ở giới hạn**, **KHÔNG phải vượt giới hạn**.
 
-| Robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | % frame xuyên sàn | % frame chạm giới hạn khớp |
-|---|---|---|---|---|---|---|
-| `unitree_g1` | 7.839 | 62,11 / 35,97 | **49,04** | **+9,89** | **0,00** | 23,79 |
-| `booster_t1_29dof` | 7.839 | 63,19 / 103,05 | **83,12** | **−7,64** | **2,13** | 43,32 |
-| `engineai_pm01` | 7.839 | 94,53 / 142,29 | **118,41** | +43,85 | 0,00 | 24,07 |
+| Robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | rest_offset (mm) | % frame xuyên sàn | % frame bão hòa khớp |
+|---|---|---|---|---|---|---|---|
+| `unitree_g1` | 7.839 | 62,11 / 35,97 | **49,04** | +9,89 | +16,14 | **0,00** | 23,79 |
+| `booster_t1_29dof` | 7.839 | 63,19 / 103,05 | **83,12** | −7,64 | +36,65 | **2,13** | 43,32 |
+| `engineai_pm01` | 7.839 | 94,53 / 142,29 | **118,41** | +43,85 | +44,95 | **0,00** | 24,07 |
 
-**Đọc số:**
-- **G1 sạch nhất**: không có frame nào xuyên sàn, thân thấp nhất vẫn cao +9,9 mm, foot slide 49,0 mm/s.
-- **T1 29dof xuyên sàn**: thân thấp nhất **−7,64 mm**, 2,13 % số frame (≈ 167 frame) có thân dưới mặt đất — cùng robot này cũng có CV thời gian cao nhất (11,32 %) và tỉ lệ chạm giới hạn khớp cao nhất (43,3 %).
-- **PM01 trượt chân nhiều nhất**: 118,4 mm/s (chân phải 142,3 mm/s), gấp ~2,4× G1; đổi lại không xuyên sàn và thân thấp nhất +43,9 mm.
-- Kiểm chứng chéo: `joint_limit_violation_pct` của G1 = **23,79 %** đúng bằng baseline V6 (1.865/7.839 = 23,8 %) → hai công cụ dùng cùng định nghĩa.
+**Đọc số (đã bỏ các suy diễn sai):**
+- **Xuyên sàn chỉ đọc theo `pct_frames_penetration`:** T1 29dof **2,13 %** (≈ 167 frame; frame 3897 có `left_toe_link` xuống −7,64 mm), G1 và PM01 **0 %**.
+- `min_body_height_mm` **không** dùng để xếp hạng "sạch": G1 +9,89 / T1 −7,64 / PM01 +43,85 mm nhưng offset nghỉ lần lượt +16,14 / +36,65 / +44,95 mm → PM01 cao "hơn" chủ yếu vì **tâm thân bàn chân của model nằm cao hơn**, không phải vì ánh xạ tốt hơn. Muốn so mức tụt so với tư thế nghỉ thì trừ `rest_offset_mm`.
+- `foot_slide_mean`: PM01 **118,4** > T1 **83,1** > G1 **49,0** mm/s — chỉ nói **tương đối** giữa 3 robot, không phải mm/s tuyệt đối của bàn chân thật (xem giới hạn bên dưới).
+
+**Hai giới hạn của `foot_slide` (RV-38):**
+- "Tiếp đất" định nghĩa theo **mức thấp nhất của chính bàn chân đó** (không phải `z = 0`): nếu dùng ngưỡng tuyệt đối `z ≤ 30 mm` thì **G1 và PM01 không có frame tiếp đất nào** → không đo được.
+- Đo ở **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi tâm thân vẫn dịch ngang và bị tính là trượt. Reviewer đo lại tại **ngón chân**: G1 **84,3** thay vì 49,0; T1 **169,2** thay vì 83,1.
+- Việc **không trừ vị trí root** là đúng theo đặc tả, giữ nguyên.
 
 **Ngưỡng đạt:** `docs/dinh_nghia_phep_do.md` hiện **chưa đặt ngưỡng** cho 4 chỉ số này, nên mục này chỉ **báo số thô**, không kết luận đạt/không đạt. Nếu cần ngưỡng, phải chốt trong `dinh_nghia_phep_do.md` trước rồi mới đối chiếu.
