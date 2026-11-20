@@ -83,7 +83,7 @@ Nhưng báo cáo lại dùng nhãn **"tái lập một phần"**, vì nhóm bổ
 
 **Cấm** viết gọn thành "tái lập một phần" mà không nói vế nào — vì như vậy là hạ nhãn của tuyên bố chính, trái tiêu chí đã đăng ký trước.
 
-**Hệ quả kỹ thuật đi kèm.** Báo cáo phải nói rõ `_process` bao gồm render (có thể dùng GPU), còn `retarget()` thuần chạy CPU; nên 17,3 ms là **cận trên**, không phải "CPU-only" tuyệt đối.
+**Hệ quả kỹ thuật đi kèm (đã kiểm bằng số).** Hai tầng tách bạch: (a) **tính toán — CPU**: `torch 2.14.1+cpu`, `cuda.is_available() = False`, headless đo được **2,36 ms/frame**; (b) **render — GPU**: `GL_RENDERER = NVIDIA GeForce RTX 4050 Laptop GPU`, viewer và `mj.Renderer` đều render trên GPU, chiếm **~15 ms/frame** (2,36 → 17,35). Vì vậy 17,3 ms là **cận trên của cả tiến trình**, không phải "CPU-only" và cũng không phải throughput thuần của `retarget()`. Nhiệt GPU 51–57 °C trong V5 là do chính các lần chạy có viewer.
 
 
 ---
