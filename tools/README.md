@@ -49,7 +49,26 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 | `record_s1c.py` | **Bản dùng thật cho cảnh S1**: vẽ bộ xương người + trục khớp 0,1 m từ `retargeter.scaled_human_data` lên sàn phẳng, camera bám `Hips`, 1280×720 30 fps | `python tools\record_s1c.py --start 300 --frames 300 --out results\media\s1_human_input.mp4` |
 | `extract_frames.py` | Trích 3 khung 25/50/75 % từ clip → PNG (ffmpeg 9: cần `-update 1`) | `python tools\extract_frames.py <mp4> <tiền_tố> <số_frame>` |
 
-## E. Tiện ích
+## E. Chất lượng ánh xạ (vế thứ 2 của đề tài: "tốc độ **và chất lượng**")
+
+| Script | Việc | Cách chạy |
+|---|---|---|
+| `quality_metrics.py` | Tính 4 chỉ số chất lượng trên pkl đã có (**không chạy lại retarget**) | `python tools\quality_metrics.py --out results\v6_quality.csv` |
+| `quality_plot.py` | Vẽ 2 panel: `foot_slide` theo robot (cột = trung bình 2 chân, chấm = trái/phải) và `min_body_height` theo robot (có đường 0) | `python tools\quality_plot.py` |
+
+**Định nghĩa từng chỉ số** (nguồn: đặc tả của Planner, 2026-11-21):
+
+1. **`foot_slide_L` / `foot_slide_R` / `foot_slide_mean`** (mm/s)
+   Với mỗi bàn chân: một frame là **tiếp đất** khi độ cao thân bàn chân nằm trong **30 mm** so với chính mức thấp nhất của nó trong cả clip.
+   Tổng dịch ngang (mặt phẳng xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia cho tổng thời gian tiếp đất → mm/s.
+   Tính riêng chân trái, chân phải; `mean` là trung bình hai chân.
+2. **`min_body_height_mm`** (mm) — độ cao **thấp nhất của bất kỳ thân (body) nào** so với mặt đất `z = 0` trong toàn clip. **Âm nghĩa là xuyên sàn**.
+3. **`pct_frames_penetration`** (%) — phần trăm frame có **ít nhất 1 thân** dưới mặt đất (`z < -1 mm`).
+4. **`joint_limit_violation_pct`** (%) — phần trăm frame có **ít nhất 1 khớp** cách giới hạn `qpos_lo`/`qpos_hi` dưới **0,5°** (dùng lại đúng công cụ của V6).
+
+Thân bàn chân dùng để đo: `unitree_g1` → `left_ankle_roll_link`/`right_ankle_roll_link`; `booster_t1_29dof` → `left_foot_link`/`right_foot_link`; `engineai_pm01` → `LINK_FOOT_L`/`LINK_FOOT_R`.
+
+## F. Tiện ích
 
 | Script | Việc |
 |---|---|

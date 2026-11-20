@@ -181,3 +181,27 @@ Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũ
 Đọc bảng: **hash chỉ trùng trong cùng cặp (robot, motion)**; khác robot thì khác hash vì số dof khác nhau (G1 29 · T1 29dof 27 · PM01 24), khác motion cũng khác hash. (Lưu ý: không phải "15 pkl đều `E7E3B906…`" — con số đúng là **20 pkl** thuộc nhóm G1 + `walk1_subject1`.)
 
 **Kết luận:** chênh lệch 14,4 % giữa hai đợt đo **không** đến từ thuật toán (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU) — đúng bản chất của phép đo wall-clock toàn tiến trình.
+
+## V6 — chất lượng ánh xạ (vế thứ 2 của đề tài)
+
+Đề tài HR-04 yêu cầu đo **tốc độ và chất lượng** ánh xạ. Mục trước đã có tốc độ; mục này đo chất lượng trên **pkl đã có của V5** (`v5_<robot>_walk1_subject1_run1.pkl`), **không chạy lại retarget**. Công cụ: `tools/quality_metrics.py`; số thô: `results/v6_quality.csv`; đồ thị: `results/figures/v6_quality.png`.
+
+**Định nghĩa (đúng đặc tả Planner):**
+1. `foot_slide_L/R/mean` (mm/s) — frame **tiếp đất** của một bàn chân = độ cao thân bàn chân trong **30 mm** so với chính mức thấp nhất của nó trong clip; tổng dịch ngang (xy) giữa các **cặp frame liên tiếp cùng tiếp đất** chia tổng thời gian tiếp đất; tính riêng trái/phải rồi lấy trung bình.
+2. `min_body_height_mm` (mm) — độ cao thấp nhất của **bất kỳ thân nào** so với mặt đất `z = 0` trong cả clip; **âm = xuyên sàn**.
+3. `pct_frames_penetration` (%) — % frame có **ít nhất 1 thân** dưới mặt đất (`z < −1 mm`).
+4. `joint_limit_violation_pct` (%) — % frame có **ít nhất 1 khớp** cách `qpos_lo/qpos_hi` dưới **0,5°** (dùng lại công cụ V6).
+
+| Robot | n frame | slide L / R (mm/s) | slide mean | min_body_height (mm) | % frame xuyên sàn | % frame chạm giới hạn khớp |
+|---|---|---|---|---|---|---|
+| `unitree_g1` | 7.839 | 62,11 / 35,97 | **49,04** | **+9,89** | **0,00** | 23,79 |
+| `booster_t1_29dof` | 7.839 | 63,19 / 103,05 | **83,12** | **−7,64** | **2,13** | 43,32 |
+| `engineai_pm01` | 7.839 | 94,53 / 142,29 | **118,41** | +43,85 | 0,00 | 24,07 |
+
+**Đọc số:**
+- **G1 sạch nhất**: không có frame nào xuyên sàn, thân thấp nhất vẫn cao +9,9 mm, foot slide 49,0 mm/s.
+- **T1 29dof xuyên sàn**: thân thấp nhất **−7,64 mm**, 2,13 % số frame (≈ 167 frame) có thân dưới mặt đất — cùng robot này cũng có CV thời gian cao nhất (11,32 %) và tỉ lệ chạm giới hạn khớp cao nhất (43,3 %).
+- **PM01 trượt chân nhiều nhất**: 118,4 mm/s (chân phải 142,3 mm/s), gấp ~2,4× G1; đổi lại không xuyên sàn và thân thấp nhất +43,9 mm.
+- Kiểm chứng chéo: `joint_limit_violation_pct` của G1 = **23,79 %** đúng bằng baseline V6 (1.865/7.839 = 23,8 %) → hai công cụ dùng cùng định nghĩa.
+
+**Ngưỡng đạt:** `docs/dinh_nghia_phep_do.md` hiện **chưa đặt ngưỡng** cho 4 chỉ số này, nên mục này chỉ **báo số thô**, không kết luận đạt/không đạt. Nếu cần ngưỡng, phải chốt trong `dinh_nghia_phep_do.md` trước rồi mới đối chiếu.
