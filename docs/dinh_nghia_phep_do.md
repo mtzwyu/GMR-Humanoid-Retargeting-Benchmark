@@ -1,7 +1,7 @@
 # Định nghĩa phép đo — nguồn sự thật chung của nhóm
 
 **Nhóm 01 · HR-04 · 15DHTH07 · HK1 2026–2027**
-Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.3** (RV-17 + đồng bộ CLI + RV-29)
+Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.4** (đồng bộ `tools/quality_metrics.py` + DEC-03 + chuẩn làm tròn)
 Ai cũng đọc. **Không ai sửa** (muốn đổi phải qua Duy, ghi phiên bản mới).
 
 Mục đích: để 4 người đo ra số ghép được với nhau. Mọi file CSV trong `results/` phải theo đúng file này. Tuyên bố đang kiểm chứng: `docs/v1_tuyen_bo.md` (C5).
@@ -43,7 +43,7 @@ Quan hệ: `ms_per_frame_process` **luôn ≥** `ms_per_frame` (chứa thêm m�
 
 `scripts/measure_runtime.py` (@`5f9cdd5`) **có khả năng** đo cả hai trong một lần chạy — 2 process: (1) entry script (`bvh_to_robot.py`, có viewer) → `ms_per_frame_process`; (2) probe (`--retarget-only`, không viewer) → `ms_per_frame` + `t_init`; cả hai chạy với `CUDA_VISIBLE_DEVICES=""` do script đặt. **Nhưng script này chưa được dùng cho số liệu giai đoạn 1**, và Planner đã chốt **không chạy lại** V3/V5. Vì vậy mọi kết luận giai đoạn 1 phải đi qua bảng bắc cầu §6.1.
 
-**Ngưỡng 33,3 ms áp cho đại lượng nào:** áp cho **`ms_per_frame`** (đại lượng của tuyên bố). Bảng bắc cầu khi chỉ có số `_process`: xem §6.1.
+**Ngưỡng 33,33 ms áp cho đại lượng nào:** áp cho **`ms_per_frame`** (đại lượng của tuyên bố). Bảng bắc cầu khi chỉ có số `_process`: xem §6.1.
 
 **Ghi chú overhead:** Review đo trên V3 thấy phần tiến trình nhiều hơn phần retarget khoảng **8 %** (khởi tạo + render + ghi pkl). Con số 8 % là **quan sát một lần trên một máy**, **không phải hằng số** — **cấm** quy đổi `ms_per_frame = 0,92 × ms_per_frame_process`.
 
@@ -56,29 +56,45 @@ Các trường chung:
 | `n_frames` | số frame **được tính** vào Nhóm A | frame | tổng frame − 30 (xem §3) |
 | `n_frames_total` | tổng số frame của clip | frame | dùng cho Nhóm B, **không** trừ warm-up |
 
-Cách ghi (bắt buộc):
+Cách ghi: xem **§1.3 Chuẩn làm tròn** (một chuẩn duy nhất cho cả tài liệu).
 
-- `ms_per_frame`, `ms_per_frame_process`: **1 chữ số thập phân**, đơn vị ms. Ví dụ `18.4`.
-- `fps_out`, `fps_out_process`: **1 chữ số thập phân**, đơn vị frame/s. Ví dụ `54.3`.
-- `realtime_factor`, `realtime_factor_process`: **2 chữ số thập phân**. Ví dụ `1.81`.
-- Không bao giờ ghi "khoảng", "gần", "~" trong CSV. Chỉ số.
-- Số nào đo **cả tiến trình** thì **bắt buộc** có hậu tố `_process`. Chỉ Nhóm A mới được dùng tên trần `ms_per_frame` / `fps_out` / `realtime_factor`.
+Quy tắc đặt tên (giữ nguyên): số nào đo **cả tiến trình** thì **bắt buộc** có hậu tố `_process`; chỉ Nhóm A mới được dùng tên trần `ms_per_frame` / `fps_out` / `realtime_factor`.
 
-### 1.2 Chỉ tiêu phụ về chất lượng ánh xạ (nhóm tự định nghĩa — **không** phải số của paper)
+### 1.2 Chỉ tiêu phụ về chất lượng ánh xạ
 
-Dùng để chứng minh "ánh xạ không bị hỏng" khi chạy sim2sim, **không** dùng để kết luận tuyên bố chính.
+Dùng để mô tả "ánh xạ có bị hỏng không" khi chạy sim2sim, **không** dùng để kết luận tuyên bố chính.
 
-| Ký hiệu | Đại lượng | Đơn vị | Định nghĩa |
-|---|---|---|---|
-| `min_body_height` | chiều cao thấp nhất của mọi body trong toàn clip | m | FK trên `qpos` đã lưu; lấy min theo mọi frame × mọi body. Paper (trang 5) trừ chiều cao nhỏ nhất nên giá trị kỳ vọng ≈ 0 |
-| `foot_slide` | tốc độ trượt chân khi chân đang tiếp đất | mm/s | với mỗi frame mà body bàn chân có `z < 0.01 m`, lấy |Δxy| giữa 2 frame liên tiếp × `fps_src` × 1000; lấy trung vị trên toàn clip |
+**Nguồn chuẩn:** `tools/quality_metrics.py` (nhánh `main`, commit `f00421e`). Định nghĩa dưới đây chép **theo code**, không theo trực giác. Mọi chỉ số tính trên `qpos` của file `.pkl`; FK bằng MuJoCo (`mj_forward`), bỏ body world (id 0).
 
-Ngưỡng chấp nhận (nhóm đặt, ghi rõ là do nhóm đặt):
+| Ký hiệu | Định nghĩa **theo code** | Đơn vị |
+|---|---|---|
+| `foot_slide` (L, R, mean) | Với **từng bàn chân riêng biệt** (trái, phải), dùng vị trí **tâm thân bàn chân** `data.xpos[foot_body]` (**không** phải mesh, **không** phải CoM). Gọi `z` = cao độ tâm thân bàn chân theo từng frame. Frame **tiếp đất** := `z − min(z của chính bàn chân đó trong cả clip) ≤ 30 mm` (`CONTACT_TOL_MM = 30`). Với mọi **cặp frame liên tiếp** mà **cả hai** frame đều tiếp đất, cộng `‖Δxy‖` (mm). Chỉ số = `Σ‖Δxy‖ ÷ (n_pairs / fps)` → **mm/s**. `foot_slide_mean = nanmean([L, R])` (trung bình cộng **hai chân**, không phải trung vị theo frame) | mm/s |
+| `min_body_height` | `min` trên **mọi frame × mọi body** của cao độ **gốc body** (`xpos[1:,2]`) — tức "độ cao gốc của body thấp nhất", **không** phải tâm thân của một bàn chân cụ thể. Code báo **mm** (`×1000`) | m (báo cáo **mm**) |
+| `rest_offset` | cao độ gốc body thấp nhất khi robot ở **tư thế nghỉ** `qpos0` (mm). Dùng để quy đổi `Δ = min_body_height − rest_offset` | mm |
+| `pct_frames_penetration` | `100 × #{frame có ít nhất 1 body với z×1000 < −1 mm} ÷ n_frames` (`PENETRATION_MM = −1`) | % |
+| `joint_limit_saturation_pct` | `100 × #{frame có ít nhất 1 khớp limited với \|q − q_lo\| ≤ 0,5° **hoặc** \|q − q_hi\| ≤ 0,5°} ÷ n_frames` (`LIMIT_TOL_DEG = 0,5`). Đây là **bão hoà** (tiến sát giới hạn), **không phải** vượt giới hạn | % |
 
-- `min_body_height` ∈ **[−0.005, +0.005] m** → coi là "không xuyên sàn, không bay".
-- `foot_slide` ≤ **50 mm/s** → coi là "không trượt chân đáng kể".
+Ghi chú kỹ thuật (bắt buộc khi cài lại hoặc kiểm chéo):
 
-> Đây là ngưỡng của **nhóm**, không phải của paper. Paper chỉ nêu artifact ở dạng định tính + vài ca cụ thể (60 cm xuyên sàn của PHC, < 2 % sudden jump của GMR "Dance 5"), không định nghĩa ngưỡng foot slide.
+- `q_lo, q_hi` lấy từ `model.jnt_range`; **bỏ** khớp free và khớp không `limited`.
+- `foot_slide`: nếu `n_pairs = 0` → `NaN` (code trả `nan`; `nanmean` bỏ qua).
+- `foot_slide` và `min_body_height` **không** đo cùng một thứ: cái đầu đo trượt ngang của **tâm thân bàn chân** khi tiếp đất; cái sau đo cao độ **gốc body** thấp nhất trong toàn clip.
+
+> Bốn chỉ số này **không** phải số của paper. Paper chỉ nêu artifact ở dạng định tính + vài ca cụ thể (60 cm xuyên sàn của PHC, < 2 % sudden jump của GMR "Dance 5"), không định nghĩa foot slide hay penetration.
+
+**Ngưỡng chất lượng: xem §6.4** (một ngưỡng giữ, một ngưỡng rút theo DEC-03).
+
+### 1.3 Chuẩn làm tròn (áp cho **mọi** số trong tài liệu và trong báo cáo)
+
+| Quy tắc | Nội dung |
+|---|---|
+| Số chữ số thập phân | **3** — cho mọi đại lượng đo (`ms_per_frame`, `fps_out`, `realtime_factor`, `foot_slide`, `min_body_height`, `pct_frames_penetration`, `joint_limit_saturation_pct`, `rest_offset`, CV, …) |
+| Dấu thập phân | **dấu phẩy** (chuẩn Việt Nam): `17,349` · `57,640` · `1,921` · `2,129` |
+| Ngoại lệ | số **đếm** (frame, lần chạy) là số nguyên; **ngưỡng** và **số trích từ `docs/quyet_dinh.md` (DEC-03)** ghi đúng như văn bản quyết định (`33,33 ms`, `50 mm/s`, `30 mm`, `−1 mm`, `0,5°`, `49,0`, `83,1`, `2,13 %`) |
+| Cấm | ghi "khoảng", "gần", "~"; trộn dấu chấm thập phân với dấu phẩy trong cùng một tài liệu; tự thêm/bớt chữ số giữa các bảng |
+| CSV | CSV là định dạng **máy đọc** nên vẫn dùng **dấu chấm** (code xuất `round(..., 3)`); chuẩn dấu phẩy chỉ áp cho **tài liệu và báo cáo** |
+
+Ví dụ chuẩn: `ms_per_frame_process = 17,349 ms` · `fps_out_process = 57,640` · `realtime_factor_process = 1,921` · `CV = 2,13 %`.
 
 ---
 
@@ -214,18 +230,18 @@ robot,robot_dof,motion,bvh_file,n_frames,n_frames_total,fps_src,ms_per_frame_pro
 
 ## 6. Sai số chấp nhận
 
-### 6.1 Ngưỡng 33,3 ms áp cho đại lượng nào
+### 6.1 Ngưỡng 33,33 ms áp cho đại lượng nào
 
-**Ngưỡng 33,3 ms (= 1000/30) áp cho `ms_per_frame`** — đại lượng của tuyên bố ("retarget theo thời gian thực").
+**Ngưỡng 33,33 ms (= 1000/30) áp cho `ms_per_frame`** — đại lượng của tuyên bố ("retarget theo thời gian thực").
 
 Giai đoạn 1 **chỉ có** `ms_per_frame_process` (bản đo cũ), **không có** `ms_per_frame` → **bắt buộc** dùng bảng bắc cầu dưới đây, không được suy ra số Nhóm A:
 
 | Tình huống | Được kết luận |
 |---|---|
-| `ms_per_frame_process` ≤ 33,3 ms | **Tái lập được** — điều kiện **đủ**: `retarget ≤ process ≤ 33,3 ms` |
-| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame` ≤ 33,3 ms | **Tái lập một phần** — vòng lặp retarget đạt real-time, nhưng đầu-cuối (init + render + ghi pkl) thì không (chỉ xảy ra nếu sau này có probe) |
-| `ms_per_frame_process` > 33,3 ms **và** `ms_per_frame` > 33,3 ms | **Không tái lập được** (theo mức < 0,80 thì phải thử máy thứ hai) |
-| `ms_per_frame_process` > 33,3 ms, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra; muốn kết luận phải chạy probe (`scripts/measure_runtime.py`) |
+| `ms_per_frame_process` ≤ 33,33 ms | **Tái lập được** — điều kiện **đủ**: `retarget ≤ process ≤ 33,33 ms` |
+| `ms_per_frame_process` > 33,33 ms **và** `ms_per_frame` ≤ 33,33 ms | **Tái lập một phần** — vòng lặp retarget đạt real-time, nhưng đầu-cuối (init + render + ghi pkl) thì không (chỉ xảy ra nếu sau này có probe) |
+| `ms_per_frame_process` > 33,33 ms **và** `ms_per_frame` > 33,33 ms | **Không tái lập được** (theo mức < 0,80 thì phải thử máy thứ hai) |
+| `ms_per_frame_process` > 33,33 ms, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra; muốn kết luận phải chạy probe (`scripts/measure_runtime.py`) |
 
 **Cấm** quy đổi `ms_per_frame = 0,92 × ms_per_frame_process`. Tỉ lệ overhead 8 % là quan sát một lần của Review trên một máy, không phải hằng số; dùng nó để "sửa" số là bịa số.
 
@@ -235,9 +251,9 @@ Giai đoạn 1 **chỉ có** `ms_per_frame_process` (bản đo cũ), **không c�
 |---|---|---|
 | `ms_per_frame` và `ms_per_frame_process` giữa các lần chạy | **CV ≤ 5 %** (tính riêng cho mỗi đại lượng) | chạy thêm 2 lần, báo trung vị (§4) |
 | Cùng đại lượng, chạy lại trên máy khác | **≤ 25 %** | ghi thành 2 dòng riêng, **không** trộn vào một con số |
-| `min_body_height` | ± 5 mm | kiểm tra lại FK / đơn vị |
-| `foot_slide` | ± 10 % | kiểm tra ngưỡng tiếp đất 1 cm |
-| Làm tròn khi báo cáo | ms: 0,1 · fps: 0,1 · lần: 0,01 · m: 0,001 · mm/s: 1 | — |
+| `min_body_height` | **không còn ngưỡng** (xem §6.4, DEC-03); chỉ kiểm độ tái lập giữa các lần FK | kiểm tra lại FK / đơn vị |
+| `foot_slide` | ± 10 % (độ tái lập của phép đo, **khác** ngưỡng chất lượng 50 mm/s) | kiểm tra lại công thức tiếp đất (§1.2) |
+| Làm tròn khi báo cáo | **3 chữ số thập phân, dấu phẩy** (§1.3) | — |
 
 Mọi ngưỡng trong bảng trên là **do nhóm đặt trước**; bài báo không nêu ngưỡng sai số nào. Chỉ các con số artifact cụ thể (60 cm xuyên sàn của PHC, < 2 % sudden jump của GMR) là số của paper và **không** dùng làm ngưỡng ở đây.
 
@@ -252,6 +268,35 @@ Mọi ngưỡng trong bảng trên là **do nhóm đặt trước**; bài báo k
 | ≥ 1,00 | tái lập được |
 | 0,80 – 0,99 | tái lập một phần |
 | < 0,80 | không tái lập được (phải thử máy thứ hai trước khi kết luận) |
+
+### 6.4 Ngưỡng chất lượng: giữ một, rút một — theo **DEC-03**
+
+Quyết định gốc: `docs/quyet_dinh.md` **DEC-03** (ngày 2026-11-21, commit `f00421e`). Không được xoá dấu vết ngưỡng cũ.
+
+| Chỉ số | Ngưỡng | Trạng thái |
+|---|---|---|
+| `foot_slide` | **≤ 50 mm/s** | **GIỮ và ÁP** — đo cùng đại lượng với code (§1.2), phân biệt rõ 3 robot |
+| `min_body_height` | **± 5 mm** | **RÚT** — ngưỡng cũ đã đặt ngày **2026-11-20**, rút ngày **2026-11-21**; lý do: đại lượng này đo **gốc body thấp nhất**, mà mỗi model có độ cao gốc ở tư thế nghỉ khác nhau (**G1 +16,1 mm · T1 +36,7 mm · PM01 +45,0 mm**), nên ngưỡng ±5 mm đo "model nghỉ cao bao nhiêu" chứ không đo "có xuyên sàn hay không" |
+
+**Thay thế `min_body_height ± 5 mm` bằng hai đại lượng hậu kiểm** (báo cáo số, **không** gắn nhãn đạt/không đạt):
+
+1. `Δ so với vị trí nghỉ` = `min_body_height − rest_offset` (mm)
+2. `pct_frames_penetration` (%) — % frame có ít nhất 1 body dưới −1 mm
+
+Câu bắt buộc trong báo cáo:
+
+> *"Một ngưỡng đã đăng ký được áp dụng (`foot_slide ≤ 50 mm/s`); một ngưỡng bị rút sau khi đo với lý do kỹ thuật, và phần thay thế là hậu kiểm."*
+
+**Kết quả khi áp ngưỡng (số của nhóm, từ DEC-03):**
+
+| Chỉ số | Ngưỡng | G1 | T1-29dof | PM01 |
+|---|---|---|---|---|
+| `foot_slide` (mm/s) | ≤ 50 | **49,0 ✅** (sát ngưỡng) | 83,1 ❌ | 118,4 ❌ |
+| `min_body_height` (mm) — *ngưỡng đã rút* | — | +9,9 | −7,6 | +43,8 |
+| `Δ` so với nghỉ (mm) | hậu kiểm | −6,25 | −44,29 | −1,10 |
+| `pct_frames_penetration` (%) | hậu kiểm | 0 | 2,13 | 0 |
+
+Hệ quả cho kết luận: vẫn **"tái lập một phần"**, nhưng lý do phải viết là **chỉ 1/3 robot đạt `foot_slide`**, và T1 xuyên sàn ở **2,13 %** frame — **không** được viết "vì nhóm không đặt ngưỡng".
 
 ---
 
@@ -268,7 +313,7 @@ Giữ nguyên simulator (MuJoCo CPU), **không** huấn luyện lại gì, chỉ
 Dự phòng (cũng có BVH ✅): `fourier_n1`, `stanford_toddy`, `unitree_h2`.
 **Không dùng** `unitree_h1` / `unitree_h1_2` cho đường BVH: README đang để **TBD** ở cột BVH(LAFAN1).
 
-Với mỗi robot: chạy đúng §3 (1 warm-up + 3 lần), cùng một file BVH, ghi `results/v5_sim2sim.csv`, kèm `min_body_height` và `foot_slide`.
+Với mỗi robot: chạy đúng §3 (1 warm-up + 3 lần), cùng một file BVH, ghi `results/v5_sim2sim.csv`, kèm **toàn bộ bộ chỉ số chất lượng §1.2** (`foot_slide` L/R/mean, `min_body_height`, `rest_offset`, `pct_frames_penetration`, `joint_limit_saturation_pct`).
 
 Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình học có giữ được khi đổi embodiment không** — không phải "robot nào giỏi hơn".
 
@@ -290,6 +335,7 @@ Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình họ
 | Phiên bản | Ngày | Thay đổi | Người |
 |---|---|---|---|
 | 1.0 | 2026-11-20 | Bản đầu: chốt `ms_per_frame` / `fps_out` / `realtime_factor`, 1 warm-up + 3 lần, CV ≤ 5 %, ngưỡng 1,00; thêm V5 3 robot | Duy |
-| 1.1 | 2026-11-20 | **RV-17**: tách hai đại lượng (vòng lặp retarget với hậu tố `_retarget`, và cả tiến trình với `_process`); ngưỡng 33,3 ms áp cho đại lượng retarget; thêm bảng §6.1; cấm quy đổi bằng hệ số 0,92; sửa ghi chú clip `walk1_subject1.bvh` (7840 frame, 261,3 s) ≠ "Walk 1" (33 s) của Bảng I | Duy |
+| 1.1 | 2026-11-20 | **RV-17**: tách hai đại lượng (vòng lặp retarget với hậu tố `_retarget`, và cả tiến trình với `_process`); ngưỡng 33,33 ms áp cho đại lượng retarget; thêm bảng §6.1; cấm quy đổi bằng hệ số 0,92; sửa ghi chú clip `walk1_subject1.bvh` (7840 frame, 261,3 s) ≠ "Walk 1" (33 s) của Bảng I | Duy |
 | 1.2 | 2026-11-21 | **Đồng bộ với CLI cuối của Code** (`scripts/measure_runtime.py` @ `5f9cdd5`): đổi tên `ms_per_frame_retarget` → **`ms_per_frame`** và `ms_per_frame_retarget_p95` → **`ms_per_frame_p95`** (đây mới là tên chính thức); mọi số đo cả tiến trình giữ hậu tố `_process`; §5.1 chép đúng thứ tự cột của `SUMMARY_COLUMNS` (thêm `n_frames_total`, `process_cmd`); mô tả khả năng đo **2 process** của script | Duy |
 | 1.3 | 2026-11-21 | **RV-29**: sửa lại cho đúng thực tế — giai đoạn 1 đo bằng **bản đo cũ**, **chỉ có `ms_per_frame_process`** (13 cột, 6 dòng = 1 warm-up + 5 lần đo), **không có** `ms_per_frame`; script `5f9cdd5` mới chỉ là **khả năng**, chưa dùng cho số giai đoạn 1 và Planner chốt không chạy lại V3/V5. §1.1, §5.1 (thêm bảng map cột cũ: `realtime_factor` → `realtime_factor_process`), §6.1 (bắt buộc dùng bảng bắc cầu), §2 (bản đo cũ không có `cuda_visible`) | Duy |
+| 1.4 | 2026-11-21 | **Đồng bộ với code `tools/quality_metrics.py` @ `f00421e`** (audit công thức phát hiện lệch): §1.2 viết lại `foot_slide` (tâm thân bàn chân, `CONTACT_TOL_MM = 30`, tổng dịch ngang trên tổng thời gian tiếp đất, riêng L/R rồi **trung bình** — không phải `z < 1 cm` + trung vị như bản cũ) và `min_body_height` (min **gốc body** trên mọi body, báo mm); thêm `rest_offset`, `pct_frames_penetration` (`PENETRATION_MM = −1`), `joint_limit_saturation_pct` (`LIMIT_TOL_DEG = 0,5`, bão hoà không phải vượt). **DEC-03**: giữ `foot_slide ≤ 50 mm/s`, **rút** `min_body_height ± 5 mm` (đặt 2026-11-20, rút 2026-11-21, lý do kỹ thuật), thay bằng `Δ` so với vị trí nghỉ + `pct_frames_penetration`; thêm §6.4. Thêm **§1.3 chuẩn làm tròn** 3 chữ số thập phân, dấu phẩy | Duy |
