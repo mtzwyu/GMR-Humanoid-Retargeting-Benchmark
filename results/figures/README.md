@@ -20,9 +20,9 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 | `fix_walk4_frame0_g1_2026-11-20.png` | KI-01: G1 tại frame 0 của cùng pkl (tư thế đầu clip) | như trên, frame 0 | 2026-11-20 |
 | `fix_walk3_frame2000_g1_2026-11-20.png` | Đối chứng: G1 tại frame 2000 của `walk3_subject1` (waist 25,2°) | `python third_party/_run/analyze_pose.py results/pkl/fix_walk3_subject1_unitree_g1.pkl ... 2000` | 2026-11-20 |
 | `fix_dance1_frame2000_g1_2026-11-20.png` | Đối chứng: G1 tại frame 2000 của `dance1_subject2` (clip repo đánh dấu `[x]`) | `python third_party/_run/analyze_pose.py results/pkl/fix_dance1_g1.pkl ... 2000` | 2026-11-20 |
-| `v5_sim2sim_g1_frame2000_2026-11-20.png` | V5: Unitree G1, frame 2000 của `walk1_subject1` — **slide "sim2sim"** | `python third_party/_run/analyze_pose.py results/pkl/v5_unitree_g1_walk1_subject1.pkl <xml G1> <ảnh> 2000` | 2026-11-20 |
-| `v5_sim2sim_t1_frame2000_2026-11-20.png` | V5: Booster T1 29dof, cùng frame 2000 | `... v5_booster_t1_29dof_walk1_subject1.pkl <xml T1> ...` | 2026-11-20 |
-| `v5_sim2sim_pm01_frame2000_2026-11-20.png` | V5: ENGINEAI PM01, cùng frame 2000 | `... v5_engineai_pm01_walk1_subject1.pkl <xml PM01> ...` | 2026-11-20 |
+| `v5_sim2sim_g1_frame2000_2026-11-20.png` | V5: Unitree G1, frame 2000 của `walk1_subject1` — **slide "sim2sim"** | `python third_party/_run/analyze_pose.py results/pkl/v5_unitree_g1_walk1_subject1_run1.pkl <xml G1> <ảnh> 2000` | 2026-11-20 |
+| `v5_sim2sim_t1_frame2000_2026-11-20.png` | V5: Booster T1 29dof, cùng frame 2000 | `... v5_booster_t1_29dof_walk1_subject1_run1.pkl <xml T1> ...` | 2026-11-20 |
+| `v5_sim2sim_pm01_frame2000_2026-11-20.png` | V5: ENGINEAI PM01, cùng frame 2000 | `... v5_engineai_pm01_walk1_subject1_run1.pkl <xml PM01> ...` | 2026-11-20 |
 
 ## 3. Đồ thị
 
