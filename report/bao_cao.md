@@ -253,7 +253,7 @@ Mỗi mức chạy **1 lần** vì đo **độ lệch có hệ thống**, không
 
 ### 6.4 Kết quả
 
-Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge), log `results/logs/v6_*.log`, đồ thị `results/figures/v6_noise_vs_deviation.png`. Baseline `g1_walk1_subject1_run1.pkl` (`E7E3B906…`), 7.839 frame.
+Nguồn: `results/v6_noise_sweep.csv` (đã merge vào `main`), log `results/logs/v6_*.log`, đồ thị `results/figures/v6_noise_vs_deviation.png`. Baseline `g1_walk1_subject1_run1.pkl` (`E7E3B906…`), 7.839 frame.
 
 **Hai ghi chú kỹ thuật bắt buộc:**
 
@@ -324,7 +324,7 @@ Quy tắc chọn: theo `docs/dinh_nghia_phep_do.md`, dùng **trung bình**; ch�
 
 ![Hình 4](results/figures/v5_ms_per_frame_robots_2026-11-20.png)
 
-**Hình 4 —** Trung vị ms/frame của 3 robot trong V5 (thanh sai số min–max). Lưu ý: đồ thị gốc vẽ trung vị; bảng §6.5 dùng trung bình cho G1/PM01 theo quy tắc CV, riêng T1 dùng trung vị. Nguồn: `results/v5_sim2sim.csv`.
+**Hình 4 —** ms/frame theo robot trong V5 (thanh sai số min–max); đồ thị dùng **trung vị** cho T1 (CV > 5 %) và **trung bình** cho G1/PM01 (CV ≤ 5 %). **G1 trung vị 17,018 ms (rtf 1,96); bảng §6.5 dùng trung bình 16,758 ms (rtf 1,99) theo quy tắc CV.** Nguồn: `results/v5_sim2sim.csv`.
 
 ### 6.6 Vì sao H1 bị chặn
 
@@ -332,13 +332,13 @@ Ba nguồn: (a) `--robot unitree_h1` → `invalid choice`, **exit 2** (argparse,
 
 ### 6.7 Chất lượng ánh xạ (3 robot)
 
-Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cùng `walk1_subject1`, 3 pkl V5 `run1`, **7.839 frame** (khớp off-by-one ở §6.4).
+Nguồn: `results/v6_quality.csv` (đã merge vào `main`), cùng `walk1_subject1`, 3 pkl V5 `run1`, **7.839 frame** (khớp off-by-one ở §6.4).
 
 | Robot | `foot_slide` proxy TB (mm/s) | Trái / Phải | `min_body_height` (gốc body thấp nhất, mm) | delta so vị trí nghỉ (mm) | `pct_frames_penetration` (%) | Frame khớp sát giới hạn (%) |
 |---|---|---|---|---|---|---|
-| Unitree G1 | **49,041** | 62,109 / 35,973 | **+9,886** | **−6,25** | **0,000** | 23,791 |
-| Booster T1 29dof | 83,121 | 63,189 / 103,052 | **−7,641** | **−44,29** | **2,130** | **43,322** |
-| ENGINEAI PM01 | **118,409** | 94,527 / 142,292 | +43,849 | **−1,10** | 0,000 | 24,072 |
+| Unitree G1 | **49,0** | 62,1 / 36,0 | **+9,9** | **−6,3** | **0,00** | 23,79 |
+| Booster T1 29dof | 83,1 | 63,2 / 103,1 | **−7,6** | **−44,3** | **2,13** | **43,32** |
+| ENGINEAI PM01 | **118,4** | 94,5 / 142,3 | +43,8 | **−1,1** | 0,00 | 24,07 |
 
 **Công thức `foot_slide`.** Với mỗi bàn chân, một frame là **tiếp đất** khi `z_bàn_chân − min(z_bàn_chân) ≤ 30 mm`; `foot_slide` = **tổng dịch ngang `|Δxy|` trên các cặp frame liên tiếp cùng tiếp đất chia tổng thời gian tiếp đất**. Tính riêng chân trái và chân phải rồi lấy trung bình; đo tại **gốc (tâm) body bàn chân**.
 
@@ -348,23 +348,23 @@ Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cù
 
 **Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` (gốc body thấp nhất) của 3 robot; **đường đỏ nét đứt là mặt đất z = 0**; **đường chấm đen là độ cao gốc body thấp nhất ở tư thế nghỉ của từng model**. Nguồn: `results/v6_quality.csv`.
 
-**Ngưỡng đặt trước và quyết định hậu kiểm (DEC-03).** Theo **DEC-03** (`docs/quyet_dinh.md`): `docs/dinh_nghia_phep_do.md` §1.2 đã **đặt trước ngày 2026-11-20** hai ngưỡng — `foot_slide ≤ 50 mm/s` và `min_body_height ∈ [−5, +5] mm`. Nhóm **giữ và áp** ngưỡng `foot_slide`: G1 **49,041 mm/s đạt sát**; T1 **83,121** và PM01 **118,409 mm/s không đạt**. Nhóm **rút** ngưỡng `min_body_height` bằng **quyết định hậu kiểm ngày 2026-11-21** vì đại lượng đo **gốc của body thấp nhất** trên mọi body, mà mỗi model có offset nghỉ riêng (G1 **+16,1** · T1 **+36,7** · PM01 **+45,0 mm**). Hai đại lượng thay thế — **delta so vị trí nghỉ** (G1 **−6,25** · T1 **−44,29** · PM01 **−1,10 mm**) và **`pct_frames_penetration`** (0 / 2,13 / 0 %) — là **hậu kiểm, không có ngưỡng**. Tóm lại: **một ngưỡng được áp dụng, một ngưỡng bị rút sau khi đo.**
+**Ngưỡng đặt trước và quyết định hậu kiểm (DEC-03).** Theo **DEC-03** (`docs/quyet_dinh.md`): `docs/dinh_nghia_phep_do.md` §1.2 đã **đặt trước ngày 2026-11-20** hai ngưỡng — `foot_slide ≤ 50 mm/s` và `min_body_height ∈ [−5, +5] mm`. Nhóm **giữ và áp** ngưỡng `foot_slide`: G1 **49,0 mm/s đạt sát**; T1 **83,1** và PM01 **118,4 mm/s không đạt**. Nhóm **rút** ngưỡng `min_body_height` bằng **quyết định hậu kiểm ngày 2026-11-21** vì đại lượng đo **gốc của body thấp nhất** trên mọi body, mà mỗi model có offset nghỉ riêng (G1 **+16,1** · T1 **+36,7** · PM01 **+45,0 mm**). Hai đại lượng thay thế — **delta so vị trí nghỉ** (G1 **−6,3** · T1 **−44,3** · PM01 **−1,1 mm**) và **`pct_frames_penetration`** (0,00 / 2,13 / 0,00 %) — là **hậu kiểm, không có ngưỡng**. Tóm lại: **một ngưỡng được áp dụng, một ngưỡng bị rút sau khi đo.**
 
-**Xếp hạng:** **G1** — `foot_slide` thấp nhất **49,0 mm/s**, **đạt sát ngưỡng 50 mm/s**; 0 % frame có body nào có gốc dưới −1 mm; 23,8 % frame khớp sát giới hạn. **T1** — `foot_slide` **83,1 mm/s không đạt** ngưỡng đặt trước; **2,13 % frame có ít nhất một body có gốc dưới −1 mm**; tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` cao nhất **118,4 mm/s, gấp 2,4 lần G1, không đạt** ngưỡng đặt trước; 0 % frame có body nào có gốc dưới −1 mm.
+**Xếp hạng:** **G1** — `foot_slide` thấp nhất **49,0 mm/s**, **đạt sát ngưỡng 50 mm/s**; 0,00 % frame có body nào có gốc dưới −1 mm; 23,79 % frame khớp sát giới hạn. **T1** — `foot_slide` **83,1 mm/s không đạt** ngưỡng đặt trước; **2,13 % frame có ít nhất một body có gốc dưới −1 mm**; tỷ lệ frame khớp sát giới hạn cao nhất **43,32 %**. **PM01** — `foot_slide` cao nhất **118,4 mm/s, gấp 2,4 lần G1, không đạt** ngưỡng đặt trước; 0,00 % frame có body nào có gốc dưới −1 mm.
 
-**`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **gốc (tâm) body bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot** và để áp ngưỡng 50 mm/s đặt trước, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: nếu đo tại **ngón chân**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
+**`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **gốc (tâm) body bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot** và để áp ngưỡng 50 mm/s đặt trước, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: **theo phép đo lại ở `tools/README.md` (đo tại ngón chân), không lưu trong `results/`**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
 
-**`min_body_height` đo ở gốc của body thấp nhất, không so tuyệt đối giữa robot:** mỗi model có offset nghỉ riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **+43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghỉ của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Báo cáo vì thế đọc thêm **delta so vị trí nghỉ** ở bảng trên, và chỉ gọi `pct_frames_penetration` là **% frame có ít nhất một body có gốc dưới −1 mm**, **không** kết luận về bề mặt/mesh.
+**`min_body_height` đo ở gốc của body thấp nhất, không so tuyệt đối giữa robot:** mỗi model có offset nghỉ riêng — **G1 +16,1 mm · T1 +36,7 mm · PM01 +45,0 mm**. Con số **+43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghỉ của model; tương tự, −7,6 mm của T1 phải đọc cùng offset. Báo cáo vì thế đọc thêm **delta so vị trí nghỉ** ở bảng trên, và chỉ gọi `pct_frames_penetration` là **% frame có ít nhất một body có gốc dưới −1 mm**, **không** kết luận về bề mặt/mesh.
 
 **Hai đại lượng hậu kiểm (DEC-03) không có ngưỡng đặt trước:** `delta so vị trí nghỉ` và `pct_frames_penetration` được thêm **sau khi đo**, nên chỉ dùng để **so sánh giữa 3 robot**, **không** được viết "đạt" hay "không đạt". Ngược lại, `foot_slide` **có** ngưỡng đặt trước 50 mm/s và **đã được áp**; chỉ số này mới là căn cứ kết luận "đạt/không đạt" của phần chất lượng.
 
-**Không phải kiểm chứng chéo:** tỷ lệ frame khớp sát giới hạn của G1 (**23,791 %**) trùng với baseline nhiễu V6 (**1.865/7.839 = 23,79 %**) vì `quality_metrics.py` và `v6_metrics.py` dùng **cùng logic, cùng ngưỡng 0,5°** trên **cùng một pkl** — đây là **cùng một phép đo**, không phải hai công cụ độc lập. Việc trùng khớp chỉ xác nhận hai script nhất quán với nhau.
+**Không phải kiểm chứng chéo:** tỷ lệ frame khớp sát giới hạn của G1 (**23,79 %**) trùng với baseline nhiễu V6 (**1.865/7.839 = 23,79 %**) vì `quality_metrics.py` và `v6_metrics.py` dùng **cùng logic, cùng ngưỡng 0,5°** trên **cùng một pkl** — đây là **cùng một phép đo**, không phải hai công cụ độc lập. Việc trùng khớp chỉ xác nhận hai script nhất quán với nhau.
 
 ### 6.8 Đồ thị và video
 
 Năm hình đã chèn trong báo cáo: **H1** `v3_ms_per_frame_g1` (§4.2), **H2** render G1 `slide_v3_walk1_g1_f900` (§5), **H3** `v6_noise_slide` (§6.4), **H4** `v5_ms_per_frame_robots` (§6.5), **H5** `v6_quality` (§6.7); nguồn và nội dung ghi ngay dưới mỗi hình.
 
-Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và **video demo tổng hợp 67 giây, 720p, không audio** (`results/media/demo/demo_v6_720p.mp4`); cả hai **không commit**, nộp kèm link.
+Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và **video demo tổng hợp 67 giây, 720p, không audio** (`results/media/demo/demo_v6_720p.mp4`); cả hai **không commit**, nộp kèm link. **Link nộp:** https://github.com/mtzwyu/GMR-Humanoid-Retargeting-Benchmark/releases/tag/v1.0-demo — release gồm **5 file**: `s1_human_input`, `v3_walk1_g1`, `v3_walk4_g1`, `v5_sim2sim_g1_t1_pm01`, `demo_v6_720p` (bản đúng 67 s).
 
 ## 7. Kết luận
 
@@ -372,7 +372,7 @@ Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và *
 
 > **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7): trong **hai ngưỡng đặt trước ngày 2026-11-20**, `foot_slide ≤ 50 mm/s` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; ngưỡng `min_body_height ±5 mm` đã **rút bằng quyết định hậu kiểm DEC-03 (2026-11-21)** vì đo **gốc body** và mỗi model một offset nghỉ, thay bằng delta so vị trí nghỉ (**−6,25 / −44,29 / −1,10 mm**) và `pct_frames_penetration` (**0 / 2,13 / 0 %**) — hai đại lượng hậu kiểm không có ngưỡng. Vì vậy đây là lý do thứ ba khiến kết luận dừng ở "một phần": chỉ **1/3 robot đạt** ngưỡng `foot_slide` đặt trước, và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm.
+Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7): trong **hai ngưỡng đặt trước ngày 2026-11-20**, `foot_slide ≤ 50 mm/s` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; ngưỡng `min_body_height ±5 mm` đã **rút bằng quyết định hậu kiểm DEC-03 (2026-11-21)** vì đo **gốc body** và mỗi model một offset nghỉ, thay bằng delta so vị trí nghỉ (**−6,3 / −44,3 / −1,1 mm**) và `pct_frames_penetration` (**0,00 / 2,13 / 0,00 %**) — hai đại lượng hậu kiểm không có ngưỡng. Vì vậy đây là lý do thứ ba khiến kết luận dừng ở "một phần": chỉ **1/3 robot đạt** ngưỡng `foot_slide` đặt trước, và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm.
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
@@ -381,6 +381,8 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 3. Không dùng "tái lập được" cho toàn bộ paper — chỉ phần thời gian thực.
 4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**.
 5. Kết quả nhiễu (§6.4) không đổi kết luận tốc độ; nó chỉ thêm nhận định về độ bền.
+
+**Vì sao vẫn là "tái lập một phần" dù `realtime_factor_process` = 1,92 ≥ 1,00?** Quy tắc chốt trước chỉ áp cho **tốc độ**; phần **chất lượng ánh xạ** chỉ **1/3 robot đạt** ngưỡng `foot_slide ≤ 50 mm/s` và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm. Một kết luận "tái lập toàn vẹn" phải đứng trên cả hai trục tốc độ và chất lượng ánh xạ; ở đây trục tốc độ đạt, trục chất lượng chỉ đạt một phần, nên kết luận dừng ở **"tái lập một phần"**.
 
 ### 7.3 Ba câu "chênh thì vì sao"
 

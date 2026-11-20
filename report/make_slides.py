@@ -456,9 +456,9 @@ def build():
     message(s, "foot_slide ≤ 50 mm/s: G1 49,0 đạt sát · T1 83,1 và PM01 118,4 không đạt")
     rows = [
         ["Robot", "foot_slide", "min_body_height (mm)", "ít nhất 1 body <−1mm", "sát giới hạn"],
-        ["G1", "49,0", "+9,9", "0 %", "23,8 %"],
-        ["T1 29dof", "83,1", "−7,6", "2,13 %", "43,3 %"],
-        ["PM01", "118,4", "+43,8", "0 %", "24,1 %"],
+        ["G1", "49,0", "+9,9", "0,00 %", "23,79 %"],
+        ["T1 29dof", "83,1", "−7,6", "2,13 %", "43,32 %"],
+        ["PM01", "118,4", "+43,8", "0,00 %", "24,07 %"],
     ]
     table(s, rows, 0.6, 2.0, 11.9, 2.1, [2.0, 2.3, 2.0, 2.8, 2.8], font_size=12, header_size=11, first_col_bold=True)
     picture(s, os.path.join(FIG, "v6_quality.png"), 0.6, 4.35, 5.2, 2.1,
