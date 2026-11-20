@@ -204,11 +204,12 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 ## 14. Kết luận — 0:50
 
-**Thông điệp:** **tái lập một phần** — phần tốc độ được, phần bảng số của paper không.
+**Thông điệp:** **tách hai vế** — tốc độ **tái lập được** trên CPU; chất lượng ánh xạ chỉ **một phần**.
 
-- Cột trái "được": 17,349 ms · 1,92× · 2/3 robot dưới ngưỡng
-- Cột phải "không": Bảng I/II/III — 84 policy, IsaacSim, ROS, không có cấu hình trong paper
-- Một câu: "Đạt ngưỡng nhóm đặt, không phải tái lập bảng của paper."
+- Vế tốc độ: 17,349 ms · 1,92× · 2/3 robot dưới ngưỡng — **tái lập được** (tiêu chí đặt trước)
+- Vế chất lượng: 1/3 robot đạt `foot_slide ≤ 50 mm/s`; T1 xuyên sàn 2,13 % frame — **một phần**
+- Ngoài phạm vi: Bảng I/II/III — 84 policy, IsaacSim, ROS, không có cấu hình trong paper
+- Một câu: "Tốc độ đạt ngưỡng nhóm đặt; chất lượng ánh xạ một phần; bảng paper không tái lập."
 
 **Lời:** nói chậm, rõ; đây là slide hội đồng sẽ hỏi.
 

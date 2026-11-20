@@ -195,7 +195,7 @@ Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so �
 ### 4.5 Hạn chế phép đo
 
 1. Chỉ có số **cả tiến trình**, là cận trên; không phải thời gian riêng `retarget()`.
-2. Không xác minh `CUDA_VISIBLE_DEVICES` — "chạy CPU" là suy luận từ mã, không phải bằng chứng cấu hình.
+2. Không xác minh `CUDA_VISIBLE_DEVICES` — "chạy CPU" là suy luận từ mã, không phải bằng chứng cấu hình. `ms_per_frame_process` bao gồm cả render, phần render dùng OpenGL nên **có thể dùng GPU**; `retarget()` thuần chạy CPU; vì vậy **17,3 ms là cận trên, không phải "CPU-only" tuyệt đối**.
 3. Một máy Windows 11, trong khi README chỉ test Ubuntu 22.04/20.04.
 4. Đồng hồ Windows thô (hạt `sleep` ~15,6 ms) ảnh hưởng nhỏ với wall-clock; T1 trong V5 có CV 11,32 % > 5 % nên báo trung vị.
 
@@ -370,19 +370,19 @@ Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và *
 
 ### 7.1 Câu kết luận
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
+> **Tuyên bố thời gian thực tái lập được trên CPU (1,92× ngưỡng đặt trước); chất lượng ánh xạ chỉ tái lập một phần (1/3 robot đạt ngưỡng `foot_slide`, một robot xuyên sàn 2,13% frame).** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,3 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,33 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7): trong **hai ngưỡng đặt trước ngày 2026-11-20**, `foot_slide ≤ 50 mm/s` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; ngưỡng `min_body_height ±5 mm` đã **rút bằng quyết định hậu kiểm DEC-03 (2026-11-21)** vì đo **gốc body** và mỗi model một offset nghỉ, thay bằng delta so vị trí nghỉ (**−6,3 / −44,3 / −1,1 mm**) và `pct_frames_penetration` (**0,00 / 2,13 / 0,00 %**) — hai đại lượng hậu kiểm không có ngưỡng. Vì vậy đây là lý do thứ ba khiến kết luận dừng ở "một phần": chỉ **1/3 robot đạt** ngưỡng `foot_slide` đặt trước, và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm.
+**Vì sao không dùng một nhãn chung (DEC-04).** Tiêu chí **đặt trước** chỉ phủ vế **tốc độ** (`realtime_factor ≥ 1,00`), nên vế đó giữ nguyên nhãn **"tái lập được"**. Vế **chất lượng ánh xạ** được đo **sau**, trong hai ngưỡng đặt trước ngày 2026-11-20 chỉ có `foot_slide ≤ 50 mm/s` áp cho cả 3 robot, và kết quả chỉ **1/3 robot đạt** — T1 xuyên sàn **2,13 % frame** — nên vế này là **"một phần"**. Dùng một nhãn chung sẽ hoặc hạ nhãn tuyên bố chính, hoặc nâng nhãn vế chất lượng; cả hai đều sai. V5 củng cố vế tốc độ: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Vế chất lượng (§6.7): `foot_slide` là ngưỡng **duy nhất còn giữ và đã áp** — G1 **49,0 mm/s đạt sát**, T1 **83,1** và PM01 **118,4 mm/s không đạt**; `min_body_height ±5 mm` đã **rút bằng DEC-03 (2026-11-21)**, thay bằng delta so vị trí nghỉ (**−6,3 / −44,3 / −1,1 mm**) và `pct_frames_penetration` (**0,00 / 2,13 / 0,00 %**).
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
 1. Số 17,349 (trung bình, CV 2,13 % ≤ 5 %) lấy từ bản đo cũ đã Review PASS; không trộn đợt cũ `c62e74f` (15,171).
 2. Ngưỡng 33,33 ms chốt trước, không đổi sau khi thấy số.
-3. Không dùng "tái lập được" cho toàn bộ paper — chỉ phần thời gian thực.
+3. Không dùng "tái lập được" cho toàn bộ paper — chỉ vế tốc độ; ba bảng I/II/III của paper ngoài phạm vi.
 4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**.
 5. Kết quả nhiễu (§6.4) không đổi kết luận tốc độ; nó chỉ thêm nhận định về độ bền.
 
-**Vì sao vẫn là "tái lập một phần" dù `realtime_factor_process` = 1,92 ≥ 1,00?** Quy tắc chốt trước chỉ áp cho **tốc độ**; phần **chất lượng ánh xạ** chỉ **1/3 robot đạt** ngưỡng `foot_slide ≤ 50 mm/s` và T1 có **2,13 % frame** có ít nhất một body có gốc dưới −1 mm. Một kết luận "tái lập toàn vẹn" phải đứng trên cả hai trục tốc độ và chất lượng ánh xạ; ở đây trục tốc độ đạt, trục chất lượng chỉ đạt một phần, nên kết luận dừng ở **"tái lập một phần"**.
+**Vì sao tách nhãn thay vì hạ nhãn tuyên bố chính?** `realtime_factor_process` = 1,92 ≥ 1,00 nên theo tiêu chí đặt trước, vế tốc độ **tái lập được**; hạ xuống "một phần" sẽ là sửa tiêu chí sau khi thấy kết quả. Vế chất lượng chỉ đạt một phần vì **1/3 robot đạt `foot_slide`** và T1 xuyên sàn **2,13 % frame** — hai vế mang hai nhãn riêng (DEC-04).
 
 ### 7.3 Ba câu "chênh thì vì sao"
 
@@ -418,7 +418,7 @@ Bản nháp được viết lại từ nhật ký làm việc và lịch sử co
 
 #### 8.2.1 Trần Nguyễn Khánh Duy — MSSV 2001230120 — Nhóm trưởng, Planner + Research — 30%
 
-Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. Việc khó nhất là phát hiện paper arXiv:2510.02252 **không công bố một con số ms/frame hay FPS nào** — mọi bảng số của paper đều là kết quả policy đã huấn luyện, cần GPU và IsaacSim nên nằm ngoài phạm vi giai đoạn 1. Tôi chọn phương án C: đo tuyên bố "real-time trên CPU" lấy từ README, đồng thời trình bày rõ ba bảng định lượng của paper và lý do nhóm không tái lập được, để kết luận là "tái lập một phần" thay vì một câu trả lời né tránh. Trước khi bất kỳ ai chạy lần nào, tôi viết `docs/dinh_nghia_phep_do.md` quy định đo đại lượng gì, lấy mấy lần, bỏ warm-up, và chọn `mean` hay `median` theo CV — quy tắc này về sau phải áp lại ba lần vì có ba nơi dùng sai. Bài học lớn nhất của tôi là tôi đã đọc thiếu phần cuối README nên bỏ sót bảng Speed Benchmark của chính repo, và chỉ biết khi người khác soi lại; từ đó tôi hiểu người viết không thể tự kiểm tra mình.
+Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. Việc khó nhất là phát hiện paper arXiv:2510.02252 **không công bố một con số ms/frame hay FPS nào** — mọi bảng số của paper đều là kết quả policy đã huấn luyện, cần GPU và IsaacSim nên nằm ngoài phạm vi giai đoạn 1. Tôi chọn phương án C: đo tuyên bố "real-time trên CPU" lấy từ README, đồng thời trình bày rõ ba bảng định lượng của paper và lý do nhóm không tái lập được, để kết luận **tách hai vế** — tốc độ tái lập được, chất lượng ánh xạ một phần — thay vì một câu trả lời né tránh. Trước khi bất kỳ ai chạy lần nào, tôi viết `docs/dinh_nghia_phep_do.md` quy định đo đại lượng gì, lấy mấy lần, bỏ warm-up, và chọn `mean` hay `median` theo CV — quy tắc này về sau phải áp lại ba lần vì có ba nơi dùng sai. Bài học lớn nhất của tôi là tôi đã đọc thiếu phần cuối README nên bỏ sót bảng Speed Benchmark của chính repo, và chỉ biết khi người khác soi lại; từ đó tôi hiểu người viết không thể tự kiểm tra mình.
 
 #### 8.2.2 Đặng Duy Mạnh — MSSV 2001240271 — Run, dựng môi trường và thu bằng chứng — 30%
 
