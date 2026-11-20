@@ -1,0 +1,5 @@
+dieu_kien,he_so,sha256_pkl,giong_baseline,wall_s,ms_per_frame_process,ghi_chu
+baseline,1.0,e7e3b906f22d38691a2c4833c6001baa483c74232499b6b70e4fa8bb44f5d5e9,1,18.489,2.359,"pkl goc results/pkl/g1_walk1_subject1_run1.pkl; driver tools/v7_run.py tai lap dung sha nay"
+mass,1.2,597d04029a6471ee9a9c09301ec20ab00ebbd58c5185746cc178a8c91b00fc99,0,30.378,3.875,"nhan 1,2 cho 31 the inertial trong g1_mocap_29dof.xml; max|dq| = 1,5e-9 rad so baseline (nhieu so, chuyen dong khong doi); wall do luc may dang tai"
+mass,0.8,eecef802330056bcb227ccec4e46fbda902c3199148b9159e6e9ce1f1b8ff7c7,0,29.199,3.725,"nhan 0,8 cho 31 the inertial; max|dq| = 1,5e-9 rad"
+friction,1.5,e7e3b906f22d38691a2c4833c6001baa483c74232499b6b70e4fa8bb44f5d5e9,1,21.136,2.696,"dat friction 1,5 cho 72 geom (XML goc khong khai bao friction -> MuJoCo mac dinh 1,0); sha trung tuyet doi voi baseline"
