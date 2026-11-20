@@ -11,3 +11,11 @@ Báo cáo 10–15 trang theo đúng 8 mục của `docs/huong_dan/08b. Huong dan
 6. Sim2sim: bảng tụt hiệu năng + đồ thị
 7. Kết luận dứt khoát
 8. Phân công + tự thuật từng thành viên
+
+## Xuất PDF
+
+```
+python report/make_report.py
+```
+
+Script đọc `report/bao_cao.md`, dựng DOCX tạm (A4, Times New Roman, số trang) rồi gọi LibreOffice Writer xuất `report/bao_cao.pdf`. Cần `markdown`, `beautifulsoup4`, `python-docx`, `pillow`, `pypdf`; đặt biến `SOFFICE_BIN` nếu LibreOffice không ở đường dẫn mặc định. Mục lục nằm trong `bao_cao.md` — nếu sửa nội dung làm các mục đổi trang, cập nhật cột **Trang** rồi chạy lại script.
