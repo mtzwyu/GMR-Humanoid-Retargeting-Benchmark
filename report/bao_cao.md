@@ -23,7 +23,7 @@
 | 6 | Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu, chất lượng ánh xạ và đồ thị | 10 |
 | 7 | Kết luận | 15 |
 | 8 | Phân công công việc và tự thuật từng thành viên | 16 |
-|  | Tài liệu tham khảo | 17 |
+|  | Tài liệu tham khảo | 18 |
 |  | Phụ lục A — Nhật ký phản biện | 18 |
 
 # THÔNG TIN CHUNG
@@ -365,7 +365,7 @@ Ba nguồn: (a) `--robot unitree_h1` → `invalid choice`, **exit 2** (argparse,
 
 Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cùng `walk1_subject1`, 3 pkl V5 `run1`, **7.839 frame** (khớp off-by-one ở §6.4).
 
-| Robot | `foot_slide` TB (mm/s) | Trái / Phải | `min_body_height` (mm) | Xuyên sàn (%) | Vi phạm giới hạn khớp (%) |
+| Robot | `foot_slide` proxy TB (mm/s) | Trái / Phải | `min_body_height` tâm thân (mm) | `pct_frames_penetration` (%) | Frame khớp sát giới hạn (%) |
 |---|---|---|---|---|---|
 | Unitree G1 | **49,041** | 62,109 / 35,973 | **+9,886** | **0,000** | 23,791 |
 | Booster T1 29dof | 83,121 | 63,189 / 103,052 | **−7,641** | **2,130** | **43,322** |
@@ -373,13 +373,17 @@ Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cù
 
 ![Hình 5](results/figures/v6_quality.png)
 
-**Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` của 3 robot; đường đỏ là mặt đất z = 0. Nguồn: `results/v6_quality.csv`.
+**Hình 5 —** `foot_slide` trung bình (chấm là trái/phải) và `min_body_height` của 3 robot; đường đỏ là mức 0 của thang đo tâm thân, **không phải mặt đất**. Nguồn: `results/v6_quality.csv`.
 
-**Xếp hạng:** **G1 sạch nhất** — không xuyên sàn, trượt chân thấp nhất (49,0 mm/s), vi phạm giới hạn khớp 23,8 %. **T1 xấu nhất về hình học** — xuyên sàn **−7,64 mm ở 2,13 % frame**, vi phạm giới hạn khớp cao nhất **43,3 %**. **PM01 trượt chân nhiều nhất** — **118,4 mm/s, gấp 2,4 lần G1**, bù lại không xuyên sàn và `min_body_height` dương 43,8 mm (bàn chân "nổi" trên mặt đất).
+**Xếp hạng:** **G1 sạch nhất** — `pct_frames_penetration` 0 %, `foot_slide` proxy thấp nhất (49,0 mm/s), 23,8 % frame khớp sát giới hạn. **T1** — xuyên sàn **2,13 % frame** và tỷ lệ frame khớp sát giới hạn cao nhất **43,3 %**. **PM01** — `foot_slide` proxy cao nhất **118,4 mm/s, gấp 2,4 lần G1**, nhưng `pct_frames_penetration` 0 %.
+
+**`foot_slide` là chỉ số proxy — hai giới hạn phải đọc kèm:** (a) "tiếp đất" được định nghĩa theo **điểm thấp nhất của chính bàn chân đó**, không theo mặt đất; (b) phép đo lấy tại **tâm thân bàn chân**, nên khi bàn chân lăn gót–mũi thì tâm vẫn dịch ngang dù chân đứng yên. Vì vậy 49 / 83 / 118 mm/s **chỉ dùng để so sánh tương đối giữa 3 robot**, **không** được viết là "trượt chân tuyệt đối". Độ nhạy của phép đo rất lớn: nếu đo tại **ngón chân**, con số đổi thành **84,3 và 169,2 mm/s** (hai robot), tức có thể gấp đôi.
+
+**`min_body_height` đo ở tâm thân, không so sánh tuyệt đối giữa robot:** mỗi model có offset nghiêng riêng — **G1 +16,14 mm · T1 +36,65 mm · PM01 +44,95 mm**. Con số **43,8 mm của PM01 không có nghĩa "sạch nhất"**, nó chỉ là offset nghiêng của model; tương tự, −7,64 mm của T1 phải đọc cùng offset. Kết luận xuyên sàn **chỉ** dựa trên cột `pct_frames_penetration`: **T1 2,13 %, G1 và PM01 0 %**.
 
 **Giới hạn phải nói thẳng:** nhóm **không đặt ngưỡng tuyệt đối** cho bốn chỉ số này **trước khi đo**, nên kết quả chỉ dùng để **so sánh giữa 3 robot**, **không** được viết "đạt" hay "không đạt". Đây là khác biệt so với ngưỡng 33,3 ms (đã chốt trước) và là hạn chế của phần chất lượng.
 
-**Kiểm chứng chéo:** `joint_limit_violation` của G1 = **23,791 %** trùng khớp với baseline của phép thử nhiễu V6 (**1.865/7.839 = 23,79 %**) — hai công cụ độc lập cho cùng một kết quả, nên phép đếm frame bão hoà ở §6.4 đáng tin.
+**Không phải kiểm chứng chéo:** tỷ lệ frame khớp sát giới hạn của G1 (**23,791 %**) trùng với baseline nhiễu V6 (**1.865/7.839 = 23,79 %**) vì `quality_metrics.py` và `v6_metrics.py` dùng **cùng logic, cùng ngưỡng 0,5°** trên **cùng một pkl** — đây là **cùng một phép đo**, không phải hai công cụ độc lập. Việc trùng khớp chỉ xác nhận hai script nhất quán với nhau.
 
 ### 6.8 Đồ thị
 
@@ -401,7 +405,7 @@ Video `results/media/v5_sim2sim_g1_t1_pm01.mp4` — 60 s, 1280×720, 30 fps; **k
 
 > **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (trung bình, n = 5, CV 2,13 %), `realtime_factor_process` = **1,92**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,3 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7) chỉ cho phép **so sánh tương đối** — G1 sạch nhất, T1 xuyên sàn −7,64 mm, PM01 trượt chân 118,4 mm/s — vì nhóm **không đặt ngưỡng tuyệt đối trước khi đo**; đó là lý do thứ ba khiến kết luận dừng ở "một phần".
+Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 16,758 → 1,99); PM01 34,975 → 0,95 nhưng **"chưa kết luận được"** theo §6.1. Phần **chất lượng ánh xạ** (§6.7) chỉ cho phép **so sánh tương đối**: G1 sạch nhất (`pct_frames_penetration` 0 %, `foot_slide` proxy 49,0 mm/s), T1 xuyên sàn **2,13 % frame**, PM01 có `foot_slide` proxy cao nhất **118,4 mm/s**. Không được so tuyệt đối vì `foot_slide` là chỉ số proxy và `min_body_height` phụ thuộc offset tâm thân của từng model; nhóm cũng **không đặt ngưỡng tuyệt đối trước khi đo** — đó là lý do thứ ba khiến kết luận dừng ở "một phần".
 
 ### 7.2 Điều kiện để câu trên đứng vững
 
