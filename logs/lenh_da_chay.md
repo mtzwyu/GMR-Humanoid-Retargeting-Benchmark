@@ -135,6 +135,58 @@ Start-Process notepad results\v3_runtime.csv
 orca computer get-app-state --app notepad --window-id <id> --json             # ảnh mở CSV
 ```
 
+## 11. V6 — phép thử nhiễu (theo `docs/v6_noise_spec.md`, DEC-02)
+
+Mỗi mức nhiễu chạy **1 lần** (đo độ lệch có hệ thống, **không** đo thời gian).
+
+```powershell
+cd third_party\GMR
+
+# baseline sạch (kiểm chứng script cho ra đúng pkl cũ: |Δq| = 0,0000°, dr_rmse = 0,000 mm)
+python ..\_run\v6_run.py --mode clean --out ..\..\results\pkl\v6_clean.pkl
+
+# N1 — nhiễu khớp: sigma 0,5 / 1 / 2 / 5 độ, seed 0
+python ..\_run\v6_run.py --mode n1 --level 0.5 --seed 0 --out ..\..\results\pkl\v6_n1_0p5deg.pkl
+python ..\_run\v6_run.py --mode n1 --level 1   --seed 0 --out ..\..\results\pkl\v6_n1_1deg.pkl
+python ..\_run\v6_run.py --mode n1 --level 2   --seed 0 --out ..\..\results\pkl\v6_n1_2deg.pkl
+python ..\_run\v6_run.py --mode n1 --level 5   --seed 0 --out ..\..\results\pkl\v6_n1_5deg.pkl
+
+# N2 — trễ điều khiển k = 1 / 2 / 3 / 5 frame
+python ..\_run\v6_run.py --mode n2 --level 1 --out ..\..\results\pkl\v6_n2_k1.pkl
+python ..\_run\v6_run.py --mode n2 --level 2 --out ..\..\results\pkl\v6_n2_k2.pkl
+python ..\_run\v6_run.py --mode n2 --level 3 --out ..\..\results\pkl\v6_n2_k3.pkl
+python ..\_run\v6_run.py --mode n2 --level 5 --out ..\..\results\pkl\v6_n2_k5.pkl
+
+# N3 — mất frame p = 1 / 5 / 10 %, seed 0 (bỏ ngẫu nhiên rồi nội suy tuyến tính)
+python ..\_run\v6_run.py --mode n3 --level 1  --seed 0 --out ..\..\results\pkl\v6_n3_1pct.pkl
+python ..\_run\v6_run.py --mode n3 --level 5  --seed 0 --out ..\..\results\pkl\v6_n3_5pct.pkl
+python ..\_run\v6_run.py --mode n3 --level 10 --seed 0 --out ..\..\results\pkl\v6_n3_10pct.pkl
+
+# N4 — lệch tỉ lệ người ±10 % / ±20 % (scale vị trí khớp)
+python ..\_run\v6_run.py --mode n4 --level -20 --out ..\..\results\pkl\v6_n4_m20pct.pkl
+python ..\_run\v6_run.py --mode n4 --level -10 --out ..\..\results\pkl\v6_n4_m10pct.pkl
+python ..\_run\v6_run.py --mode n4 --level 10  --out ..\..\results\pkl\v6_n4_p10pct.pkl
+python ..\_run\v6_run.py --mode n4 --level 20  --out ..\..\results\pkl\v6_n4_p20pct.pkl
+
+# Tính 5 chỉ số so với baseline (N2 so ĐÚNG cặp frame: dịch kết quả đi k frame)
+python ..\_run\v6_metrics.py --baseline ..\..\results\pkl\g1_walk1_subject1_run1.pkl ^
+  --cond "n1|0.5|results/pkl/v6_n1_0p5deg.pkl|0" --cond "n1|1|results/pkl/v6_n1_1deg.pkl|0" ^
+  --cond "n1|2|results/pkl/v6_n1_2deg.pkl|0" --cond "n1|5|results/pkl/v6_n1_5deg.pkl|0" ^
+  --cond "n2|1|results/pkl/v6_n2_k1.pkl|1" --cond "n2|2|results/pkl/v6_n2_k2.pkl|2" ^
+  --cond "n2|3|results/pkl/v6_n2_k3.pkl|3" --cond "n2|5|results/pkl/v6_n2_k5.pkl|5" ^
+  --cond "n3|1|results/pkl/v6_n3_1pct.pkl|0" --cond "n3|5|results/pkl/v6_n3_5pct.pkl|0" ^
+  --cond "n3|10|results/pkl/v6_n3_10pct.pkl|0" --cond "n4|-20|results/pkl/v6_n4_m20pct.pkl|0" ^
+  --cond "n4|-10|results/pkl/v6_n4_m10pct.pkl|0" --cond "n4|10|results/pkl/v6_n4_p10pct.pkl|0" ^
+  --cond "n4|20|results/pkl/v6_n4_p20pct.pkl|0" --csv ..\..\results\v6_noise_sweep.csv
+
+# Đồ thị (python BASE 3.12 vì env gmr không cài matplotlib)
+python third_party\_run\v6_plot.py
+```
+
+Driver `v6_run.py` **không sửa `scripts/`**: nó lặp lại đúng vòng retarget của `bvh_to_robot.py` (cùng `GeneralMotionRetargeting`, cùng loader `lafan1`, cùng `actual_human_height = 1,75`) nhưng bỏ phần mở viewer; baseline vẫn là pkl của lần chạy `bvh_to_robot.py` và đã được kiểm chứng trùng khớp tuyệt đối.
+
+`v6_metrics.py` ghi thêm 2 cột bão hòa (`n_saturated_frames`, `n_frames_hit_limit_max`) + `max_dev_frame_index`, tính bằng `qpos_lo/qpos_hi` của `assets/unitree_g1/g1_mocap_29dof.xml` với dung sai 0,5°.
+
 ## Ghi chú tái lập
 
 - `tools/*.ps1|*.py` là script phụ trợ của Run (đo, vẽ, render, ghi video). Nằm trong `third_party/` nên **không commit**; nội dung đã chép trong log này và trong `logs/nhat_ky_cai_dat.md`.
