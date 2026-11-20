@@ -13,7 +13,7 @@ Lỗi đang mở, có bằng chứng đo được. Mỗi mục: hiện tượng 
 **Bằng chứng** (3 nguồn độc lập):
 1. Mã: `third_party/_run/measure_v3.ps1:20,23` chỉ đưa cờ vào **chuỗi in ra CSV**; dòng `:26` gọi lệnh thật **không** kèm `$flag`.
 2. Log của chính các lần đó: `Actual rendering FPS: 64,61 … 136,41`, tqdm `64,25 it/s` — một bộ giới hạn 30 Hz không thể cho 64 fps.
-3. Chạy lại thư viện trong env `gmr`: `RateLimiter(frequency=30).sleep()` × 90 → 46,6 ms/lần ≈ **21,4 Hz**. Nếu cờ có tác dụng, tổng thời gian phải ≈ 370 s, thực tế 124–136 s.
+3. Chạy lại thư viện trong env `gmr`: `RateLimiter(frequency=30).sleep()` × **300 lần** → 46,68 ms/lần ≈ **21,4 Hz** (tổng 14,0 s cho 300 lần). Nếu cờ có tác dụng, một clip **7.840 frame** phải mất ≈ **366 s** (7.840 × 46,68 ms ≈ 370 s), thực tế chỉ **124–136 s**.
 
 **Hệ quả.**
 - Bốn dòng đó phải **xoá khỏi CSV**; kết luận "`--rate_limit` không ép 30 fps" trong PR #4 **không có bằng chứng** và phải rút.

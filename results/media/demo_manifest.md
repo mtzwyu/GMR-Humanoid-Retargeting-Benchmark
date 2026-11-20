@@ -43,6 +43,6 @@ Cách đã dùng: `third_party/_run/record_s1c.py` lấy **đúng** `retargeter.
 
 ## Số liệu để đặt phụ đề
 
-- S2: `17,3 ms/frame` (trung vị n = 5) → nhanh hơn ~**1,96×** thời gian thực.
+- S2: `17,272 ms/frame` (trung vị n = 5) → nhanh hơn **1,93×** thời gian thực (33,333 / 17,272). *(Số 1,96 là của V5 G1 — không dùng cho S2.)*
 - S4: T1 29dof **13,0** ms · G1 **17,0** ms · PM01 **35,5** ms (trung vị).
 - S5 (nếu dùng): `results/figures/v6_noise_vs_deviation.png`.

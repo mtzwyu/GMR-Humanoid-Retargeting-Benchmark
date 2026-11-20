@@ -59,7 +59,7 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 | Mục | Kết quả |
 |---|---|
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
-| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,71 %**); lô 5 lần đo: mean **17,35**, median **17,27**, CV **2,13 %** |
+| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,73 %**); lô 5 lần đo: mean **17,35**, median **17,27**, CV **2,13 %** |
 | V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13: cờ không được truyền vào lệnh thật) |
 | V5 sim2sim (cùng motion, 3 robot) | **trung vị** (số chính thức): PM01 **35,45** · T1 29dof **13,03** (n=5) · G1 **17,02** ms/frame |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
@@ -74,11 +74,11 @@ Lần ghi đầu bị lỗi font (`Out-File -Encoding utf8` chèn UTF-8 vào fil
 
 *Lưu ý:* lần đo đơn trong cửa sổ console (13,117 ms/frame) không thuộc lô 3 lần đo nên **không** đưa vào CSV; ảnh chụp console vẫn giữ làm bằng chứng quy trình.
 
-**RV-16 — độ tản mát giữa các lần đo (Review yêu cầu, đã xử lý):** lô cũ có CV = 7,60 % (> 5 %). Sau khi sửa RV-14 và chạy lại, **CV của 3 lần đo = 1,71 %**. Vẫn chạy thêm 2 lần (measure_4, measure_5) theo yêu cầu để có n = 5:
+**RV-16 — độ tản mát giữa các lần đo (Review yêu cầu, đã xử lý):** lô cũ có CV = 7,60 % (> 5 %). Sau khi sửa RV-14 và chạy lại, **CV của 3 lần đo = 1,73 %**. Vẫn chạy thêm 2 lần (measure_4, measure_5) theo yêu cầu để có n = 5:
 
 | Lô | n | mean (ms/frame) | median | sd | CV |
 |---|---|---|---|---|---|
-| 3 lần đo | 3 | 17,540 | 17,522 | 0,306 | **1,71 %** |
+| 3 lần đo | 3 | 17,540 | 17,522 | 0,303 | **1,73 %** |
 | 5 lần đo (báo cáo) | 5 | **17,349** | **17,272** | 0,369 | **2,13 %** |
 
 Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nhất, dùng **trung vị 17,272 ms/frame** (n = 5). Biên độ thô: 16,853–17,852 ms/frame.

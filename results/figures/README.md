@@ -9,7 +9,8 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 | Ảnh | Nội dung | Lệnh / công cụ sinh ra | Ngày |
 |---|---|---|---|
 | `v3_terminal_start_g1_2026-11-20.png` | Cửa sổ Windows PowerShell 5.1 hiện lệnh đo đang chạy: máy, thời điểm 22:03:51, env `gmr`, input `lafan1/walk1_subject1.bvh` (7840 frame, 30 fps, 261,3 s), đúng dòng lệnh `python scripts/bvh_to_robot.py ...` — **chèn cho slide "phương pháp đo"** | `Start-Process powershell -ArgumentList '-NoExit','-File', 'third_party/_run/v3_evidence_run.ps1'` rồi `orca computer get-app-state --app WindowsTerminal` | 2026-11-20 |
-| `v3_terminal_result_g1_2026-11-20.png` | Cùng cửa sổ sau khi chạy xong: `exit=0`, `TotalSeconds = 102.8344819`, `ms_per_frame = 13.117`, `realtime_factor = 2.541`, xong lúc 22:05:34 — **chèn cho slide "kết quả đo"** | như trên, chụp lại sau khi tiến trình kết thúc | 2026-11-20 |
+| `v3_terminal_result_g1_2026-11-20.png` | ⚠️ **KHÔNG dùng cho báo cáo.** Ảnh của lần chạy minh hoạ 22:03 (`13,117 ms/frame`, rtf 2,541) — lần chạy đơn, không thuộc lô 5 lần đo. Giữ lại chỉ để minh hoạ quy trình | như trên, chụp lại sau khi tiến trình kết thúc | 2026-11-20 |
+| `v3_terminal_run6_2026-11-21.png` | **Số dùng cho báo cáo.** Cửa sổ in lại bằng chứng **lần chạy run6**: lệnh đầy đủ, dòng `END wall_s=135.413 ms_per_frame=17.272 rtf=1.93 frames=7840 exit=0 at=2026-11-20 22:59:59` lấy từ chính `results/logs/v3_walk1_subject1_run6.log`, dòng tương ứng trong `results/v3_runtime.csv` (`phase=measure_5`), và số chốt trung vị n = 5 = **17,272 ms/frame**, 33,333/17,272 = **1,93×** | `Start-Process powershell -ArgumentList '-NoExit','-File','tools\show_run6_evidence.ps1'` rồi `orca computer get-app-state --app WindowsTerminal` | 2026-11-21 |
 
 ## 2. Ảnh render robot trong MuJoCo
 
