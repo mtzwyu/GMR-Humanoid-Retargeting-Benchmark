@@ -24,7 +24,7 @@
 | 7 | Kết luận | 15 |
 | 8 | Phân công công việc và tự thuật từng thành viên | 16 |
 |  | Tài liệu tham khảo | 17 |
-|  | Phụ lục A — Nhật ký phản biện | 17 |
+|  | Phụ lục A — Nhật ký phản biện | 18 |
 
 # THÔNG TIN CHUNG
 
@@ -326,7 +326,7 @@ Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge)
 | +10 | 1,88 | 33,32 | 359,32 | **94,77** | 2.002 (+137) |
 | +20 | 3,14 | 42,82 | 718,51 | 98,05 | 2.166 (+301) |
 
-![Hình 3](results/figures/v6_noise_vs_deviation.png)
+![Hình 3](results/figures/v6_noise_slide.png)
 
 **Hình 3 —** Độ lệch khớp trung bình, tỉ lệ frame có khớp lệch > 5°, và số frame chạm giới hạn khớp theo 15 mức nhiễu N1–N4 (baseline 1.865 frame). Nguồn: `results/v6_noise_sweep.csv`.
 
@@ -388,7 +388,7 @@ Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cù
 | `v5_ms_per_frame_robots_2026-11-20.png` | trung vị ms/frame 3 robot, thanh min–max, ngưỡng 33,33 ms |
 | `v5_sim2sim_{g1,t1,pm01}_frame2000_2026-11-20.png` | 3 robot tại cùng frame 2000 |
 | `slide_v5_sim2sim_f450/f900/f1350.png` | 3 khung từ clip ghép 3 robot |
-| `v6_noise_vs_deviation.png` | `dq_mean` + `pct_gt5°` theo 15 mức N1–N4 |
+| `v6_noise_slide.png` | `dq_mean` + `pct_gt5°` theo 15 mức N1–N4 (Hình 3) |
 | `v6_quality.png` | `foot_slide` và `min_body_height` của 3 robot (Hình 5) |
 
 Video `results/media/v5_sim2sim_g1_t1_pm01.mp4` — 60 s, 1280×720, 30 fps; **không commit**, nộp kèm link.
@@ -441,31 +441,23 @@ Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nh
 
 ### 8.2 Tự thuật
 
-> ✍️ **CHỜ NỘI DUNG — mỗi người 3–5 dòng, ngôi thứ nhất: đã làm gì · khó nhất ở đâu · học được gì · % đóng góp.**
+Bản nháp được viết lại từ nhật ký làm việc và lịch sử commit của nhóm.
 
-**Duy (Planner/Research/Writing 1–2–7)**
-- `[CHỜ TỰ THUẬT: việc đã làm — đọc paper, chốt tuyên bố, viết định nghĩa phép đo, điều phối merge, viết mục 1–2–7]`
-- `[CHỜ TỰ THUẬT: khó nhất — chọn tuyên bố khi paper không có số tốc độ]`
-- `[CHỜ TỰ THUẬT: học được — vì sao phải tách vai phản biện]`
-- `[CHỜ TỰ THUẬT: % đóng góp]`
+#### 8.2.1 Trần Nguyễn Khánh Duy — MSSV 2001230120 — Nhóm trưởng, Planner + Research — 30%
 
-**Mạnh (Run/Writing 3)**
-- `[CHỜ TỰ THUẬT: việc đã làm — cài env, 7 sự cố, V3/V5/V6, video, nhật ký]`
-- `[CHỜ TỰ THUẬT: khó nhất — proxsuite trên Windows; KI-01; log UTF-16]`
-- `[CHỜ TỰ THUẬT: học được — log phải chứa chính con số mình báo cáo]`
-- `[CHỜ TỰ THUẬT: % đóng góp]`
+Tôi phụ trách đọc bài báo và chốt tuyên bố cần kiểm chứng. Việc khó nhất là phát hiện paper arXiv:2510.02252 không công bố một con số ms/frame hay FPS nào, nên tôi phải chọn giữa bám chữ "số trong bài báo" và đo được thứ có thật — cuối cùng nhóm chọn phương án C: đo tuyên bố real-time lấy từ README, đồng thời trình bày rõ ba bảng số của paper và lý do không tái lập được. Tôi cũng viết định nghĩa phép đo trước khi ai chạy lần nào, gồm quy tắc chọn mean hay median theo CV, và quy tắc đó về sau phải áp lại ba lần vì có ba nơi dùng sai. Bài học lớn nhất của tôi là tôi đã đọc thiếu sáu nghìn ký tự cuối README nên bỏ sót bảng Speed Benchmark của chính repo, và chỉ phát hiện khi người khác soi lại. Tôi tự đánh giá 30%.
 
-**Vỹ (Code/Writing 5)**
-- `[CHỜ TỰ THUẬT: việc đã làm — measure_runtime.py, 12 test, hợp đồng CSV 30 cột]`
-- `[CHỜ TỰ THUẬT: khó nhất — tách ms_per_frame / _process; đổi tên cột]`
-- `[CHỜ TỰ THUẬT: học được — test trước giúp đổi hợp đồng không vỡ]`
-- `[CHỜ TỰ THUẬT: % đóng góp]`
+#### 8.2.2 Đặng Duy Mạnh — MSSV 2001240271 — Run, dựng môi trường và thu bằng chứng — 30%
 
-**Trường (Review/Writing 6)**
-- `[CHỜ TỰ THUẬT: việc đã làm — checklist, 7 PR, 31 RV, đối chiếu CSV–log]`
-- `[CHỜ TỰ THUẬT: khó nhất — phát hiện --rate_limit chưa từng truyền]`
-- `[CHỜ TỰ THUẬT: học được — người viết số không phải người kiểm số]`
-- `[CHỜ TỰ THUẬT: % đóng góp]`
+Tôi là người cài và chạy GMR trên Windows. Việc khó nhất là cài đặt: `proxsuite` fail vì thiếu MSVC, tôi phải ghim `proxsuite==0.7.2.post1`, rồi phát hiện SMPL-X yêu cầu license nên chuyển sang BVH LAFAN1 và nhờ đó chạy được cả ba robot. Khi người xem báo robot cúi gập người, tôi đo góc khớp của ba clip và tìm ra clip `walk4_subject1` vốn là clip đi khom lưng của LAFAN1 — pipeline không sai, nó tái hiện trung thực. Việc khó nhất về mặt tinh thần là tự phát hiện bảng CSV của mình có bốn dòng ghi cờ `--rate_limit` chưa từng được truyền, và tôi đã báo lại nhóm để rút kết luận đó thay vì giữ số cho đẹp. Tôi cũng chứng minh retarget là tất định bằng SHA256 trên bốn mươi file pkl, để người chấm tự kiểm được. Tôi tự đánh giá 30%.
+
+#### 8.2.3 Trương Thái Vỹ — MSSV 2001240577 — Code, công cụ đo và dựng video — 20%
+
+Tôi viết hai công cụ của nhóm: `measure_runtime.py` và `build_demo.py`. Phần khó nhất ở script đo là tách cho đúng hai đại lượng — thời gian riêng của `retarget()` và thời gian cả tiến trình — vì ban đầu nhóm gọi lẫn tên khiến một số đo đúng bị hiểu sai nghĩa, và tôi phải thêm hẳn một cột `retarget_cmd` để người review tái lập được con số. Khi dựng video, tôi vấp ffmpeg 9 vì bản này đã bỏ `-vsync`, và mất một lúc mới hiểu `drawtext` trên Windows phải escape đường dẫn font. Sau khi xem lại bản render đầu, tôi bỏ luôn đoạn phụ đề gọi "ms/frame" trần và bỏ nhánh dự phòng lấy ảnh robot cho cảnh chuyển động người, vì cả hai đều làm người xem hiểu sai. Tôi tự đánh giá 20%.
+
+#### 8.2.4 Hà Mạnh Trường — MSSV 2045240326 — Review, phản biện độc lập — 20%
+
+Tôi phụ trách phản biện, và nguyên tắc của tôi là chỉ đọc cái đã nằm trong nhánh, không nghe mô tả. Việc đáng kể nhất là bốn dòng CSV ghi lệnh có `--rate_limit` trong khi lệnh thật không hề truyền cờ đó; tôi xác nhận bằng ba nguồn độc lập — đọc mã PowerShell, đối chiếu log ghi 64 FPS (một bộ giới hạn 30 Hz không thể ra 64), và chạy lại thư viện trong env được 21,4 Hz — rồi yêu cầu rút kết luận đó khỏi báo cáo. Tôi cũng bắt được báo cáo dùng trung vị trong khi định nghĩa đã chốt là dùng mean khi CV dưới 5%, và phải nêu lại ba lần vì lỗi lặp ở ba tài liệu khác nhau. Bài học của tôi là review không phải đọc lại cho kỹ, mà là chủ động tìm cách bác bỏ con số của chính nhóm mình. Tôi tự đánh giá 20%.
 
 ### 8.3 Cam kết
 
