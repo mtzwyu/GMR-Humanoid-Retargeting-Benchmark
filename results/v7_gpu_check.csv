@@ -1,0 +1,4 @@
+che_do,cuda_visible,viewer,ms_per_frame_process,ghi_chu
+headless - env mac dinh,(khong dat),khong,2.359,"torch 2.14.1+cpu (ban CPU-only); torch.cuda.is_available()=False; device_count=0; sha pkl = e7e3b906 (trung baseline)"
+headless - CUDA_VISIBLE_DEVICES rong,rong (bien bi xoa),khong,2.377,"dat $env:CUDA_VISIBLE_DEVICES='' -> bien khong ton tai; cuda.is_available() van False; sha pkl trung baseline; lech 0,018 ms so lan tren (0,8%)"
+V3 5 lan do (co viewer),(khong dat),co,17.349,"so chot V3 = mean n=5, CV 2,13%; chenh ~15 ms/frame so headless la chi phi RENDER cua viewer MuJoCo, khong phai GPU (GPU khong tham gia: torch CPU-only)"

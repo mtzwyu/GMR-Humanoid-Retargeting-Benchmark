@@ -260,3 +260,33 @@ Số thô: `results/v6_noise_sweep.csv` (thêm 2 cột bão hòa + `max_dev_fram
 - Việc **không trừ vị trí root** là đúng theo đặc tả, giữ nguyên.
 
 **Ngưỡng đạt:** `docs/dinh_nghia_phep_do.md` hiện **chưa đặt ngưỡng** cho 4 chỉ số này, nên mục này chỉ **báo số thô**, không kết luận đạt/không đạt. Nếu cần ngưỡng, phải chốt trong `dinh_nghia_phep_do.md` trước rồi mới đối chiếu.
+
+## V7 — chạy THẬT với khối lượng ±20 %, ma sát, và đo lại không GPU
+
+Trước đây nhóm chỉ **lập luận** rằng đổi khối lượng/ma sát không ảnh hưởng vì retarget thuần động học; nay **chạy thật** để có số (yêu cầu của hướng dẫn môn). Số thô: `results/v7_physics_perturb.csv`, `results/v7_gpu_check.csv`. Công cụ: `tools/v7_run.py` (retarget headless, lưu pkl **đúng định dạng** `bvh_to_robot.py`), `tools/v7_perturb_model.py` (sửa XML tạm thời).
+
+**Cách làm (và cách khôi phục XML):**
+1. Ghi hash XML gốc: `g1_mocap_29dof.xml` = **943EB0D5…E44416**, và kiểm repo clone sạch (`git -C third_party/GMR status`).
+2. Sửa XML **tại chỗ** bằng `tools/v7_perturb_model.py` (nhân `mass` của 31 thẻ `inertial`, hoặc gán `friction` cho 72 `geom`), chạy `tools/v7_run.py` để sinh pkl + sha256.
+3. **Sau mỗi lần chạy khoi phục ngay**: `git -C third_party/GMR checkout -- assets/unitree_g1/g1_mocap_29dof.xml`, rồi **kiểm lại hash XML = 943EB0D5…** trước khi sang điều kiện tiếp. (Đã làm đúng như vậy cho cả 3 điều kiện; `third_party/GMR` là clone riêng, không commit.)
+
+**Kiểm chứng driver:** `tools/v7_run.py` chạy bản sạch cho ra **sha256 `e7e3b906…`** đúng bằng pkl baseline đã chốt → dùng được để so hash. (Lần đầu lệch hash vì `root_rot` sinh ra ở thứ tự bộ nhớ Fortran; đã sửa bằng `np.ascontiguousarray`.)
+
+| Điều kiện | Hệ số | sha256 pkl (rút gọn) | Giống baseline | Ghi chú |
+|---|---|---|---|---|
+| baseline | 1,0 | `e7e3b906…` | **1** | pkl gốc `g1_walk1_subject1_run1.pkl` |
+| khối lượng | **×1,2** | `597d0402…` | 0 | 31 thẻ inertial; `max\|Δq\| = 1,5e-9 rad` → **nhiễu số**, chuyển động không đổi |
+| khối lượng | **×0,8** | `eecef802…` | 0 | `max\|Δq\| = 1,5e-9 rad` |
+| ma sát | **1,5** | `e7e3b906…` | **1** | 72 geom (XML gốc không khai báo → mặc định MuJoCo 1,0); **sha trùng tuyệt đối** |
+
+→ **Kết luận bằng số:** đổi khối lượng ±20 % **có** làm pkl khác hash nhưng chỉ ở mức `1,5e-9 rad` (cỡ epsilon máy, ~1e-7 độ) — tức không thay đổi chuyển động; đổi ma sát **không đổi một byte**. Đúng bản chất retarget động học, nhưng nay đã có **bằng chứng chạy thật** thay vì lập luận.
+
+**Đo lại không GPU** (`CUDA_VISIBLE_DEVICES` rỗng, headless):
+
+| Chế độ | CUDA_VISIBLE_DEVICES | Viewer | ms/frame | Ghi chú |
+|---|---|---|---|---|
+| headless, env mặc định | (không đặt) | không | **2,359** | torch **2.14.1+cpu**, `cuda.is_available() = False`, `device_count = 0` |
+| headless, biến rỗng | rỗng (bị xoá) | không | **2,377** | vẫn `False`; sha pkl trùng baseline; lệch 0,018 ms (0,8 %) |
+| V3 5 lần đo | (không đặt) | **có** | 17,349 | số chốt V3 (mean n = 5) |
+
+→ **GPU không tham gia**: bản torch cài trong env là **CPU-only** (`2.14.1+cpu`), `torch.cuda.is_available()` luôn `False` kể cả khi không đặt biến. Chênh ~15 ms/frame giữa 17,349 và 2,36 là **chi phí render của viewer MuJoCo**, không phải GPU.
