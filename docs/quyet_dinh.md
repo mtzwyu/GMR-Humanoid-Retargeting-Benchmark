@@ -29,3 +29,20 @@ Tuyên bố "real-time" vì thế lấy từ **README của repo**, không phả
 4. Không được gọi clip `walk1_subject1.bvh` (7.840 frame = 261,3 s) là "Walk 1" của Bảng I — Bảng I ghi Walk 1 chỉ **33 giây**.
 
 **Vì sao không chọn B.** B sẽ tốn công dựng IsaacSim + policy mà kết quả đã biết trước là thất bại, và không tạo ra số đo nào của nhóm. C vẫn cho một kết luận dứt khoát ("tái lập một phần") mà không cần GPU.
+
+---
+
+## DEC-02 · Sim2sim: chọn phương án C (mức 3 + phép thử nhiễu)
+
+**Ngày:** 2026-11-21 · **Người quyết:** Nhóm trưởng (Duy) · **Bối cảnh:** mục 6.1 báo cáo
+
+**Vấn đề.** Hướng dẫn môn mô tả sim2sim tối thiểu là đổi **tham số vật lý** (khối lượng khâu ±20%, ma sát, 1–3 bước trễ điều khiển) rồi vẽ hiệu năng theo mức nhiễu. Đề tài HR-04 lại chốt sim2sim **mức 3**: cùng một chuyển động → ≥ 3 robot. Nhóm đã làm mức 3, **chưa** làm phép thử nhiễu.
+
+**Phân tích.** GMR là retargeting **động học dựa trên tối ưu** — không có physics, không có khối lượng/ma sát trong vòng tính. Đổi khối lượng ±20% **không làm đổi một byte** `.pkl` (đã chứng minh bằng SHA256 trùng trên 40 lần chạy). Vậy phép thử "nhiễu vật lý" **không áp dụng được**, không phải nhóm bỏ qua.
+
+**Quyết định: C** — giữ mức 3, **và** bổ sung 4 phép thử nhiễu có tác dụng thật lên đầu vào: nhiễu khớp, trễ điều khiển, mất frame, lệch tỉ lệ người. Đặc tả chi tiết: `docs/v6_noise_spec.md`.
+
+**Hệ quả:**
+1. Mục 6 báo cáo có **hai** bảng: bảng tụt hiệu năng theo robot (mức 3) + bảng độ bền theo mức nhiễu.
+2. Mục 6.1 phải viết rõ vì sao nhiễu vật lý không áp dụng — kèm dẫn chứng pkl bất biến, không được lấp bằng lời.
+3. Phép thử nhiễu chạy **1 lần/mức** (đo độ lệch hệ thống, không đo thời gian) — phải ghi rõ để không bị coi là vi phạm hợp đồng 1+3.
