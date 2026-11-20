@@ -9,7 +9,7 @@ Ghi chú đọc bài: `docs/paper_notes.md` · Định nghĩa phép đo: `docs/d
 
 ## 0. Câu chốt (dùng nguyên văn trong báo cáo)
 
-> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, **không** bật `--rate_limit`; **sau 1 lần warm-up bị loại, chạy 5 lần**; tiêu chí: **giá trị cuối của `ms_per_frame`** theo quy tắc §4 (**mean khi CV ≤ 5 %, median khi CV > 5 %**) **≤ 33,33 ms** thì tuyên bố **tái lập được**. Kết quả giai đoạn 1 có số ở mức **cả tiến trình**: **CV = 2,129 %** → **mean = 17,349 ms/frame** (`fps_out_process` = **57,640**, `realtime_factor_process` = **1,921**) ≤ 33,33 ms → **tái lập được** (áp bảng bắc cầu §6.1). Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1.**
+> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame khi retarget chuyển động LAFAN1 (30 fps) sang **Unitree G1** trên CPU, **không** bật `--rate_limit`; **sau 1 lần warm-up bị loại, chạy 5 lần**; tiêu chí: **giá trị cuối của `ms_per_frame`** theo quy tắc §4 (**mean khi CV ≤ 5 %, median khi CV > 5 %**) **≤ 33,33 ms** thì tuyên bố **tái lập được**. Kết quả giai đoạn 1 có số ở mức **cả tiến trình**: **CV = 2,13 %** → **mean = 17,349 ms/frame** (`fps_out_process` = **57,6**, `realtime_factor_process` = **1,92**) ≤ 33,33 ms → **tái lập được** (áp bảng bắc cầu §6.1). Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1.**
 
 Bốn điều bắt buộc phải ghi kèm câu trên — thiếu một điều là sai:
 
@@ -207,14 +207,14 @@ Bảng trên định nghĩa cho `ms_per_frame` (số chính thức, lấy từ p
 |---|---|---|---|
 | README GMR, *Speed Benchmark* | 13th Gen Intel Core i9-13900K 24-Cores | **35~45 FPS** | **README không nêu** |
 | README GMR, *Speed Benchmark* | AMD Ryzen Threadripper 7960X 24-Cores | **60~70 FPS** | **README không nêu** |
-| Nhóm đo (bản đo cũ V3) | 12th Gen Intel Core i5-12450HX (8 core) | **57,640 FPS** (mean 17,349 ms/frame) | `walk1_subject1.bvh` (7840 frame, 30 fps), `unitree_g1`, **không** `--rate_limit`, đo **cả tiến trình** |
+| Nhóm đo (bản đo cũ V3) | 12th Gen Intel Core i5-12450HX (8 core) | **57,6 FPS** (mean 17,349 ms/frame) | `walk1_subject1.bvh` (7840 frame, 30 fps), `unitree_g1`, **không** `--rate_limit`, đo **cả tiến trình** |
 
 Nhóm đo **cao hơn** khoảng 28–65 % so với mức của i9-13900K dù CPU yếu hơn, và **thấp hơn** mức Threadripper. Bốn lý do, theo thứ tự quan trọng:
 
 1. **README không nêu điều kiện đo** — không biết họ đo motion nào, robot nào, clip dài bao nhiêu, có `--rate_limit` hay không, có tính khởi tạo + render hay không. Vì vậy **không tái lập chính xác được**; đây là so sánh tham khảo.
 2. **Độ khó của motion** — clip càng nhiều động tác nhanh/biên độ lớn thì solver càng lâu hội tụ (2 stage × tối đa 10 vòng lặp, ngưỡng 0,001). `walk1_subject1` là **đi bộ**, nhẹ hơn nhiều so với dance/kungfu trong Bảng I.
 3. **Đời CPU** — i5-12450HX (12th Gen, 8 core) vs i9-13900K (13th Gen, 24 core): xung đơn nhân khác nhau, nhưng GMR chạy tuần tự từng frame nên khoảng cách không tỉ lệ với số core.
-4. **Đại lượng khác nghĩa** — số của nhóm là **cả tiến trình** (init + render + ghi pkl), tức **đã gồm overhead**; nếu lệch thì nó làm nhóm **chậm đi**. Vậy phần retarget thuần còn nhanh hơn 57,640 FPS.
+4. **Đại lượng khác nghĩa** — số của nhóm là **cả tiến trình** (init + render + ghi pkl), tức **đã gồm overhead**; nếu lệch thì nó làm nhóm **chậm đi**. Vậy phần retarget thuần còn nhanh hơn 57,6 FPS.
 
 **Không được kết luận** "GMR chạy nhanh hơn trên CPU yếu hơn" — điều kiện đo của README không rõ. Kết luận tuyên bố vẫn chỉ dựa trên ngưỡng 33,33 ms ở §3.5.
 
@@ -246,13 +246,13 @@ Nhóm đo **cao hơn** khoảng 28–65 % so với mức của i9-13900K dù CPU
 | Đại lượng | Bài báo | Nhóm đo được |
 |---|---|---|
 | `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** — bản đo cũ không có cột này |
-| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** (repo: xem dòng dưới) | **17,349** (mean, n = 5, CV 2,129 %) — `results/v3_runtime.csv`, bản đo cũ |
+| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** (repo: xem dòng dưới) | **17,349** (mean, n = 5, CV 2,13 %) — `results/v3_runtime.csv`, bản đo cũ |
 | `fps_out` (frame/s) | **không nêu** | không đo (chỉ suy ra được từ `ms_per_frame`) |
-| `fps_out_process` (frame/s) | **không nêu** | **57,640** (= 1000 / 17,349) |
+| `fps_out_process` (frame/s) | **không nêu** | **57,6** (= 1000 / 17,349) |
 | `realtime_factor` (lần) | **không nêu** — chỉ có chữ "real time" | không đo; cột `realtime_factor` trong file cũ **là của `_process`** |
-| `realtime_factor_process` (lần) | **không nêu** | **1,921** (cột mang tên `realtime_factor` trong file cũ) |
+| `realtime_factor_process` (lần) | **không nêu** | **1,92** (cột mang tên `realtime_factor` trong file cũ) |
 | FPS — README *Speed Benchmark* (bản `25f56db7`) | **không nêu** (số này của repo) | xem dòng dưới |
-| FPS — nhóm đo (i5-12450HX) | README: **35~45 FPS** (i9-13900K) và **60~70 FPS** (Threadripper 7960X) | **57,640 FPS** (mean 17,349 ms, cả tiến trình) |
+| FPS — nhóm đo (i5-12450HX) | README: **35~45 FPS** (i9-13900K) và **60~70 FPS** (Threadripper 7960X) | **57,6 FPS** (mean 17,349 ms, cả tiến trình) |
 | Success rate "Dance 5" sim2sim (%) | 51 | không đo (ngoài phạm vi) |
 | `E_g-mpbpe` mean GMR (mm) | 104,1 | không đo (ngoài phạm vi) |
 | Xuyên sàn PHC "Dance 1" (cm) | 60 | không đo (ngoài phạm vi) |
@@ -302,7 +302,7 @@ Hệ quả: mọi bảng trong báo cáo phải tách hai cột. Cột "bài bá
 
 Kết luận phải viết được thành **tái lập một phần**, không phải "tái lập được" cũng không phải "không tái lập được":
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (`realtime_factor_process` = **1,921**, **5** lần đo, **CV = 2,129 %**) theo **bản đo cũ** `results/v3_runtime.csv` — tương đương **57,640 FPS** trên i5-12450HX, so với mốc README 35~45 FPS (i9-13900K) và 60~70 FPS (Threadripper 7960X); áp bảng bắc cầu §6.1 với ngưỡng 33,33 ms → **tái lập được**. Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó, và script mới chưa được dùng. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,349 ms** (`realtime_factor_process` = **1,92**, **5** lần đo, **CV = 2,13 %**) theo **bản đo cũ** `results/v3_runtime.csv` — tương đương **57,6 FPS** trên i5-12450HX, so với mốc README 35~45 FPS (i9-13900K) và 60~70 FPS (Threadripper 7960X); áp bảng bắc cầu §6.1 với ngưỡng 33,33 ms → **tái lập được**. Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó, và script mới chưa được dùng. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
 
 Điều kiện để câu trên đúng:
 

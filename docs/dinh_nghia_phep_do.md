@@ -84,17 +84,30 @@ Ghi chú kỹ thuật (bắt buộc khi cài lại hoặc kiểm chéo):
 
 **Ngưỡng chất lượng: xem §6.4** (một ngưỡng giữ, một ngưỡng rút theo DEC-03).
 
-### 1.3 Chuẩn làm tròn (áp cho **mọi** số trong tài liệu và trong báo cáo)
+### 1.3 Chuẩn làm tròn (**theo từng đại lượng** — áp cho tài liệu và báo cáo)
+
+Không dùng một mức chung. Mỗi đại lượng có số chữ số thập phân riêng, chốt theo định dạng báo cáo 15 trang và slide đã dựng:
+
+| Đại lượng | Chữ số thập phân | Ví dụ |
+|---|---|---|
+| `ms_per_frame`, `ms_per_frame_process` | **3** | `17,349` |
+| `fps_out`, `fps_out_process` | **1** | `57,6` |
+| `realtime_factor`, `realtime_factor_process` | **2** | `1,92` |
+| CV (%) | **2** | `2,13` |
+| `foot_slide` (mm/s), `min_body_height`, `rest_offset`, `Δ` (mm) | **3** | `49,041` |
+| `pct_frames_penetration`, `joint_limit_saturation_pct` (%) | **2** | `2,13` |
+| Số đếm (frame, lần chạy) | **0** (số nguyên) | `7840` |
+| Ngưỡng và số trích từ `docs/quyet_dinh.md` (DEC-03) | giữ đúng văn bản quyết định | `33,33 ms` · `50 mm/s` · `49,0` · `2,13 %` |
+
+Quy tắc chung còn lại:
 
 | Quy tắc | Nội dung |
 |---|---|
-| Số chữ số thập phân | **3** — cho mọi đại lượng đo (`ms_per_frame`, `fps_out`, `realtime_factor`, `foot_slide`, `min_body_height`, `pct_frames_penetration`, `joint_limit_saturation_pct`, `rest_offset`, CV, …) |
-| Dấu thập phân | **dấu phẩy** (chuẩn Việt Nam): `17,349` · `57,640` · `1,921` · `2,129` |
-| Ngoại lệ | số **đếm** (frame, lần chạy) là số nguyên; **ngưỡng** và **số trích từ `docs/quyet_dinh.md` (DEC-03)** ghi đúng như văn bản quyết định (`33,33 ms`, `50 mm/s`, `30 mm`, `−1 mm`, `0,5°`, `49,0`, `83,1`, `2,13 %`) |
+| Dấu thập phân | **dấu phẩy** (chuẩn Việt Nam) trong tài liệu và báo cáo |
+| CSV | CSV là định dạng **máy đọc** nên vẫn dùng **dấu chấm** (code xuất `round(..., 3)`); chuẩn dấu phẩy chỉ áp cho tài liệu/báo cáo |
 | Cấm | ghi "khoảng", "gần", "~"; trộn dấu chấm thập phân với dấu phẩy trong cùng một tài liệu; tự thêm/bớt chữ số giữa các bảng |
-| CSV | CSV là định dạng **máy đọc** nên vẫn dùng **dấu chấm** (code xuất `round(..., 3)`); chuẩn dấu phẩy chỉ áp cho **tài liệu và báo cáo** |
 
-Ví dụ chuẩn: `ms_per_frame_process = 17,349 ms` · `fps_out_process = 57,640` · `realtime_factor_process = 1,921` · `CV = 2,13 %`.
+Ví dụ chuẩn: `ms_per_frame_process = 17,349 ms` · `fps_out_process = 57,6` · `realtime_factor_process = 1,92` · `CV = 2,13 %` · `foot_slide = 49,041 mm/s`.
 
 ---
 
