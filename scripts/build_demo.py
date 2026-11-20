@@ -9,9 +9,11 @@ từ khối ```csv``` trong manifest, KHÔNG cộng thêm cho đủ 90 giây. S0
 không có trong manifest nên lấy DEFAULTS (ghi đè được qua --set/manifest
 `key = value`). Phụ đề lấy từ report/video_script.md nếu có.
 
-Xuất ra results/media/demo/: demo_90s_720p.mp4 (CRF 23), demo_90s_540p.mp4
-(960x540, CRF 28), demo_90s_thumbnail.png. Script idempotent: lần chạy sau
-xoá và ghi đè sạch kết quả cũ.
+Xuất ra results/media/demo/: demo_v6_720p.mp4 (CRF 23), demo_v6_540p.mp4
+(960x540, CRF 28), demo_v6_thumbnail.png. Tên thiếu "90s" là cố ý: thời lượng
+thực tế ~67 s theo manifest. S5 ưu tiên ảnh v6_noise_slide.png (3 panel dọc);
+nếu chưa có thì dùng ảnh rộng nhưng scale-to-fit + viền đen, KHÔNG crop. Script
+idempotent: lần chạy sau xoá và ghi đè sạch kết quả cũ.
 
 Ràng buộc ffmpeg 9 trên máy nhóm: không dùng -vsync (dùng -fps_mode cfr);
 drawtext chạy với đường dẫn tương đối trong work dir để khỏi escape `C\\:`;
@@ -75,14 +77,13 @@ DEFAULTS = {
         "2 độ đã hỏng 88 phần trăm frame\n"
         "Trễ 1–5 frame vô hại"
     ),
-    # S3/S4 nhãn nhỏ trên hình
-    "s3_left_label": "TRÁI · clip gốc khom lưng (walk4)",
-    "s3_right_label": "PHẢI · clip đi bộ chuẩn (walk1)",
+    # S4 nhãn nhỏ trên hình
     "s4_label1": "G1",
     "s4_label2": "T1",
     "s4_label3": "PM01",
     # S5
     "s5_image": "v6_noise_vs_deviation.png",
+    "s5_slide_image": "v6_noise_slide.png",
     # S6
     "s6_kicker": "KẾT LUẬN",
     "s6_title": "TÁI LẬP MỘT PHẦN",
@@ -420,7 +421,7 @@ class Builder:
         self.settings = settings
         self.scenes = []
 
-    def subtitle(self, key, sequential=False, duration=None):
+    def subtitle(self, key, sequential=False, duration=None, y=None):
         lines = [line for line in self.settings[key].split("\n") if line.strip()]
         common = (
             "drawtext=fontfile=segoeui.ttf"
@@ -428,6 +429,10 @@ class Builder:
             ":boxborderw=12:x=(w-text_w)/2"
         )
         line_height, bottom = 46, 16
+        if y is None:
+            y_single = self.settings["subtitle_y"]
+        else:
+            y_single = y
         if sequential and len(lines) > 1:
             step = duration / len(lines)
             filters = []
@@ -436,14 +441,14 @@ class Builder:
                 (self.workdir / name).write_text(line, encoding="utf-8")
                 start, end = index * step, (index + 1) * step
                 filters.append(
-                    f"{common}:textfile={name}:y=h-{line_height + bottom}"
+                    f"{common}:textfile={name}:y={y_single}"
                     f":enable='between(t,{start:.3f},{end:.3f})'"
                 )
             return ",".join(filters)
         if len(lines) == 1:
             name = f"{key}.txt"
             (self.workdir / name).write_text(lines[0], encoding="utf-8")
-            return f"{common}:textfile={name}:y={self.settings['subtitle_y']}"
+            return f"{common}:textfile={name}:y={y_single}"
         # Nhiều dòng: mỗi dòng một drawtext, xếp từ dưới lên để không tràn khung.
         filters = []
         for index, line in enumerate(lines):
@@ -507,6 +512,23 @@ class Builder:
             out_name, ["-loop", "1", "-i", str(image)], ",".join(filters), duration
         )
 
+    def fit_scene(self, image, out_name, duration, subtitle_key, sequential=False):
+        """Scale-to-fit, chừa dải đen 100 px dưới cho phụ đề; KHÔNG crop."""
+        band = 100
+        filters = [
+            f"scale=1280:{720 - band}:force_original_aspect_ratio=decrease",
+            "pad=1280:720:x='(ow-iw)/2':y='(oh-ih-100)/2':color=black",
+            "fps=30",
+            self.subtitle(
+                subtitle_key, sequential=sequential, duration=duration, y="h-72"
+            ),
+            "setsar=1",
+            "format=yuv420p",
+        ]
+        self.encode(
+            out_name, ["-loop", "1", "-i", str(image)], ",".join(filters), duration
+        )
+
     def clip_scene(self, clip, start, out_name, duration, subtitle_key):
         info = parse_ffmpeg_info(self.ffmpeg, clip)
         filters = [
@@ -528,11 +550,8 @@ class Builder:
 
     def split_scene(self, left, left_start, right, right_start, duration):
         side = "scale=1280:720,crop=640:720:320:0"
-        left_label = self.label(self.settings["s3_left_label"], "s3_l.txt")
-        right_label = self.label(self.settings["s3_right_label"], "s3_r.txt")
         graph = (
-            f"[0:v]{side},{left_label}[l];"
-            f"[1:v]{side},{right_label}[r];"
+            f"[0:v]{side}[l];[1:v]{side}[r];"
             f"[l][r]hstack=inputs=2,fps=30,{self.subtitle('s3_sub')},"
             "setsar=1,format=yuv420p[v]"
         )
@@ -727,12 +746,19 @@ def main(argv=None):
         "s4_sub",
     )
 
-    s5_image = figures_dir / settings["s5_image"]
-    if not s5_image.exists():
+    s5_slide = figures_dir / settings["s5_slide_image"]
+    s5_wide = figures_dir / settings["s5_image"]
+    if s5_slide.exists():
+        s5_image = s5_slide
+        log(f"S5: {s5_slide.name}")
+    elif s5_wide.exists():
+        s5_image = s5_wide
+        log(f"S5: {s5_wide.name} (scale-to-fit, khong crop)")
+    else:
         s5_image = workdir / "s5_placeholder.png"
         make_placeholder("Đang chờ đồ thị độ bền V6", s5_image)
         log("thieu anh S5 -> dung placeholder")
-    builder.pan_scene(s5_image, "s5.mp4", encoded[5], "s5_sub", sequential=True)
+    builder.fit_scene(s5_image, "s5.mp4", encoded[5], "s5_sub", sequential=True)
 
     builder.still_scene(card_s6, "s6.mp4", encoded[6])
 
@@ -740,11 +766,14 @@ def main(argv=None):
         raise SystemExit(f"thieu canh: {len(builder.scenes)}/7")
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    master = out_dir / "demo_90s_720p.mp4"
-    light = out_dir / "demo_90s_540p.mp4"
-    thumb = out_dir / "demo_90s_thumbnail.png"
+    master = out_dir / "demo_v6_720p.mp4"
+    light = out_dir / "demo_v6_540p.mp4"
+    thumb = out_dir / "demo_v6_thumbnail.png"
     for path in (master, light, thumb):
         path.unlink(missing_ok=True)
+    # Dọn tên cũ (trước RV đổi tên) để thư mục không còn bản 90s gây nhầm.
+    for legacy in ("demo_90s_720p.mp4", "demo_90s_540p.mp4", "demo_90s_thumbnail.png"):
+        (out_dir / legacy).unlink(missing_ok=True)
 
     builder.assemble(master, 23, visible, transition)
     log(f"xuat: {master}")
