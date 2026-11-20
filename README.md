@@ -36,7 +36,7 @@ Kiểm chứng tuyên bố "retarget thời gian thực trên CPU" của GMR b�
 
 **Phép thử nhiễu (V6):** N1 σ = 0,5° → 0,51 % frame lệch > 5°; σ = 2° → **87,74 %**; trễ 1–5 frame và mất 1–10 % frame gần như không đổi (`dq_mean` 0,001°); scale vị trí ±20 % → 90,4–98,0 % frame lệch > 5° (`results/v6_noise_sweep.csv`).
 
-> Cột `ms_per_frame_process` là **wall-clock của cả tiến trình** `bvh_to_robot.py` (nạp BVH, khởi tạo, render, ghi pkl) chia cho số frame — cận trên của thời gian retarget thuần. Ngưỡng 33,3 ms là ngưỡng **nhóm tự đặt** theo nguồn 30 fps, không phải ngưỡng của paper.
+> Cột `ms_per_frame_process` là **wall-clock của cả tiến trình** `bvh_to_robot.py` (nạp BVH, khởi tạo, render, ghi pkl) chia cho số frame — cận trên của thời gian retarget thuần. Ngưỡng 33,33 ms là ngưỡng **nhóm tự đặt** theo nguồn 30 fps, không phải ngưỡng của paper.
 >
 > `pct_frames_penetration` đo tại **gốc body** (body origin), không đo bề mặt/mesh: 0 % chỉ nghĩa là không có gốc body nào dưới −1 mm, **không** chứng minh bàn chân/geom không xuyên sàn.
 
@@ -124,7 +124,7 @@ Các script trong `tools/` có biến `$root` / `ROOT` trỏ đường dẫn má
 | `results/v6_provenance.json` | Git HEAD của GMR (`25f56db`), phiên bản numpy/mujoco/mink/torch, 15 điều kiện V6 kèm lệnh và kết quả |
 | `results/logs/*.log` | **20 log** có dòng cuối `END wall_s=… ms_per_frame=… rtf=… frames=… exit=…` để đối chiếu từng dòng CSV (42 log tổng) |
 
-Video demo (mp4) và pkl không commit; chỉ commit manifest, hash, provenance và log.
+Video demo (mp4) và pkl không commit; chỉ commit manifest, hash, provenance và log. Bản phát hành 720p/540p (67 s): [v1.0-demo](https://github.com/mtzwyu/GMR-Humanoid-Retargeting-Benchmark/releases/tag/v1.0-demo).
 
 ## Mã của nhóm
 
@@ -172,7 +172,7 @@ Kèm `scripts/NOTES.md` (cấu trúc `.pkl`, cách gọi script) và `scripts/te
 ## Hạn chế và ghi chú trung thực
 
 1. **Paper không công bố FPS.** Ba bảng của paper đều đo policy đã train, không đo retargeter; con số tốc độ duy nhất là bảng *Speed Benchmark* trong README repo (35–45 FPS trên i9-13900K). Vì vậy báo cáo không được so tốc độ "với paper".
-2. **`ms_per_frame_process` là cận trên**, gồm khởi tạo, render và ghi pkl; thời gian retarget thuần chỉ có khi dùng `scripts/measure_runtime.py`. Ngưỡng 33,3 ms do nhóm đặt, không phải của paper.
+2. **`ms_per_frame_process` là cận trên**, gồm khởi tạo, render và ghi pkl; thời gian retarget thuần chỉ có khi dùng `scripts/measure_runtime.py`. Ngưỡng 33,33 ms do nhóm đặt, không phải của paper.
 3. **`foot_slide` là chỉ số proxy.** Định nghĩa "tiếp đất" theo mức thấp nhất của chính bàn chân và đo tại tâm thân bàn chân, nên chỉ dùng **so sánh tương đối** giữa 3 robot, không phải số tuyệt đối.
 4. **`min_body_height` phụ thuộc offset nghỉ của model** (G1 +16,1 mm, T1 +36,6 mm, PM01 +45,0 mm). Ngưỡng ±5 mm đặt trước khi đo đã **bị rút** (DEC-03) vì nó đo độ cao gốc body, không đo xuyên sàn; phần thay thế (`pct_frames_penetration`, `min_body_height − rest_offset`) là **hậu kiểm**.
 5. **Ngưỡng chất lượng:** một ngưỡng đăng ký trước được **giữ và áp dụng** — `foot_slide ≤ 50 mm/s`, chỉ G1 đạt; một ngưỡng (`min_body_height ±5 mm`) bị rút sau khi đo vì lý do kỹ thuật. Vì vậy kết luận chất lượng chỉ mang tính tương đối, và `pct_frames_penetration` đo tại **gốc body** (không phải bề mặt/mesh): 0 % chỉ là "không có gốc body dưới −1 mm".

@@ -1,4 +1,4 @@
-# Demo manifest — video 90 s (V6)
+# Demo manifest — video 67 s (V6)
 
 Dựng theo `docs/ke_hoach/video_demo.md` (commit `05cd5da`). Run cung cấp **clip + timecode**; Code cắt/ghép bằng ffmpeg theo bảng dưới.
 Mọi clip gốc: **1280×720, 30 fps, H.264, không audio**. `.mp4` **không commit** (đã gitignore) — chỉ nằm trên máy Run ở `results/media/`.
