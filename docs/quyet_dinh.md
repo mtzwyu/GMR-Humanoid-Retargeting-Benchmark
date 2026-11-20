@@ -61,6 +61,30 @@ Báo cáo lại viết *"nhóm không đặt ngưỡng tuyệt đối cho bốn 
 
 **Hệ quả cho kết luận.** Kết luận "tái lập một phần" **không đổi**, nhưng lý do phải viết lại: không phải "vì nhóm không đặt ngưỡng", mà vì **chỉ 1/3 robot đạt ngưỡng `foot_slide`**, và T1 xuyên sàn ở 2,13% frame.
 
+---
+
+## DEC-04 · Phạm vi nhãn kết luận: tách "tốc độ" và "chất lượng"
+
+**Ngày:** 2026-11-21 · **Người quyết:** Nhóm trưởng (Duy) · **Bối cảnh:** bị hỏi "rtf ≥ 1,00 sao vẫn 'một phần'?"
+
+**Vấn đề.** Tiêu chí **chốt trước khi đo** (trong `docs/dinh_nghia_phep_do.md`): `realtime_factor ≥ 1,00` ⇒ **tái lập được**. Đo được **1,92** (mean, n = 5). Theo đúng tiêu chí, nhãn phải là **"tái lập được"**.
+
+Nhưng báo cáo lại dùng nhãn **"tái lập một phần"**, vì nhóm bổ sung vế **chất lượng ánh xạ** (đo sau, không có ngưỡng đặt trước cho cả 3 robot). Việc hạ nhãn mà **không ghi thành quyết định** là sửa tiêu chí sau khi thấy kết quả — dù động cơ là trung thực, cách làm thì sai.
+
+**Quyết định.** Không dùng một nhãn chung. Tách hai vế, mỗi vế theo đúng tiêu chí của nó:
+
+| Vế | Tiêu chí | Kết quả | Nhãn |
+|---|---|---|---|
+| **Tốc độ** (tuyên bố chính, có tiêu chí đặt trước) | `realtime_factor ≥ 1,00` | **1,92** (1,90–1,97 qua 5 lần) | **Tái lập được** |
+| **Chất lượng ánh xạ** (vế thêm, ngưỡng chỉ đặt cho `foot_slide`) | `foot_slide ≤ 50 mm/s`, không xuyên sàn | **1/3 robot đạt**; T1 xuyên sàn 2,13% frame | **Một phần** |
+
+**Câu kết luận chuẩn phải dùng:**
+> *"Tuyên bố thời gian thực **tái lập được** trên CPU (1,92× ngưỡng đặt trước); chất lượng ánh xạ chỉ **tái lập một phần** (1/3 robot đạt ngưỡng `foot_slide`, một robot xuyên sàn 2,13% frame)."*
+
+**Cấm** viết gọn thành "tái lập một phần" mà không nói vế nào — vì như vậy là hạ nhãn của tuyên bố chính, trái tiêu chí đã đăng ký trước.
+
+**Hệ quả kỹ thuật đi kèm.** Báo cáo phải nói rõ `_process` bao gồm render (có thể dùng GPU), còn `retarget()` thuần chạy CPU; nên 17,3 ms là **cận trên**, không phải "CPU-only" tuyệt đối.
+
 
 ---
 
