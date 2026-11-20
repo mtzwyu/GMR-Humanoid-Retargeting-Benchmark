@@ -26,6 +26,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # than ban chan dung de do foot slide (theo tung model)
 FOOT_BODIES = {
     "unitree_g1": ("left_ankle_roll_link", "right_ankle_roll_link"),
+    "unitree_g1_with_hands": ("left_ankle_roll_link", "right_ankle_roll_link"),
+    "unitree_h1_2": ("left_ankle_roll_link", "right_ankle_roll_link"),
     "booster_t1_29dof": ("left_foot_link", "right_foot_link"),
     "engineai_pm01": ("LINK_FOOT_L", "LINK_FOOT_R"),
 }
@@ -36,9 +38,10 @@ LIMIT_TOL_DEG = 0.5
 
 def load_pkl(path):
     d = pickle.load(open(path, "rb"))
+    fps = float(d.get("fps", 30.0))
     if "qpos" in d:
-        return np.asarray(d["qpos"], dtype=float)
-    return np.concatenate([d["root_pos"], d["root_rot"][:, [3, 0, 1, 2]], d["dof_pos"]], axis=1)
+        return np.asarray(d["qpos"], dtype=float), fps
+    return np.concatenate([d["root_pos"], d["root_rot"][:, [3, 0, 1, 2]], d["dof_pos"]], axis=1), fps
 
 
 def foot_slide_mm_per_s(xyz, fps):
@@ -78,8 +81,7 @@ rows = []
 for robot in [r.strip() for r in a.robots.split(",") if r.strip()]:
     pkl_rel = a.pkl_pattern.format(robot=robot)
     pkl = os.path.join(ROOT, pkl_rel)
-    qpos = load_pkl(pkl)
-    fps = 30.0
+    qpos, fps = load_pkl(pkl)
 
     model = mj.MjModel.from_xml_path(str(ROBOT_XML_DICT[robot]))
     data = mj.MjData(model)

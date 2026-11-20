@@ -75,6 +75,8 @@ Chạy bổ sung cho một robot có CV > 5 %: `-Warmup 0 -Measured 2 -StartInde
 
 Thân bàn chân dùng để đo: `unitree_g1` → `left_ankle_roll_link`/`right_ankle_roll_link`; `booster_t1_29dof` → `left_foot_link`/`right_foot_link`; `engineai_pm01` → `LINK_FOOT_L`/`LINK_FOOT_R`; `unitree_h1_2` → `left_ankle_roll_link`/`right_ankle_roll_link`.
 
+`fps` được đọc từ chính pkl (không hardcode 30), nên dùng được cho cả clip Xsens 120 Hz. Đo robot/motion khác: `--robots <tên> --pkl-pattern "results/pkl/<file>.pkl" --out <csv>`.
+
 ## F. Tiện ích
 
 | Script | Việc |
