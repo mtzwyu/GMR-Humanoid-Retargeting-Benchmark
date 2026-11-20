@@ -176,12 +176,12 @@ Kết quả định tính (trang 7): GMR được coi là faithful hơn PHC và 
 
 ## 12. Những gì bài báo **KHÔNG** nêu (đã kiểm tra toàn văn 9 trang)
 
-Đây là phần quan trọng nhất cho V1:
+Đây là phần quan trọng nhất cho V1. **Lưu ý phạm vi:** bảng này chỉ nói về **bài báo**. **Repo thì CÓ số tốc độ** — xem §13.4 (Speed Benchmark: 35~45 FPS trên i9-13900K, 60~70 FPS trên Threadripper 7960X).
 
-| Hạng mục | Tình trạng |
+| Hạng mục | Tình trạng **trong bài báo** |
 |---|---|
 | Thời gian retarget mỗi frame (ms/frame) | **không nêu** — không có bảng/hình nào về tốc độ |
-| FPS / throughput của GMR | **không nêu** |
+| FPS / throughput của GMR | **không nêu** (repo thì có — §13.4) |
 | Từ "real-time" | chỉ xuất hiện ở **trang 2** khi nói PHC *"time-consuming and limits its application for real-time scenarios"*, và trong **tên tài liệu tham khảo** (trang 8–9). Bài báo **không** tuyên bố GMR chạy real-time, cũng không định nghĩa "real-time" |
 | Cấu hình phần cứng (CPU/GPU/RAM) | **không nêu** |
 | Số vòng lặp solver thực tế / thời gian hội tụ | chỉ nêu ngưỡng (0,001) và trần 10 vòng (trang 5) |
@@ -199,6 +199,7 @@ Kết quả định tính (trang 7): GMR được coi là faithful hơn PHC và 
 |---|---|---|
 | Mô tả repo | *"[ICRA 2026] GMR: General Motion Retargeting. Retarget human motions into diverse humanoid robots **in real time on CPU**. Retargeter for TWIST."* | GitHub API `/repos/YanjieZe/GMR` |
 | README, mục *Key features*, dòng 1 | *"**Real-time high-quality retargeting**, unlock the potential of real-time whole-body teleoperation"* | README `master` |
+| README, mục *Speed Benchmark* | **35~45 FPS** (i9-13900K 24-Cores) · **60~70 FPS** (Threadripper 7960X 24-Cores) — chi tiết §13.4 | README `master`, dòng 562–568 |
 | HEAD | `25f56db7` (**2026-10-23** giờ VN; `2026-10-22T17:04:45Z`) | `/commits/25f56db7…` |
 | Kích thước repo | ~281.766 KB (≈ 275 MB) | GitHub API `size` |
 | Số robot | **19 robot** (ID 0–18) + 2 TBD (AgiBot A2, OpenLoong) | README, bảng *Supported Robots* |
@@ -250,6 +251,25 @@ TBD (không có config LAFAN1): `unitree_h1`, `unitree_h1_2`, `booster_t1`, `boo
 - `assets/hard_motions/{0,1}.txt`, `assets/<robot>/…` (MJCF/URDF + mesh).
 - Không có sẵn file LAFAN1 → phải tải `lafan1.zip` từ repo Ubisoft (LAFAN1 là **30 fps**, 77 sequence, 496.672 frame — theo README của Ubisoft).
 - **Cảnh báo tên clip:** `walk1_subject1.bvh` dài **7840 frame = 261,3 s** ở 30 fps. Đây **không phải** "Walk 1" của Bảng I (33 s, trang 6). Hai clip khác nhau — không được gộp khi lập bảng so sánh.
+
+---
+
+### 13.4 Speed Benchmark trong README — số định lượng **duy nhất** của repo
+
+README `master` @ `25f56db7`, mục **"Speed Benchmark"** (nằm ngay trước mục "Citation"):
+
+| CPU | Retargeting Speed |
+|---|---|
+| AMD Ryzen Threadripper 7960X 24-Cores | **60~70 FPS** |
+| 13th Gen Intel Core i9-13900K 24-Cores | **35~45 FPS** |
+| TBD | TBD |
+
+Ghi chú bắt buộc khi trích:
+
+- README **không nêu điều kiện đo**: motion nào, robot nào, clip dài bao nhiêu, có `--rate_limit` hay không, có tính khởi tạo + render hay không → **không tái lập chính xác được**.
+- Đây là **số của repo**, **không phải** của paper (paper không có bảng tốc độ — §12). Không được ghi lẫn nguồn.
+- Là mốc đối chiếu duy nhất; khi so sánh phải nêu **cả hai** CPU, không chọn mốc có lợi.
+- Nhóm đo được **57,6 FPS** (i5-12450HX, `walk1_subject1` + `unitree_g1`, đo cả tiến trình). Phân tích vì sao nhanh hơn i9-13900K: `docs/v1_tuyen_bo.md` §3.6.
 
 ---
 
