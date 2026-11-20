@@ -1,0 +1,50 @@
+# === Bí mật: không bao giờ commit ===
+*.local.md
+.mat_khau_tai_lieu.local.md
+.env
+.env.*
+*.key
+*.pem
+
+# === Tài liệu môn học dung lượng lớn (giữ local) ===
+docs/slide_bai_giang/*.ppsx
+docs/slide_bai_giang/*.pdf
+docs/tai_lieu_tham_khao/*.pdf
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+
+# === Kết quả nặng: checkpoint, dataset, video ===
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npz
+*.pkl
+*.mp4
+*.avi
+*.mov
+data/
+datasets/
+checkpoints/
+outputs/
+runs/
+
+# === Công cụ ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+node_modules/
