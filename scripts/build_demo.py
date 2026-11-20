@@ -9,11 +9,13 @@ từ khối ```csv``` trong manifest, KHÔNG cộng thêm cho đủ 90 giây. S0
 không có trong manifest nên lấy DEFAULTS (ghi đè được qua --set/manifest
 `key = value`). Phụ đề lấy từ report/video_script.md nếu có.
 
-Xuất ra results/media/demo/: demo_v6_720p.mp4 (CRF 23), demo_v6_540p.mp4
-(960x540, CRF 28), demo_v6_thumbnail.png. Tên thiếu "90s" là cố ý: thời lượng
-thực tế ~67 s theo manifest. S5 ưu tiên ảnh v6_noise_slide.png (3 panel dọc);
-nếu chưa có thì dùng ảnh rộng nhưng scale-to-fit + viền đen, KHÔNG crop. Script
-idempotent: lần chạy sau xoá và ghi đè sạch kết quả cũ.
+Xuất ra results/media/demo/: demo_v6_720p.mp4 (CRF 23) và
+demo_v6_thumbnail.png. Chỉ xuất bản 720p; không còn bản 540p. Tên thiếu "90s"
+là cố ý: thời lượng thực tế theo manifest (~77 s khi có cảnh bảng V6). S5 ưu
+tiên ảnh v6_noise_slide.png (3 panel dọc); nếu chưa có thì dùng ảnh rộng nhưng
+scale-to-fit + viền đen, KHÔNG crop. Sau S5 có cảnh bảng V6 sinh từ
+results/v6_noise_sweep.csv. Script idempotent: lần chạy sau xoá và ghi đè sạch
+kết quả cũ.
 
 Ràng buộc ffmpeg 9 trên máy nhóm: không dùng -vsync (dùng -fps_mode cfr);
 drawtext chạy với đường dẫn tương đối trong work dir để khỏi escape `C\\:`;
@@ -28,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -35,6 +38,9 @@ from PIL import Image, ImageDraw, ImageFont
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FONT_REGULAR = Path("C:/Windows/Fonts/segoeui.ttf")
 FONT_BOLD = Path("C:/Windows/Fonts/segoeuib.ttf")
+FONT_SLIDE_TITLE = Path("C:/Windows/Fonts/cambriab.ttf")
+FONT_SLIDE_BODY = Path("C:/Windows/Fonts/calibri.ttf")
+FONT_SLIDE_BODY_BOLD = Path("C:/Windows/Fonts/calibrib.ttf")
 KNOWN_FFMPEG = (
     Path.home()
     / "miniconda3/envs/gmr/Lib/site-packages/imageio_ffmpeg/binaries"
@@ -52,6 +58,7 @@ DEFAULTS = {
     "duration_s3": "10",
     "duration_s4": "10",
     "duration_s5": "14",
+    "duration_v6_table": "10",
     "duration_s6": "8",
     # S0
     "s0_kicker": "HK1 2026–2027 · ĐH Công Thương TP.HCM",
@@ -78,6 +85,10 @@ DEFAULTS = {
         "2 độ đã hỏng 88 phần trăm frame\n"
         "Trễ 1–5 frame vô hại"
     ),
+    "v6_table_csv": "results/v6_noise_sweep.csv",
+    "v6_table_title": "V6 — bảng đối chiếu nhiễu",
+    "v6_table_kicker": "V6 · ĐỘ BỀN THEO NHIỄU · đọc trực tiếp từ results/v6_noise_sweep.csv",
+    "v6_table_conclusion": "Nhiễu không tích lũy theo thời gian; ngưỡng hỏng nằm giữa σ 1° và 2°",
     # S4 nhãn nhỏ trên hình
     "s4_label1": "G1",
     "s4_label2": "T1",
@@ -97,7 +108,7 @@ DEFAULTS = {
     "s6_footer": "Phần thời gian thực tái lập được · số của paper thì không",
 }
 
-SIZE_LIMITS_MB = {"720p": 25.0, "540p": 8.0}
+SIZE_LIMITS_MB = {"720p": 25.0}
 FPS = 30
 SHOT_KEYS = ("S1", "S2", "S3a", "S3b", "S4a", "S4b", "S4c")
 
@@ -454,6 +465,132 @@ def make_placeholder(text, out_path):
     image.save(out_path)
 
 
+def vn_trim(value, digits):
+    """Số thập phân kiểu Việt Nam, bỏ các số 0 thừa ở cuối (100.00 -> 100)."""
+    step = Decimal(1).scaleb(-digits)
+    text = str(Decimal(str(value)).quantize(step, rounding=ROUND_HALF_UP))
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text.replace(".", ",")
+
+
+def vn_fixed(value, digits):
+    step = Decimal(1).scaleb(-digits)
+    return str(Decimal(str(value)).quantize(step, rounding=ROUND_HALF_UP)).replace(
+        ".", ","
+    )
+
+
+def fit_text(draw, text, path, size, max_width, min_size=12):
+    while size > min_size:
+        font = load_font(path, size)
+        if draw.textbbox((0, 0), text, font=font)[2] <= max_width:
+            return font
+        size -= 1
+    return load_font(path, min_size)
+
+
+def make_v6_table_card(csv_path, out_path, settings):
+    """Card bảng V6; mọi số đọc từ results/v6_noise_sweep.csv, không viết tay."""
+    with open(csv_path, encoding="utf-8-sig") as handle:
+        data = list(csv.DictReader(handle))
+
+    def value(mode, level, field):
+        for row in data:
+            if row["mode"] == mode and abs(float(row["level"]) - level) < 1e-9:
+                return float(row[field])
+        raise SystemExit(f"v6 csv thieu {mode} level {level}")
+
+    threshold = [value("n1", level, "pct_frames_gt5deg") for level in (0.5, 1, 2, 5)]
+    delay_dq = value("n2", 1, "dq_mean")
+    delay_dr = value("n2", 1, "dr_rmse_mm")
+    dropped = [value("n3", level, "dq_mean") for level in (1, 5, 10)]
+    scale_low = value("n4", -20, "pct_frames_gt5deg")
+    scale_high = value("n4", 20, "pct_frames_gt5deg")
+
+    rows = [
+        ("Phép thử", "Mức", "Kết quả đo", "Đọc"),
+        (
+            "N1 · nhiễu khớp",
+            "σ = 0,5 / 1 / 2 / 5°",
+            " / ".join(vn_trim(item, 2) for item in threshold) + " %",
+            "hỏng từ 2°",
+        ),
+        (
+            "N2 · trễ điều khiển",
+            "k = 1…5 frame",
+            f"dq {vn_trim(delay_dq, 3)}° · dr {vn_trim(delay_dr, 2)} mm",
+            "vô hại",
+        ),
+        (
+            "N3 · mất frame",
+            "1 / 5 / 10 %",
+            " / ".join(vn_trim(item, 3) for item in dropped) + "°",
+            "vô hại",
+        ),
+        (
+            "N4 · lệch tỉ lệ người",
+            "±20 %",
+            f"{vn_fixed(scale_low, 1)} – {vn_fixed(scale_high, 1)} % frame",
+            "hỏng nặng",
+        ),
+    ]
+
+    image = Image.new("RGB", (1280, 720), (0xF7, 0xFA, 0xFB))
+    draw = ImageDraw.Draw(image)
+    teal = (0x02, 0x80, 0x90)
+    dark = (0x06, 0x34, 0x3C)
+    text = (0x12, 0x34, 0x3B)
+    muted = (0x4E, 0x6A, 0x70)
+    draw.rectangle([(56, 48), (66, 672)], fill=teal)
+
+    draw.text((88, 44), settings["v6_table_kicker"],
+              font=load_font(FONT_SLIDE_BODY, 18), fill=muted)
+    draw.text((88, 80), settings["v6_table_title"],
+              font=load_font(FONT_SLIDE_TITLE, 46), fill=dark)
+
+    x0, y0, table_w = 76, 176, 1128
+    header_h, row_h = 52, 94
+    widths = [280, 250, 380, table_w - 280 - 250 - 380]
+    edges = [x0]
+    for width in widths:
+        edges.append(edges[-1] + width)
+
+    draw.rectangle([(x0, y0), (x0 + table_w, y0 + header_h)], fill=teal)
+    for index, cell in enumerate(rows[0]):
+        font = fit_text(draw, cell, FONT_SLIDE_BODY_BOLD, 21,
+                        widths[index] - 24)
+        draw.text((edges[index] + 12, y0 + header_h / 2), cell,
+                  font=font, fill=(0xFF, 0xFF, 0xFF), anchor="lm")
+
+    for row_index, row in enumerate(rows[1:]):
+        top = y0 + header_h + row_index * row_h
+        fill = (0xFF, 0xFF, 0xFF) if row_index % 2 == 0 else (0xED, 0xF6, 0xF7)
+        draw.rectangle([(x0, top), (x0 + table_w, top + row_h)], fill=fill)
+        for col_index, cell in enumerate(row):
+            bold = col_index == 0
+            path = FONT_SLIDE_BODY_BOLD if bold else FONT_SLIDE_BODY
+            font = fit_text(draw, cell, path, 21, widths[col_index] - 24)
+            color = teal if col_index == 3 else text
+            draw.text((edges[col_index] + 12, top + row_h / 2), cell,
+                      font=font, fill=color, anchor="lm")
+        draw.line([(x0, top + row_h), (x0 + table_w, top + row_h)],
+                  fill=(0xD5, 0xE6, 0xE8), width=1)
+
+    for edge in edges[1:-1]:
+        draw.line([(edge, y0 + header_h), (edge, y0 + header_h + 4 * row_h)],
+                  fill=(0xD5, 0xE6, 0xE8), width=1)
+    draw.rectangle([(x0, y0), (x0 + table_w, y0 + header_h + 4 * row_h)],
+                   outline=(0x9F, 0xC9, 0xCE), width=2)
+
+    conclusion = settings["v6_table_conclusion"]
+    conclusion_font = fit_text(draw, conclusion, FONT_SLIDE_BODY_BOLD, 24,
+                               table_w)
+    draw.text((x0, y0 + header_h + 4 * row_h + 28), conclusion,
+              font=conclusion_font, fill=teal)
+    image.save(out_path)
+
+
 class Builder:
     def __init__(self, ffmpeg, workdir, settings):
         self.ffmpeg = ffmpeg
@@ -698,20 +835,27 @@ def main(argv=None):
         log(f"khong thay manifest {manifest} -> dung placeholder cho S1-S4")
 
     # Thời lượng đã được build_settings chốt: shot trong manifest, trừ khi --set.
-    durations = {f"S{i}": num(settings, f"duration_s{i}") for i in range(7)}
-    visible = [durations[f"S{i}"] for i in range(7)]
+    labels = ["S0", "S1", "S2", "S3", "S4", "S5", "V6T", "S6"]
+    visible = [num(settings, f"duration_s{i}") for i in range(6)]
+    visible.append(num(settings, "duration_v6_table"))
+    visible.append(num(settings, "duration_s6"))
     transition = num(settings, "transition")
     log(
-        "ke hoach: " + " + ".join(f"S{i} {visible[i]:g}s" for i in range(7))
+        "ke hoach: "
+        + " + ".join(f"{name} {value:g}s" for name, value in zip(labels, visible))
         + f" (xfade {transition:g}s) = {sum(visible):.2f}s"
     )
 
     cards_dir.mkdir(parents=True, exist_ok=True)
     card_s0 = cards_dir / "S0.png"
     card_s6 = cards_dir / "S6.png"
+    card_table = cards_dir / "S5_table.png"
     make_title_card(settings, card_s0)
     make_conclusion_card(settings, card_s6)
-    log(f"card: {card_s0} | {card_s6}")
+    make_v6_table_card(
+        REPO_ROOT / settings["v6_table_csv"], card_table, settings
+    )
+    log(f"card: {card_s0} | {card_table} | {card_s6}")
 
     if args.dry_run:
         return 0
@@ -724,7 +868,7 @@ def main(argv=None):
     shutil.copyfile(FONT_REGULAR, workdir / "segoeui.ttf")
     builder = Builder(ffmpeg, workdir, settings)
     encoded = [
-        value + transition if index < 6 else value
+        value + transition if index < len(visible) - 1 else value
         for index, value in enumerate(visible)
     ]
 
@@ -781,36 +925,28 @@ def main(argv=None):
         make_placeholder("Đang chờ đồ thị độ bền V6", s5_image)
         log("thieu anh S5 -> dung placeholder")
     builder.fit_scene(s5_image, "s5.mp4", encoded[5], "s5_sub", sequential=True)
+    builder.still_scene(card_table, "s5b.mp4", encoded[6])
+    builder.still_scene(card_s6, "s6.mp4", encoded[7])
 
-    builder.still_scene(card_s6, "s6.mp4", encoded[6])
-
-    if len(builder.scenes) != 7:
-        raise SystemExit(f"thieu canh: {len(builder.scenes)}/7")
+    if len(builder.scenes) != 8:
+        raise SystemExit(f"thieu canh: {len(builder.scenes)}/8")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     master = out_dir / "demo_v6_720p.mp4"
-    light = out_dir / "demo_v6_540p.mp4"
     thumb = out_dir / "demo_v6_thumbnail.png"
-    for path in (master, light, thumb):
+    for path in (master, thumb):
         path.unlink(missing_ok=True)
-    # Dọn tên cũ (trước RV đổi tên) để thư mục không còn bản 90s gây nhầm.
-    for legacy in ("demo_90s_720p.mp4", "demo_90s_540p.mp4", "demo_90s_thumbnail.png"):
+    # Dọn bản 540p và tên cũ để thư mục không còn file gây nhầm.
+    for legacy in (
+        "demo_v6_540p.mp4",
+        "demo_90s_720p.mp4",
+        "demo_90s_540p.mp4",
+        "demo_90s_thumbnail.png",
+    ):
         (out_dir / legacy).unlink(missing_ok=True)
 
     builder.assemble(master, 23, visible, transition)
     log(f"xuat: {master}")
-
-    run(
-        [
-            str(ffmpeg), "-y", "-hide_banner", "-loglevel", "error",
-            "-i", str(master),
-            "-vf", "scale=960:540:flags=lanczos",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "28",
-            "-fps_mode", "cfr", "-an", str(light),
-        ],
-        workdir,
-    )
-    log(f"xuat: {light}")
 
     run(
         [
@@ -835,7 +971,6 @@ def main(argv=None):
     summary = []
     for label, path, width, height, limit in (
         ("720p", master, 1280, 720, SIZE_LIMITS_MB["720p"]),
-        ("540p", light, 960, 540, SIZE_LIMITS_MB["540p"]),
     ):
         info = parse_ffmpeg_info(ffmpeg, path)
         size_mb = info["size"] / 1024**2
