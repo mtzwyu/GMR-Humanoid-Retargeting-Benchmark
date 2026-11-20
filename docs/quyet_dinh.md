@@ -23,7 +23,7 @@ Tuyên bố "real-time" vì thế lấy từ **README của repo**, không phả
 **Quyết định: chọn C.**
 
 **Hệ quả cụ thể:**
-1. Tuyên bố chính: GMR retarget **theo thời gian thực trên CPU**. Ngưỡng `ms_per_frame ≤ 33,3 ms` là **ngưỡng nhóm tự đặt** theo LAFAN1 30 fps — **không phải** ngưỡng của paper. Phải ghi rõ điều này ở mục 2.
+1. Tuyên bố chính: GMR retarget **theo thời gian thực trên CPU**. Ngưỡng `ms_per_frame ≤ 33,33 ms` là **ngưỡng nhóm tự đặt** theo LAFAN1 30 fps — **không phải** ngưỡng của paper. Phải ghi rõ điều này ở mục 2.
 2. Thêm một mục trong `docs/v1_tuyen_bo.md`: trình bày Bảng I/II/III của paper, mỗi bảng ghi rõ cần gì để tái lập, và kết luận "ngoài phạm vi giai đoạn 1 vì thiếu policy đã train / GPU / IsaacSim".
 3. Kết luận mục 7 dự kiến: **"tái lập một phần"** — phần thời gian thực tái lập được, phần số trong bảng của paper thì không.
 4. Không được gọi clip `walk1_subject1.bvh` (7.840 frame = 261,3 s) là "Walk 1" của Bảng I — Bảng I ghi Walk 1 chỉ **33 giây**.
