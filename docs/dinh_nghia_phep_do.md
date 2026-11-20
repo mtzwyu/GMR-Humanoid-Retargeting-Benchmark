@@ -1,7 +1,7 @@
 # Định nghĩa phép đo — nguồn sự thật chung của nhóm
 
 **Nhóm 01 · HR-04 · 15DHTH07 · HK1 2026–2027**
-Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.4** (đồng bộ `tools/quality_metrics.py` + DEC-03 + chuẩn làm tròn)
+Người chốt: Duy (Planner) · Ngày chốt: **2026-11-20** · Phiên bản: **1.5** (RV-48/49/50: ngưỡng proxy, làm tròn mm 1 chữ số, 1 warm-up + 5 lần đo)
 Ai cũng đọc. **Không ai sửa** (muốn đổi phải qua Duy, ghi phiên bản mới).
 
 Mục đích: để 4 người đo ra số ghép được với nhau. Mọi file CSV trong `results/` phải theo đúng file này. Tuyên bố đang kiểm chứng: `docs/v1_tuyen_bo.md` (C5).
@@ -94,10 +94,10 @@ Không dùng một mức chung. Mỗi đại lượng có số chữ số thập
 | `fps_out`, `fps_out_process` | **1** | `57,6` |
 | `realtime_factor`, `realtime_factor_process` | **2** | `1,92` |
 | CV (%) | **2** | `2,13` |
-| `foot_slide` (mm/s), `min_body_height`, `rest_offset`, `Δ` (mm) | **3** | `49,041` |
+| `foot_slide` (mm/s), `min_body_height`, `rest_offset`, `Δ` (mm) | **1** | `49,0` · `+9,9` · `−7,6` |
 | `pct_frames_penetration`, `joint_limit_saturation_pct` (%) | **2** | `2,13` |
 | Số đếm (frame, lần chạy) | **0** (số nguyên) | `7840` |
-| Ngưỡng và số trích từ `docs/quyet_dinh.md` (DEC-03) | giữ đúng văn bản quyết định | `33,33 ms` · `50 mm/s` · `49,0` · `2,13 %` |
+| Ngưỡng (không phải số đo) | giữ đúng văn bản quyết định | `33,33 ms` · `50 mm/s` · `30 mm` · `−1 mm` · `0,5°` |
 
 Quy tắc chung còn lại:
 
@@ -107,7 +107,7 @@ Quy tắc chung còn lại:
 | CSV | CSV là định dạng **máy đọc** nên vẫn dùng **dấu chấm** (code xuất `round(..., 3)`); chuẩn dấu phẩy chỉ áp cho tài liệu/báo cáo |
 | Cấm | ghi "khoảng", "gần", "~"; trộn dấu chấm thập phân với dấu phẩy trong cùng một tài liệu; tự thêm/bớt chữ số giữa các bảng |
 
-Ví dụ chuẩn: `ms_per_frame_process = 17,349 ms` · `fps_out_process = 57,6` · `realtime_factor_process = 1,92` · `CV = 2,13 %` · `foot_slide = 49,041 mm/s`.
+Ví dụ chuẩn: `ms_per_frame_process = 17,349 ms` · `fps_out_process = 57,6` · `realtime_factor_process = 1,92` · `CV = 2,13 %` · `foot_slide = 49,0 mm/s`.
 
 ---
 
@@ -121,7 +121,7 @@ cpu, ram_gb, os, python, numpy, mujoco, mink, torch, git_head, cuda_visible
 
 Quy tắc cứng:
 
-1. **Cùng một máy** cho cả 3 lần đo của một cấu hình. Đổi máy → đổi `machine_id`, không trộn.
+1. **Cùng một máy** cho cả 5 lần đo của một cấu hình. Đổi máy → đổi `machine_id`, không trộn.
 2. `CUDA_VISIBLE_DEVICES=""` — `scripts/measure_runtime.py` tự đặt cho cả 2 process con. **Bản đo cũ không có cột `cuda_visible`**, nên khi trích số giai đoạn 1 phải ghi rõ "không xác minh được biến này".
 3. Tắt ứng dụng nặng, cắm sạc, không chạy song song việc khác trong lúc đo.
 4. **Ghim commit** repo GMR: hiện tại `25f56db7` (2026-10-23 giờ VN). Mọi CSV ghi `git_head`.
@@ -130,14 +130,18 @@ Quy tắc cứng:
 
 ---
 
-## 3. Quy trình chạy: 1 warm-up + 3 lần đo
+## 3. Quy trình chạy: 1 warm-up + 5 lần đo
 
 ```
 lần 1  → WARM-UP, ghi vào CSV với run=1 nhưng BỊ LOẠI khỏi mọi phép tính
 lần 2  → đo, run=2
 lần 3  → đo, run=3
-lần 4  → đo, run=4        (có thể chạy thêm run=5,6 nếu CV > 5 %)
+lần 4  → đo, run=4
+lần 5  → đo, run=5
+lần 6  → đo, run=6        ← bản chính thức V3 dùng 5 lần đo (run 2..6)
 ```
+
+Lệnh tương ứng: `--runs 6 --warmup-runs 1`. Lệnh `--runs 4` chỉ tạo 3 lần đo, **không** tái lập được số trong báo cáo — chỉ dùng để kiểm tra chạy được.
 
 - Mỗi lần là **một process mới** (tránh cache/heap tích tụ giữa các lần).
 - Trong mỗi lần đo, **bỏ 30 frame đầu** (≈ 1 s ở 30 fps) để loại chi phí khởi tạo lười (JIT/allocation lần đầu). Ghi rõ số frame bị bỏ vào `n_warmup_frames`.
@@ -162,14 +166,14 @@ Với mỗi cấu hình (robot × clip × máy), tính **riêng cho từng đạ
 
 ```
 # Nhóm A — vòng lặp retarget
-ms_per_frame_final = mean( ms_per_frame của run 2, 3, 4 )
+ms_per_frame_final = mean( ms_per_frame của run 2..6 )
 sd_A     = độ lệch chuẩn mẫu (ddof = 1) của 3 giá trị trên
 CV_A     = sd_A / ms_per_frame_final × 100 %
 fps_out  = 1000 / ms_per_frame_final
 realtime_factor = fps_out / fps_src
 
 # Nhóm B — cả tiến trình
-ms_per_frame_process_final = mean( ms_per_frame_process của run 2, 3, 4 )
+ms_per_frame_process_final = mean( ms_per_frame_process của run 2..6 )
 sd_B     = độ lệch chuẩn mẫu (ddof = 1) của 3 giá trị trên
 CV_B     = sd_B / ms_per_frame_process_final × 100 %
 fps_out_process = 1000 / ms_per_frame_process_final
@@ -220,7 +224,7 @@ run,robot,motion,bvh_file,n_frames,n_warmup_frames,fps_src,ms_per_frame,ms_per_f
 
 Khi viết báo cáo: gọi file này là **"bản đo cũ"**, không gọi là "file đúng hợp đồng §5.1".
 
-- `run`: 1 = warm-up (bị loại), 2–4 = đo.
+- `run`: 1 = warm-up (bị loại), 2–6 = đo (5 lần).
 - `cmd`: **nguyên văn** lệnh đã chạy (dấu nháy được phép, dấu phẩy thì bọc trong `"`).
 - `timestamp`: ISO-8601, ví dụ `2026-11-21T14:03:11+07:00`.
 - `realtime_factor` được tính từ `fps_src` của **chính dòng đó**, không copy từ dòng khác.
@@ -288,8 +292,10 @@ Quyết định gốc: `docs/quyet_dinh.md` **DEC-03** (ngày 2026-11-21, commit
 
 | Chỉ số | Ngưỡng | Trạng thái |
 |---|---|---|
-| `foot_slide` | **≤ 50 mm/s** | **GIỮ và ÁP** — đo cùng đại lượng với code (§1.2), phân biệt rõ 3 robot |
+| `foot_slide` | **≤ 50 mm/s** | **GIỮ và ÁP nguyên vẹn** — ngưỡng đặt ngày **2026-11-20 (trước khi đo)**, đo cùng đại lượng với code (§1.2), phân biệt rõ 3 robot |
 | `min_body_height` | **± 5 mm** | **RÚT** — ngưỡng cũ đã đặt ngày **2026-11-20**, rút ngày **2026-11-21**; lý do: đại lượng này đo **gốc body thấp nhất**, mà mỗi model có độ cao gốc ở tư thế nghỉ khác nhau (**G1 +16,1 mm · T1 +36,7 mm · PM01 +45,0 mm**), nên ngưỡng ±5 mm đo "model nghỉ cao bao nhiêu" chứ không đo "có xuyên sàn hay không" |
+
+**Thừa nhận về `foot_slide` (bắt buộc ghi khi trích số).** `foot_slide` là **chỉ số proxy**: nó đo ở **tâm thân bàn chân** và xác định "tiếp đất" theo **mức thấp nhất của chính bàn chân đó** trong clip — không dùng lực phản lực mặt đất, không đo vận tốc điểm tiếp xúc thật. Vì vậy việc áp ngưỡng **50 mm/s** là **lựa chọn của nhóm**, **không phải chuẩn ngành**; nhãn ✅/❌ chỉ có nghĩa "so với ngưỡng nhóm đặt", không phải "đạt chuẩn kỹ thuật".
 
 **Thay thế `min_body_height ± 5 mm` bằng hai đại lượng hậu kiểm** (báo cáo số, **không** gắn nhãn đạt/không đạt):
 
@@ -306,8 +312,10 @@ Câu bắt buộc trong báo cáo:
 |---|---|---|---|---|
 | `foot_slide` (mm/s) | ≤ 50 | **49,0 ✅** (sát ngưỡng) | 83,1 ❌ | 118,4 ❌ |
 | `min_body_height` (mm) — *ngưỡng đã rút* | — | +9,9 | −7,6 | +43,8 |
-| `Δ` so với nghỉ (mm) | hậu kiểm | −6,25 | −44,29 | −1,10 |
+| `Δ` so với nghỉ (mm) | hậu kiểm | −6,3 | −44,3 | −1,1 |
 | `pct_frames_penetration` (%) | hậu kiểm | 0 | 2,13 | 0 |
+
+*Số gốc trong DEC-03 ghi `−6,25 · −44,29 · −1,10`; ở đây làm tròn **1 chữ số thập phân** theo §1.3, giá trị không đổi.*
 
 Hệ quả cho kết luận: vẫn **"tái lập một phần"**, nhưng lý do phải viết là **chỉ 1/3 robot đạt `foot_slide`**, và T1 xuyên sàn ở **2,13 %** frame — **không** được viết "vì nhóm không đặt ngưỡng".
 
@@ -326,7 +334,7 @@ Giữ nguyên simulator (MuJoCo CPU), **không** huấn luyện lại gì, chỉ
 Dự phòng (cũng có BVH ✅): `fourier_n1`, `stanford_toddy`, `unitree_h2`.
 **Không dùng** `unitree_h1` / `unitree_h1_2` cho đường BVH: README đang để **TBD** ở cột BVH(LAFAN1).
 
-Với mỗi robot: chạy đúng §3 (1 warm-up + 3 lần), cùng một file BVH, ghi `results/v5_sim2sim.csv`, kèm **toàn bộ bộ chỉ số chất lượng §1.2** (`foot_slide` L/R/mean, `min_body_height`, `rest_offset`, `pct_frames_penetration`, `joint_limit_saturation_pct`).
+Với mỗi robot: chạy đúng §3 (1 warm-up + 5 lần đo), cùng một file BVH, ghi `results/v5_sim2sim.csv`, kèm **toàn bộ bộ chỉ số chất lượng §1.2** (`foot_slide` L/R/mean, `min_body_height`, `rest_offset`, `pct_frames_penetration`, `joint_limit_saturation_pct`).
 
 Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình học có giữ được khi đổi embodiment không** — không phải "robot nào giỏi hơn".
 
@@ -352,3 +360,4 @@ Câu hỏi V5 trả lời: **thời gian xử lý và chất lượng hình họ
 | 1.2 | 2026-11-21 | **Đồng bộ với CLI cuối của Code** (`scripts/measure_runtime.py` @ `5f9cdd5`): đổi tên `ms_per_frame_retarget` → **`ms_per_frame`** và `ms_per_frame_retarget_p95` → **`ms_per_frame_p95`** (đây mới là tên chính thức); mọi số đo cả tiến trình giữ hậu tố `_process`; §5.1 chép đúng thứ tự cột của `SUMMARY_COLUMNS` (thêm `n_frames_total`, `process_cmd`); mô tả khả năng đo **2 process** của script | Duy |
 | 1.3 | 2026-11-21 | **RV-29**: sửa lại cho đúng thực tế — giai đoạn 1 đo bằng **bản đo cũ**, **chỉ có `ms_per_frame_process`** (13 cột, 6 dòng = 1 warm-up + 5 lần đo), **không có** `ms_per_frame`; script `5f9cdd5` mới chỉ là **khả năng**, chưa dùng cho số giai đoạn 1 và Planner chốt không chạy lại V3/V5. §1.1, §5.1 (thêm bảng map cột cũ: `realtime_factor` → `realtime_factor_process`), §6.1 (bắt buộc dùng bảng bắc cầu), §2 (bản đo cũ không có `cuda_visible`) | Duy |
 | 1.4 | 2026-11-21 | **Đồng bộ với code `tools/quality_metrics.py` @ `f00421e`** (audit công thức phát hiện lệch): §1.2 viết lại `foot_slide` (tâm thân bàn chân, `CONTACT_TOL_MM = 30`, tổng dịch ngang trên tổng thời gian tiếp đất, riêng L/R rồi **trung bình** — không phải `z < 1 cm` + trung vị như bản cũ) và `min_body_height` (min **gốc body** trên mọi body, báo mm); thêm `rest_offset`, `pct_frames_penetration` (`PENETRATION_MM = −1`), `joint_limit_saturation_pct` (`LIMIT_TOL_DEG = 0,5`, bão hoà không phải vượt). **DEC-03**: giữ `foot_slide ≤ 50 mm/s`, **rút** `min_body_height ± 5 mm` (đặt 2026-11-20, rút 2026-11-21, lý do kỹ thuật), thay bằng `Δ` so với vị trí nghỉ + `pct_frames_penetration`; thêm §6.4. Thêm **§1.3 chuẩn làm tròn** 3 chữ số thập phân, dấu phẩy | Duy |
+| 1.5 | 2026-11-21 | **RV-48**: §6.4 ghi rõ `foot_slide` **đặt 2026-11-20 (trước khi đo), áp dụng nguyên vẹn**, và thêm câu thừa nhận đây là **chỉ số proxy** (tâm thân bàn chân, tiếp đất theo mức thấp nhất của chính bàn chân đó) nên ngưỡng 50 mm/s là **lựa chọn của nhóm, không phải chuẩn ngành**. **RV-49**: §1.3 đổi mm/s và mm về **1 chữ số thập phân** (49,0 · +9,9 · −7,6). **RV-50**: §3 đổi thành **1 warm-up + 5 lần đo** (`--runs 6`), ghi rõ `--runs 4` chỉ để kiểm tra chạy được; §4, §5.1, §7 đồng bộ theo | Duy |

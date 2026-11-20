@@ -125,21 +125,32 @@ Cả hai process đều được script đặt `CUDA_VISIBLE_DEVICES=""`.
 > ⚠ **Số liệu giai đoạn 1 KHÔNG dùng lệnh dưới đây.** Bản đo cũ đã chốt, Planner không cho chạy lại V3/V5. Lệnh dưới chỉ là **quy trình chuẩn** nếu sau này đo lại (hoặc cho V5), và để Run biết CLI đã chốt.
 
 CLI chính thức của `scripts/measure_runtime.py`:
-`--motion` (alias `--bvh-file`), `--robot`, `--runs N` (**tổng** số lần chạy, mặc định `4` = 1 warm-up + 3 đo), `--warmup-runs`, `--warmup-frames`, `--out` (alias `--csv`), `--raw-out`, `--fps-src`, `--script`, `--gmr-dir`, `--python`, `--dry-run`, `--frames`, `--work-dir`.
+`--motion` (alias `--bvh-file`), `--robot`, `--runs N` (**tổng** số lần chạy; mặc định của script là `4` = 1 warm-up + 3 đo — **bản chính thức dùng `6`**), `--warmup-runs`, `--warmup-frames`, `--out` (alias `--csv`), `--raw-out`, `--fps-src`, `--script`, `--gmr-dir`, `--python`, `--dry-run`, `--frames`, `--work-dir`.
 
 ```bash
-# chạy khô trước, không cần env gmr (dữ liệu giả) — kiểm hợp đồng CSV
+# (0) chạy khô, không cần env gmr (dữ liệu giả) — kiểm hợp đồng CSV
 python scripts/measure_runtime.py --dry-run --runs 4 --warmup-runs 1
 
-# chạy thật: 1 warm-up + 3 lần đo, mỗi lần một process mới
+# (1) BẢN NHANH: 1 warm-up + 3 lần đo — CHỈ để kiểm tra chạy được, KHÔNG dùng cho số trong báo cáo
 conda run -n gmr python scripts/measure_runtime.py \
   --motion <LAFAN1>/walk1_subject1.bvh \
   --robot unitree_g1 \
   --runs 4 --warmup-runs 1 --warmup-frames 30 \
   --fps-src 30 \
+  --out results/v3_runtime_check.csv \
+  --raw-out results/v3_runtime_check_raw.csv
+
+# (2) BẢN TÁI LẬP SỐ CHÍNH THỨC V3: 1 warm-up + 5 lần đo — DÙNG CHO SỐ TRONG BÁO CÁO
+conda run -n gmr python scripts/measure_runtime.py \
+  --motion <LAFAN1>/walk1_subject1.bvh \
+  --robot unitree_g1 \
+  --runs 6 --warmup-runs 1 --warmup-frames 30 \
+  --fps-src 30 \
   --out results/v3_runtime.csv \
   --raw-out results/v3_runtime_raw.csv
 ```
+
+> ⚠ **Phân biệt hai bản.** Bản đo chính thức V3 là **1 warm-up + 5 lần đo** (`--runs 6`). Lệnh `--runs 4` chỉ tạo ra 3 lần đo → **không tái lập được** bộ số trong báo cáo. Bản nhanh ghi ra file `_check.csv` riêng để không ghi đè số chính thức.
 
 - `--gmr-dir` mặc định `third_party/GMR`; nếu clone chỗ khác thì truyền vào.
 - `--python` mặc định là python đang chạy script — trong `conda run -n gmr` thì đúng env `gmr`.
