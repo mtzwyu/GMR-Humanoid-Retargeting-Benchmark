@@ -105,6 +105,21 @@ Thiếu 1 trong 5 dòng → Planner trả lại Review, không chuyển Code.
 | **G2** | Ngày 7 | Có `results/v3_runtime.csv` + `results/v5_sim2sim.csv` do Review chấm PASS | Dồn điểm sang mục 3 (nhật ký tắc) |
 | **G3** | Ngày 9 | Báo cáo đủ 8 mục, 0 lỗi CHẶN MERGE | Trường kiểm chéo, Duy chốt |
 
+## Bằng chứng hình ảnh
+
+Sản phẩm nộp cần "bằng chứng chạy được"; ảnh là bằng chứng rẻ nhất và không thể làm giả bằng lời.
+
+- Lưu vào `results/figures/`, định dạng **PNG**, mỗi ảnh ≤ 1 MB (chụp đúng vùng, không chụp nguyên màn hình 4K).
+- Tên tệp: `<nhiệm vụ>_<nội dung>_<yyyy-mm-dd>.png` — ví dụ `v3_runtime_g1_2026-11-21.png`.
+- Mỗi ảnh phải có **1 dòng caption** trong `results/figures/README.md`: ảnh gì · lệnh nào sinh ra · ngày · người chụp.
+- Bắt buộc có 4 loại:
+  1. Ảnh terminal chạy lệnh đo (thấy rõ lệnh + thời gian)
+  2. Ảnh kết quả render robot trong MuJoCo (nếu viewer chạy được)
+  3. Đồ thị `ms_per_frame` theo robot/lần chạy
+  4. Ảnh mở `results/*.csv` (bằng chứng số liệu tồn tại)
+- Video demo: `.mp4` **không commit** (đã gitignore) — để ngoài repo và nộp kèm link.
+- Ảnh phải do máy chạy ra, không dùng ảnh minh hoạ lấy từ repo gốc.
+
 ## Quy tắc cứng
 
 1. `main` chỉ Planner merge. Không ai push thẳng, không ai chạy thử trên `main`.
