@@ -11,6 +11,9 @@ docs/slide_bai_giang/*.ppsx
 docs/slide_bai_giang/*.pdf
 docs/tai_lieu_tham_khao/*.pdf
 
+# === Repo ngoài (clone GMR để chạy, không commit) ===
+third_party/
+
 # === Python ===
 __pycache__/
 *.py[cod]
