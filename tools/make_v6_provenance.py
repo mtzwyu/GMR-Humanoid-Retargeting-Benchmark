@@ -25,14 +25,28 @@ def gmr_head():
         return f"unknown ({e})"
 
 
+def pkl_name(mode, level):
+    """Ten file pkl that su dung trong v6_all.ps1 (de nguoi cham lam theo cmd tim dung file)."""
+    lv = float(level)
+    if mode == "n1":
+        return f"v6_n1_{('%g' % lv).replace('.', 'p')}deg.pkl"
+    if mode == "n2":
+        return f"v6_n2_k{int(lv)}.pkl"
+    if mode == "n3":
+        return f"v6_n3_{int(lv)}pct.pkl"
+    return f"v6_n4_{'m' if lv < 0 else 'p'}{int(abs(lv))}pct.pkl"
+
+
 rows = []
 csv_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "results", "v6_noise_sweep.csv")
 with open(csv_path, newline="", encoding="utf-8-sig") as f:
     for r in csv.DictReader(f):
+        name = pkl_name(r["mode"], r["level"])
         rows.append({
             "mode": r["mode"], "level": float(r["level"]), "seed": 0,
             "cmd": (f'python tools/v6_run.py --mode {r["mode"]} --level {r["level"]} --seed 0 '
-                    f'--out results/pkl/v6_{r["mode"]}_{r["level"]}.pkl'),
+                    f'--out results/pkl/{name}'),
+            "pkl_exists": os.path.exists(os.path.join(ROOT, "results", "pkl", name)),
             "n_frames": int(r["n_frames"]),
             "result": {k: r[k] for k in ("dq_mean", "dq_max", "dr_rmse_mm",
                                          "pct_frames_gt5deg", "still_converges",

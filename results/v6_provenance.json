@@ -1,6 +1,6 @@
 {
   "experiment": "V6 — 4 phép thử nhiễu (DEC-02, docs/v6_noise_spec.md)",
-  "generated_at": "2026-11-21T03:06:13+07:00",
+  "generated_at": "2026-11-21T03:07:06+07:00",
   "gmr": {
     "repo": "https://github.com/YanjieZe/GMR",
     "git_head": "25f56db",
@@ -32,7 +32,8 @@
       "mode": "n1",
       "level": 0.5,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n1 --level 0.5 --seed 0 --out results/pkl/v6_n1_0.5.pkl",
+      "cmd": "python tools/v6_run.py --mode n1 --level 0.5 --seed 0 --out results/pkl/v6_n1_0p5deg.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.5616",
@@ -48,7 +49,8 @@
       "mode": "n1",
       "level": 1.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n1 --level 1 --seed 0 --out results/pkl/v6_n1_1.pkl",
+      "cmd": "python tools/v6_run.py --mode n1 --level 1 --seed 0 --out results/pkl/v6_n1_1deg.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "1.0995",
@@ -64,7 +66,8 @@
       "mode": "n1",
       "level": 2.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n1 --level 2 --seed 0 --out results/pkl/v6_n1_2.pkl",
+      "cmd": "python tools/v6_run.py --mode n1 --level 2 --seed 0 --out results/pkl/v6_n1_2deg.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "2.176",
@@ -80,7 +83,8 @@
       "mode": "n1",
       "level": 5.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n1 --level 5 --seed 0 --out results/pkl/v6_n1_5.pkl",
+      "cmd": "python tools/v6_run.py --mode n1 --level 5 --seed 0 --out results/pkl/v6_n1_5deg.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "5.4134",
@@ -96,7 +100,8 @@
       "mode": "n2",
       "level": 1.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n2 --level 1 --seed 0 --out results/pkl/v6_n2_1.pkl",
+      "cmd": "python tools/v6_run.py --mode n2 --level 1 --seed 0 --out results/pkl/v6_n2_k1.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.001",
@@ -112,7 +117,8 @@
       "mode": "n2",
       "level": 2.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n2 --level 2 --seed 0 --out results/pkl/v6_n2_2.pkl",
+      "cmd": "python tools/v6_run.py --mode n2 --level 2 --seed 0 --out results/pkl/v6_n2_k2.pkl",
+      "pkl_exists": true,
       "n_frames": 7838,
       "result": {
         "dq_mean": "0.001",
@@ -128,7 +134,8 @@
       "mode": "n2",
       "level": 3.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n2 --level 3 --seed 0 --out results/pkl/v6_n2_3.pkl",
+      "cmd": "python tools/v6_run.py --mode n2 --level 3 --seed 0 --out results/pkl/v6_n2_k3.pkl",
+      "pkl_exists": true,
       "n_frames": 7837,
       "result": {
         "dq_mean": "0.001",
@@ -144,7 +151,8 @@
       "mode": "n2",
       "level": 5.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n2 --level 5 --seed 0 --out results/pkl/v6_n2_5.pkl",
+      "cmd": "python tools/v6_run.py --mode n2 --level 5 --seed 0 --out results/pkl/v6_n2_k5.pkl",
+      "pkl_exists": true,
       "n_frames": 7835,
       "result": {
         "dq_mean": "0.001",
@@ -160,7 +168,8 @@
       "mode": "n3",
       "level": 1.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n3 --level 1 --seed 0 --out results/pkl/v6_n3_1.pkl",
+      "cmd": "python tools/v6_run.py --mode n3 --level 1 --seed 0 --out results/pkl/v6_n3_1pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.0033",
@@ -176,7 +185,8 @@
       "mode": "n3",
       "level": 5.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n3 --level 5 --seed 0 --out results/pkl/v6_n3_5.pkl",
+      "cmd": "python tools/v6_run.py --mode n3 --level 5 --seed 0 --out results/pkl/v6_n3_5pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.0158",
@@ -192,7 +202,8 @@
       "mode": "n3",
       "level": 10.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n3 --level 10 --seed 0 --out results/pkl/v6_n3_10.pkl",
+      "cmd": "python tools/v6_run.py --mode n3 --level 10 --seed 0 --out results/pkl/v6_n3_10pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.0355",
@@ -208,7 +219,8 @@
       "mode": "n4",
       "level": -20.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n4 --level -20 --seed 0 --out results/pkl/v6_n4_-20.pkl",
+      "cmd": "python tools/v6_run.py --mode n4 --level -20 --seed 0 --out results/pkl/v6_n4_m20pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "1.8575",
@@ -224,7 +236,8 @@
       "mode": "n4",
       "level": -10.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n4 --level -10 --seed 0 --out results/pkl/v6_n4_-10.pkl",
+      "cmd": "python tools/v6_run.py --mode n4 --level -10 --seed 0 --out results/pkl/v6_n4_m10pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "0.7342",
@@ -240,7 +253,8 @@
       "mode": "n4",
       "level": 10.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n4 --level 10 --seed 0 --out results/pkl/v6_n4_10.pkl",
+      "cmd": "python tools/v6_run.py --mode n4 --level 10 --seed 0 --out results/pkl/v6_n4_p10pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "1.8769",
@@ -256,7 +270,8 @@
       "mode": "n4",
       "level": 20.0,
       "seed": 0,
-      "cmd": "python tools/v6_run.py --mode n4 --level 20 --seed 0 --out results/pkl/v6_n4_20.pkl",
+      "cmd": "python tools/v6_run.py --mode n4 --level 20 --seed 0 --out results/pkl/v6_n4_p20pct.pkl",
+      "pkl_exists": true,
       "n_frames": 7839,
       "result": {
         "dq_mean": "3.135",
