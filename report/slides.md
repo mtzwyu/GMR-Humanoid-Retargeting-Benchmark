@@ -193,10 +193,11 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 - GMR = tối ưu động học, không có physics trong vòng tính
 - SHA256: 40 pkl trùng theo cặp (robot, motion)
-- Thay bằng N1–N4: nhiễu khớp · trễ · mất frame · lệch tỉ lệ người
-- Đang chạy: `results/v6_noise_sweep.csv` (1 lần/mức, 5 chỉ số)
+- Thay bằng N1–N4: nhiễu khớp · trễ · mất frame · lệch tỉ lệ người (15 mức × 1 lần)
+- Kết quả headline: N2/N3 vô hại · N1 hỏng từ **2°** · N4 hỏng từ **±10 %**, giãn nặng hơn co
+- Cảnh báo trên slide: `dr_rmse` 719 mm của N4 là **scale quỹ đạo**, không phải sai tư thế
 
-**Lời:** "Nhóm không lấp bằng một bảng đẹp; nhóm thay bằng phép thử có tác dụng thật."
+**Lời:** "Nhóm không lấp bằng một bảng đẹp; nhóm thay bằng phép thử có tác dụng thật — và nói rõ chỉ số nào không được đọc sai."
 
 ---
 
@@ -243,6 +244,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 | 4 | Sim2sim không đúng "nhiễu vật lý"? | Khối lượng không vào vòng tính; 40 pkl trùng SHA256. Làm bảng ±20 % sẽ là bảng giả; nhóm thay bằng N1–N4. |
 | 5 | Hai đợt lệch 14 %, số nào tin? | pkl giống nhau từng byte → chênh do trạng thái máy. Chọn đợt chậm hơn (bảo thủ), báo 17,3 ms kèm sai số giữa phiên. |
 | 6 | So với paper thế nào? | Paper không công bố ms/FPS/hardware; chỉ so được với ngưỡng nhóm đặt. Không có tỉ lệ "nhanh hơn paper". |
+| 7 | Nhiễu trễ có 36° ở frame 0 — có phải lỗi tích lũy? | Không. Đó là **1 frame biên**: IK khởi tạo từ nghiệm frame trước nên phụ thuộc warm start; lệch tắt dần 0,31 → 0,10 → 0,05 → 0,02°. `dq_mean` toàn clip = 0,001°. |
 
 ---
 

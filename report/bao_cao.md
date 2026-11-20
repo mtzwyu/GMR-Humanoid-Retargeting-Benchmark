@@ -5,540 +5,447 @@
 
 | Hạng mục | Giá trị |
 |---|---|
-| Repo | https://github.com/YanjieZe/GMR |
-| Commit của repo dùng trong toàn bộ báo cáo | `25f56db` (`25f56db79ac411258b377b6d4ccba0c8ff3372ac`, 2026-10-22) |
-| Giấy phép mã nguồn | MIT — "Copyright 2025 YanjieZe" (đã đọc file `LICENSE`) |
+| Repo / commit | `YanjieZe/GMR` @ `25f56db` (2026-10-22) · LICENSE MIT |
 | Bài báo | *Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking*, arXiv:2510.02252v1, 9 trang, CC BY 4.0 |
-| Dữ liệu dùng để đo | LAFAN1 (Ubisoft), BVH 30 fps, giấy phép **CC BY-NC-ND 4.0** — dùng cho học thuật, không phân phối lại |
-| Máy đo | LENOVO 83GS · Intel Core i5-12450HX (8 nhân/12 luồng) · ~15,7 GiB RAM · Windows 11 · **chạy CPU** |
-| Phạm vi | Giai đoạn 1: chạy retargeting có sẵn, đo tốc độ, sim2sim 3 robot; **không** huấn luyện RL, **không** robot thật |
+| Dữ liệu đo | LAFAN1 (Ubisoft), BVH 30 fps, CC BY-NC-ND 4.0 — học thuật, không phân phối lại |
+| Máy đo | LENOVO 83GS · i5-12450HX (8 nhân/12 luồng) · ~15,7 GiB RAM · Windows 11 · **CPU** |
+| Phạm vi | Chạy retargeting có sẵn, đo tốc độ, sim2sim 3 robot + 4 phép thử nhiễu; **không** train RL, **không** robot thật |
 
-> **Quy ước đọc báo cáo.** Mọi số của nhóm nằm ở cột "nhóm đo được", mọi số của bài báo nằm ở cột "bài báo". Hai cột **không** được trộn, không suy diễn, không quy đổi. Số nào nhóm không tự đo thì ghi rõ **"không đo"** kèm lý do.
-
----
+> **Quy ước.** Mọi số của nhóm nằm ở cột "nhóm đo được", mọi số của paper nằm ở cột "bài báo". Hai cột không trộn, không suy diễn. Số không tự đo thì ghi **"không đo"** kèm lý do.
 
 ## 1. Giới thiệu bài toán và tóm tắt bài báo
 
 ### 1.1 Bài toán
 
-Một robot hình người không thể "bắt chước" trực tiếp chuyển động của con người. Dữ liệu chuyển động người (mocap) mô tả một bộ xương với số khớp, chiều dài khâu và tư thế nghỉ khác hẳn robot. **Retargeting** là bước trung gian: nhận quỹ đạo của người theo thời gian rồi sinh ra quỹ đạo khớp (`qpos`) cho robot sao cho robot vừa giữ được "dáng" của chuyển động gốc, vừa thoả các ràng buộc vật lý của chính nó.
+**Retargeting** nhận quỹ đạo chuyển động của người (mocap) và sinh quỹ đạo khớp (`qpos`) cho robot hình người, sao cho giữ được "dáng" chuyển động gốc mà vẫn thoả ràng buộc của robot. Bài toán khó ở ba tầng:
 
-Bài toán khó ở ba tầng:
+1. **Sai khác hình thái.** Người và robot khác nhau về số bậc tự do, tỉ lệ chiều dài khâu, giới hạn khớp và tư thế nghỉ. Ánh xạ thẳng góc khớp là vô nghĩa; ánh xạ thẳng vị trí tuyệt đối thì vi phạm giới hạn khớp.
+2. **Ràng buộc vật lý.** Kết quả phải không xuyên sàn, không bay, không tự cắt, không giật khớp — những lỗi mắt người thấy ngay nhưng khó gói vào một hàm mục tiêu.
+3. **Thời gian thực.** Với teleoperation, retargeting phải nhanh ít nhất bằng tốc độ phát dữ liệu nguồn (LAFAN1 30 fps ⇒ 33,3 ms/frame). Chậm hơn thì chỉ phát lại được, không điều khiển được.
 
-1. **Sai khác hình thái (embodiment gap).** Người và robot khác nhau về số bậc tự do, tỉ lệ chiều dài tay/chân/thân, giới hạn khớp và tư thế nghỉ. Ánh xạ thẳng theo góc khớp là vô nghĩa; ánh xạ thẳng theo vị trí tuyệt đối thì vi phạm giới hạn khớp.
-2. **Ràng buộc vật lý của kết quả.** Một file retarget "đẹp" phải không xuyên sàn, không bay lên khỏi mặt đất, không để hai chân/hai tay tự cắt nhau, không có cú giật khớp. Đây là những lỗi mà mắt người thấy ngay nhưng lại khó diễn đạt thành một hàm mục tiêu duy nhất.
-3. **Yêu cầu thời gian thực.** Với teleoperation hoặc điều khiển trực tiếp, retargeting phải chạy nhanh ít nhất bằng tốc độ phát của dữ liệu nguồn (LAFAN1: 30 fps, tức ngân sách 33,3 ms mỗi frame). Chậm hơn ngưỡng đó thì hệ thống chỉ phát lại được, không điều khiển được.
+Tầng thứ ba là chỗ nhóm chọn kiểm chứng: đo được trên CPU, không cần GPU, không cần huấn luyện.
 
-Điểm thứ ba chính là chỗ nhóm chọn để kiểm chứng, vì nó đo được trên CPU, không cần GPU, không cần huấn luyện.
+### 1.2 Tóm tắt bài báo (lời của nhóm)
 
-### 1.2 Tóm tắt bài báo (viết lại bằng lời của nhóm)
+**Luận điểm.** Bài báo không chọn "retargeter nào khớp khít nhất". Tác giả lập luận rằng **cách retarget quyết định việc policy tracking phía sau có học và sống sót được hay không**, nên phải đánh giá retargeter bằng chính policy chạy trên file retarget của nó. Ba câu hỏi: (i) chọn phương pháp retargeting có đổi hiệu năng policy không; (ii) artifact nào làm policy hỏng; (iii) các phương pháp giữ "dáng" nguồn tới mức nào.
 
-**Luận điểm trung tâm.** Bài báo không đứng về phía "thuật toán retargeting nào khớp khít nhất". Tác giả lập luận rằng **cách retarget có ảnh hưởng quyết định tới việc một policy tracking phía sau có học và có sống sót được hay không**. Vì vậy, để đánh giá một retargeter, không thể chỉ nhìn file đầu ra bằng mắt; phải huấn luyện một policy trên chính file đó rồi đo tỉ lệ sống sót và sai số bám quỹ đạo. Tên bài — *Retargeting Matters* — chính là câu trả lời cho ba câu hỏi mà tác giả đặt ra: (i) chọn phương pháp retargeting có làm thay đổi hiệu năng policy không; (ii) artifact nào của retargeting làm policy hỏng; (iii) các phương pháp giữ được "dáng" chuyển động nguồn tới mức nào.
+**Cách làm.** Bốn nguồn retargeting — GMR, PHC, ProtoMotions, pipeline closed-source của Unitree — cùng xử lý **21 chuỗi LAFAN1**. Mỗi file retarget dùng để train **một policy riêng** bằng BeyondMimic (RL độc lập với các retargeter, không tinh chỉnh reward), trên **Unitree G1**. Đánh giá: sim gốc (100 rollout/policy), sim có ngẫu nhiên hoá động lực học (4096), sim2sim MuJoCo qua node ROS (100). Ba nhóm chỉ số: tỉ lệ thành công, sai số vị trí/góc body, ảnh hưởng frame bắt đầu; kèm user study 20 người.
 
-**Cách làm.** Nhóm tác giả lấy **bốn nguồn retargeting** khác nhau — GMR (phương pháp của chính bài báo), PHC, ProtoMotions và một pipeline nội bộ closed-source của Unitree — rồi cho cả bốn xử lý **cùng một bộ 21 chuỗi LAFAN1**. Sau đó, mỗi file retarget được dùng để huấn luyện **một policy riêng** bằng BeyondMimic (một phương pháp RL độc lập với các retargeter, nên phép so sánh không thiên vị bên nào), không tinh chỉnh reward cho từng phương pháp. Robot duy nhất dùng trong thí nghiệm là **Unitree G1**. Đánh giá gồm ba chế độ: mô phỏng gốc (100 rollout/policy), mô phỏng có ngẫu nhiên hoá động lực học (4096 rollout), và sim2sim trên MuJoCo qua node ROS của BeyondMimic (100 rollout). Ba nhóm chỉ số là tỉ lệ thành công, sai số vị trí/góc của body, và ảnh hưởng của frame bắt đầu. Ngoài ra có một user study 20 người để so "độ giống" bằng cảm nhận.
+**Kết quả.** GMR đạt tỉ lệ thành công rất cao (nhiều clip 100 % ở cả ba chế độ) nhưng **không tốt nhất mọi mặt**: bài báo tự ghi GMR chỉ đạt 51 % trên "Dance 5" ở sim2sim do giật khớp waist. Sai số bám quỹ đạo: GMR sau Unitree, trước PHC/ProtoMotions. Đổi frame khởi động có thể đổi tỉ lệ thành công từ 64 % lên 100 %. Artifact: PHC có ca xuyên sàn 60 cm, ProtoMotions có ca hai chân giao nhau, GMR có sudden jump dưới 2 % dataset.
 
-**Kết quả chính.** GMR đạt tỉ lệ thành công rất cao trên phần lớn chuyển động (nhiều clip 100 % ở cả ba chế độ), nhưng **không phải tốt nhất mọi mặt**: bài báo tự ghi nhận GMR chỉ đạt 51 % trên "Dance 5" ở sim2sim, do các cú giật ở khớp waist. Về sai số bám quỹ đạo, GMR đứng sau Unitree và trước PHC/ProtoMotions. Về ảnh hưởng của frame bắt đầu, bài báo cho thấy cùng một policy nhưng đổi frame khởi động có thể đổi tỉ lệ thành công từ 64 % lên 100 %. Phần artifact cũng được nêu thẳng: PHC có ca xuyên sàn tới 60 cm, ProtoMotions có ca hai chân giao nhau, GMR có sudden jump dưới 2 % độ dài dataset.
+**Phương pháp GMR.** Pipeline tối ưu hình học, **không huấn luyện**: mỗi frame xử lý tuần tự, frame trước làm điểm khởi tạo; khai báo ánh xạ key body người ↔ robot; căn rest pose Cartesian; **scale không đồng nhất theo từng body** (điểm khác biệt cốt lõi); IK tầng 1 ràng buộc hướng toàn bộ khớp + vị trí tay/chân; IK tầng 2 tinh chỉnh vị trí mọi key body. Solver dừng khi thay đổi hàm mục tiêu < 0,001 hoặc sau 10 vòng, kèm giới hạn khớp. Sau khi retarget cả chuỗi, tác giả trừ chiều cao body nhỏ nhất để chống bay/xuyên sàn. Hạn chế paper tự nêu: một nguồn dữ liệu, một robot, chưa xét tương tác, đôi khi vẫn phải chỉnh trọng số tay.
 
-**Phương pháp GMR (để hiểu nhóm đã chạy cái gì).** GMR là một pipeline tối ưu hình học, **không huấn luyện**. Mỗi frame được xử lý tuần tự và frame trước được dùng làm điểm khởi tạo cho frame sau, gồm năm bước: khai báo ánh xạ các "key body" người ↔ robot kèm trọng số vị trí/hướng; căn rest pose bằng phép biến đổi Cartesian; **scale không đồng nhất theo từng body** (đây là điểm khác biệt cốt lõi so với các phương pháp khác — hệ số scale chung theo chiều cao được nhân thêm hệ số cục bộ cho từng khâu); IK tầng 1 ràng buộc hướng của toàn bộ khớp và vị trí của tay/chân; IK tầng 2 tinh chỉnh thêm vị trí cho mọi key body. Bộ giải dừng khi thay đổi hàm mục tiêu nhỏ hơn 0,001 hoặc sau 10 vòng lặp, luôn kèm ràng buộc giới hạn khớp. Sau khi retarget xong cả chuỗi, tác giả tính chiều cao mọi body bằng forward kinematics rồi trừ đi chiều cao nhỏ nhất — đây là cách chống bay/xuyên sàn ở mức toàn clip.
+### 1.3 Khoảng trống nhóm bám vào
 
-**Hạn chế bài báo tự nêu.** Toàn bộ dữ liệu chỉ đến từ một nguồn (LAFAN1); chỉ dùng một robot (G1) vì ràng buộc của BeyondMimic; chưa xét chuyển động có tương tác với môi trường/vật/robot khác; và chính GMR đôi khi vẫn phải tinh chỉnh trọng số tay (ví dụ "Dance 5").
-
-### 1.3 Khoảng trống mà nhóm bám vào
-
-Bài báo **không công bố bất kỳ con số tốc độ nào**: không có ms/frame, không có FPS, không có cấu hình CPU/GPU, không nêu phiên bản IsaacSim/BeyondMimic/Mink và không nêu commit repo. Ba bảng định lượng của bài (Bảng I, II, III) đều là kết quả của **policy đã huấn luyện**, muốn tái lập phải có GPU, IsaacSim và 84 policy (21 clip × 4 phương pháp). Với một nhóm chỉ chạy được trên CPU và có 10 ngày, ba bảng đó nằm ngoài phạm vi — không phải "chưa làm" mà là **không thể làm**.
-
-Ngược lại, **README và phần mô tả repo** lại tuyên bố retarget "in real time on CPU". Đây là một tuyên bố định lượng có thể kiểm chứng bằng thực nghiệm trên đúng chiếc laptop của nhóm. Nhóm chọn tuyên bố này làm đối tượng kiểm chứng, đồng thời trình bày đầy đủ ba bảng của bài báo và lý do không tái lập được (phương án C — xem mục 2). Cách chọn này giữ được cả hai vế của yêu cầu môn học: có một phép đo thật của nhóm, và có đối chiếu trung thực với phần định lượng của bài báo.
-
----
+Paper **không công bố con số tốc độ nào**: không ms/frame, không FPS, không cấu hình CPU/GPU, không phiên bản IsaacSim/BeyondMimic/Mink, không commit repo. Ba bảng định lượng đều là kết quả **policy đã train**, cần GPU + IsaacSim + 84 policy — ngoài phạm vi 10 ngày, không phải "chưa làm" mà **không thể làm**. Ngược lại, README/mô tả repo tuyên bố retarget "in real time on CPU" — một tuyên bố đo được trên đúng laptop của nhóm. Nhóm chọn tuyên bố này, đồng thời trình bày đủ ba bảng paper và lý do không tái lập (phương án C, mục 2).
 
 ## 2. Tuyên bố cần kiểm chứng
 
 ### 2.1 Câu chốt
 
-> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm kiểm chứng bằng cách đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget chuyển động LAFAN1 (30 fps) sang Unitree G1 trên CPU, không bật `--rate_limit`; tuyên bố được coi là tái lập được nếu trung vị `ms_per_frame` ≤ 33,3 ms, tức `fps_out` ≥ 30 và `realtime_factor` ≥ 1,00.**
+> **GMR tuyên bố retarget chuyển động người sang humanoid "theo thời gian thực trên CPU". Nhóm đo thời gian xử lý mỗi frame (`ms_per_frame`) khi retarget LAFAN1 (30 fps) sang Unitree G1 trên CPU, không bật `--rate_limit`; coi là tái lập được nếu trung vị `ms_per_frame` ≤ 33,3 ms, tức `fps_out` ≥ 30 và `realtime_factor` ≥ 1,00.**
 
-Bốn điều bắt buộc phải ghi kèm câu trên:
+Bốn điều bắt buộc ghi kèm:
 
-1. **Nguồn của tuyên bố là repo, không phải bài báo.** Câu "real-time" nằm ở README (mục *Key features*) và mô tả repo GitHub (*"in real time on CPU"*). Bài báo **không** nói GMR chạy real-time và **không** định nghĩa "real-time".
-2. **Bài báo không công bố số.** Vì vậy "giá trị gốc" của tuyên bố này là **định tính**. Không có sai số "so với paper" cho tuyên bố này; mọi câu so sánh tốc độ với paper đều là bịa.
-3. **Ngưỡng 33,3 ms là ngưỡng của nhóm**, không phải ngưỡng của paper: `1000/30`, suy ra từ tốc độ phát của chính dữ liệu nguồn LAFAN1. Nhóm đặt trước, không đổi sau khi thấy số.
-4. **Giai đoạn 1 chỉ đo `ms_per_frame_process`** (cả tiến trình), bằng **bản đo cũ** `results/v3_runtime.csv` — file 13 cột, chỉ có cột `_process`, **không có** cột `ms_per_frame`. Kết luận bắt buộc đi qua bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`; **cấm** quy đổi `ms_per_frame = 0,92 × ms_per_frame_process`.
+1. **Nguồn tuyên bố là repo, không phải paper.** Paper không nói GMR real-time và không định nghĩa "real-time".
+2. **Paper không có số** ⇒ giá trị gốc là **định tính**; không tồn tại sai số "so với paper", mọi so sánh tốc độ với paper là bịa.
+3. **Ngưỡng 33,3 ms do nhóm đặt** (`1000/30`, từ tốc độ phát LAFAN1), chốt trước khi thấy số.
+4. **Giai đoạn 1 chỉ đo `ms_per_frame_process`** bằng bản đo cũ `results/v3_runtime.csv` (13 cột, không có cột `ms_per_frame`); kết luận đi qua bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`; **cấm** quy đổi `0,92 ×`.
 
 ### 2.2 Vì sao chọn phương án C
 
-Bài báo không có số tốc độ, nên tuyên bố "real-time" lấy từ repo. Yêu cầu môn học lại là kiểm chứng một tuyên bố **trong bài báo**. Nhóm đã cân nhắc ba phương án:
+Vì paper không có số tốc độ, nhóm cân nhắc: **A** chỉ đo real-time và ghi rõ paper không nêu (yếu chữ "trong bài báo"); **B** chuyển sang Bảng II `E_g-mpbpe = 104,1 mm` (đúng chữ "số trong paper" nhưng gần chắc chắn thất bại, không tạo số đo mới); **C** = A + trình bày ba bảng paper và lý do không tái lập. **Chọn C** (DEC-01): thoả cả hai vế, chi phí gần bằng A, vẫn kết luận dứt khoát.
 
-| | Nội dung | Ưu | Nhược |
-|---|---|---|---|
-| A | Chỉ đo real-time, ghi rõ paper không nêu | Đo được thật, đúng tinh thần đề tài | Yếu về chữ "trong bài báo" |
-| B | Chuyển sang Bảng II (`E_g-mpbpe` = 104,1 mm) | Đúng nghĩa "số trong bảng paper" | Kết luận gần như chắc chắn "không tái lập được", không đo được gì thêm |
-| **C** | **Tuyên bố chính A + một mục trình bày 3 bảng của paper và lý do không tái lập** | **Thoả cả hai vế, chi phí gần bằng A** | Báo cáo dài thêm khoảng 1 trang |
+### 2.3 Hai đại lượng, tên phải đúng
 
-**Nhóm chọn C** (quyết định DEC-01, `docs/quyet_dinh.md`). Hệ quả: tuyên bố chính là tốc độ; ba bảng của paper được trình bày ở §2.5 với cột "nhóm đo được" để trống và ghi rõ "không đo — ngoài phạm vi".
+`bvh_to_robot.py` chạy retarget và render trong cùng vòng lặp, nên `Actual rendering FPS` không phải throughput retargeting.
 
-### 2.3 Định nghĩa phép đo (hai đại lượng, tên phải đúng)
-
-`scripts/bvh_to_robot.py` chạy retarget và render trong **cùng một vòng lặp**, nên dòng `Actual rendering FPS` do script in ra là FPS **có render**, không phải thông lượng retargeting. Dùng số đó là đo sai đối tượng. Vì vậy nhóm tách hai đại lượng:
-
-| Đại lượng | Đo cái gì | Dùng để |
+| Đại lượng | Đo gì | Vai trò |
 |---|---|---|
-| `ms_per_frame` | **chỉ** lời gọi `retarget()` từng frame (probe không viewer) | Kết luận tuyên bố (đại lượng chính thức) |
-| `ms_per_frame_process` | **cả tiến trình**: nạp BVH + khởi tạo + viewer + retarget + render + ghi pkl | Cận trên bảo thủ; giai đoạn 1 chỉ có số này |
-| `realtime_factor_process` | `33,333 / ms_per_frame_process` (ngân sách 33,3 ms mỗi frame ở 30 fps) | Đọc kèm, **không** thay `realtime_factor` |
+| `ms_per_frame` | **chỉ** `retarget()` từng frame (probe, không viewer) | Đại lượng của tuyên bố |
+| `ms_per_frame_process` | cả tiến trình: nạp BVH + init + viewer + retarget + render + ghi pkl | Cận trên bảo thủ; giai đoạn 1 chỉ có số này |
+| `realtime_factor_process` | `33,333 / ms_per_frame_process` | Đọc kèm, không thay thế |
 
-**Bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`** (áp dụng vì thiếu số Nhóm A):
+**Bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`** (vì thiếu số Nhóm A):
 
-| Tình huống | Được kết luận |
+| Tình huống | Kết luận |
 |---|---|
-| `ms_per_frame_process` ≤ 33,3 ms | **Tái lập được** — điều kiện đủ, vì `retarget ≤ process ≤ 33,3 ms` |
-| `process` > 33,3 ms **và** `ms_per_frame` ≤ 33,3 ms | Tái lập một phần |
-| `process` > 33,3 ms **và** `ms_per_frame` > 33,3 ms | Không tái lập được (phải thử máy thứ hai) |
-| `process` > 33,3 ms, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra |
+| `process` ≤ 33,3 ms | **Tái lập được** — điều kiện đủ (`retarget ≤ process`) |
+| `process` > 33,3 **và** `ms_per_frame` ≤ 33,3 | Tái lập một phần |
+| `process` > 33,3 **và** `ms_per_frame` > 33,3 | Không tái lập được (phải thử máy thứ hai) |
+| `process` > 33,3, **không có** `ms_per_frame` | **Chưa kết luận được** — không được suy ra |
 
-Ba mức kết luận đã chốt trước: `realtime_factor` ≥ 1,00 → tái lập được; 0,80–0,99 → tái lập một phần; < 0,80 → không tái lập được.
+Ba mức chốt trước: `realtime_factor` ≥ 1,00 tái lập được · 0,80–0,99 một phần · < 0,80 không.
 
-### 2.4 Bảng hai cột: bài báo và nhóm đo được
+### 2.4 Bảng hai cột
 
-Bảng dưới là bảng kết quả tổng hợp của báo cáo. Cột "bài báo" **không** chứa số của nhóm; cột "nhóm đo được" **không** chứa số của paper.
+| Đại lượng (điều kiện) | Bài báo | Nhóm đo được |
+|---|---|---|
+| `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** (bản đo cũ không có cột) |
+| `ms_per_frame_process` (ms) | **không nêu** | **17,272** (trung vị, n = 5; mean 17,349; sd 0,369; CV 2,13 %) |
+| `fps_out_process` (frame/s) | **không nêu** | **57,9** (suy ra `1000/17,272`) |
+| `realtime_factor_process` (lần) | **không nêu** (chỉ chữ "real time") | **1,93** (`33,333/17,272`) |
+| V5 · T1 29dof · `_process` (ms) | **—** | **13,034** (n = 5, CV 11,32 %) → 2,56 |
+| V5 · G1 · `_process` (ms) | **—** | **17,018** (n = 3, CV 4,59 %) → 1,96 |
+| V5 · PM01 · `_process` (ms) | **—** | **35,454** (n = 3, CV 3,01 %) → 0,94 |
+| Success rate "Dance 5" sim2sim (%) | 51 (Bảng I, tr. 6) | **không đo** (ngoài phạm vi) |
+| `E_g-mpbpe` mean GMR (mm) | 104,1 (Bảng II, tr. 6) | **không đo** (ngoài phạm vi) |
+| Xuyên sàn PHC "Dance 1" (cm) | 60 (mục V-B, tr. 6) | **không đo** (ngoài phạm vi) |
 
-| Đại lượng (điều kiện) | Bài báo | Nhóm đo được | Ghi chú |
-|---|---|---|---|
-| `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** | Bản đo cũ không có cột này; không được thay bằng số `_process` |
-| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** | **17,272** (trung vị, n = 5; mean 17,349; sd 0,369; CV 2,13 %) | Bản đo cũ, 1 warm-up bị loại |
-| `fps_out_process` (frame/s) | **không nêu** | **57,9** (suy ra `1000/17,272`) | Chỉ là số dẫn xuất, ghi rõ |
-| `realtime_factor_process` (lần) | **không nêu** (chỉ có chữ "real time" ở README) | **1,93** (`33,333/17,272`) | **Không** phải `realtime_factor` của vòng lặp retarget |
-| V5 · T1 29dof · `ms_per_frame_process` (ms) | **—** | **13,034** (trung vị, n = 5, CV 11,32 %) → rtf 2,56 | Paper chỉ dùng G1, không công bố tốc độ |
-| V5 · G1 · `ms_per_frame_process` (ms) | **—** | **17,018** (trung vị, n = 3, CV 4,59 %) → rtf 1,96 | như trên |
-| V5 · PM01 · `ms_per_frame_process` (ms) | **—** | **35,454** (trung vị, n = 3, CV 3,01 %) → rtf 0,94 | như trên |
-| Success rate "Dance 5" sim2sim (%) | 51 (Bảng I, tr. 6) | **không đo** | Ngoài phạm vi — cần policy đã train |
-| `E_g-mpbpe` mean của GMR (mm) | 104,1 (Bảng II, tr. 6) | **không đo** | Ngoài phạm vi — đo trên quỹ đạo policy |
-| Xuyên sàn của PHC "Dance 1" (cm) | 60 (mục V-B, tr. 6) | **không đo** | Ngoài phạm vi — phải dựng lại PHC, cần SMPL-X |
+Hai lưu ý: cột `realtime_factor` **trong CSV** là của từng lần chạy, không dùng để báo cáo; `walk1_subject1.bvh` dài **7.840 frame = 261,3 s**, **không phải** "Walk 1" của Bảng I (33 s).
 
-Hai lưu ý về cách đọc bảng:
+### 2.5 Ba bảng của paper và vì sao không tái lập
 
-- Cột `realtime_factor` **trong file CSV** là của **từng lần chạy** (`motion_duration_s / wall_clock_s`), **không** phải số tổng hợp. Số tổng hợp trong báo cáo luôn tính bằng `33,333 / median_ms`, đúng như cột cuối bảng.
-- `walk1_subject1.bvh` dài **7.840 frame = 261,3 s** ở 30 fps. Đây **không phải** "Walk 1" của Bảng I (33 s). Hai clip khác nhau; gộp lại là sai số liệu.
-
-### 2.5 Ba bảng định lượng của bài báo và vì sao không tái lập được
-
-Bài báo có đúng ba bảng số. Cả ba đều đo **policy đã huấn luyện**, không đo retargeter:
-
-| # | Bảng | Đại lượng (đơn vị) | Giá trị GMR trong paper | Cần gì để tái lập |
+| # | Bảng | Đại lượng | Giá trị GMR | Cần gì |
 |---|---|---|---|---|
-| 1 | **Bảng I**, tr. 6 | success rate (%) trên 21 motion × 4 phương pháp × 3 chế độ | 100 % ở "Dance 1"/"Dance 2"; **51 %** ở "Dance 5" sim2sim | IsaacSim + BeyondMimic + policy đã train cho từng clip × từng phương pháp + 100/4096/100 rollout |
-| 2 | **Bảng II**, tr. 6 | `E_g-mpbpe` (mm), `E_mpbpe` (mm), `E_mpjpe` (10⁻³ rad) | mean **104,1 mm** / 28,1 mm / 561,7 | Như trên, chế độ sim, 100 rollout/policy; sai số đo trên **quỹ đạo policy**, không phải file retarget |
-| 3 | **Bảng III**, tr. 7 | success rate sim2sim (%) theo `start frame` | "Walk 2": **64 %** (frame 0) → **100 %** (frame 7) | **Cùng một policy đã train**, chỉ đổi frame đầu + 100 rollout MuJoCo |
+| 1 | I, tr. 6 | success rate (%) | 100 % "Dance 1"/"Dance 2"; **51 %** "Dance 5" sim2sim | IsaacSim + BeyondMimic + policy đã train + 100/4096/100 rollout |
+| 2 | II, tr. 6 | `E_g-mpbpe`/`E_mpbpe` (mm), `E_mpjpe` (10⁻³ rad) | **104,1** / 28,1 / 561,7 | như trên, 100 rollout/policy; đo trên quỹ đạo policy |
+| 3 | III, tr. 7 | success rate theo `start frame` | "Walk 2": **64 %** (frame 0) → 100 % (frame 7) | cùng policy đã train, đổi frame đầu |
 
-**Bốn lý do không tái lập được (phải nêu đủ, không được rút gọn thành "thiếu GPU"):**
+**Bốn lý do không tái lập:** (1) phải train **84 policy** (21 × 4); (2) cần **IsaacSim + GPU** cho sim/sim-dr (4096 rollout); (3) sim2sim cần **node ROS + state estimation** của BeyondMimic; (4) paper **không công bố** hardware, phiên bản, commit ⇒ không dựng lại được môi trường kể cả có GPU. Ba bảng nằm ngoài phạm vi; cột "nhóm đo được" của ba dòng tương ứng để **"không đo"**.
 
-1. Phải **huấn luyện 84 policy** (21 clip × 4 phương pháp) bằng BeyondMimic — mỗi policy là một quá trình RL riêng.
-2. Phải có **IsaacSim + GPU** cho chế độ sim và sim-dr (4096 rollout mỗi policy).
-3. Sim2sim của paper cần **node ROS + state estimation** của BeyondMimic, không chỉ một script MuJoCo.
-4. Bài báo **không công bố cấu hình phần cứng**, phiên bản IsaacSim/BeyondMimic/Mink và commit repo → **không dựng lại được môi trường** kể cả khi có GPU.
+### 2.6 Ba điều không được tuyên bố
 
-**Kết luận của mục này:** ba bảng của paper nằm ngoài phạm vi giai đoạn 1. Cột "nhóm đo được" của ba dòng tương ứng trong bảng §2.4 để **"không đo"**, không có số nào của paper bị chép sang cột nhóm.
-
-### 2.6 Ba điều nhóm không được tuyên bố
-
-1. **Không** nói "GMR nhanh hơn PHC/ProtoMotions" — paper không đo tốc độ, nhóm cũng không đo các phương pháp kia.
-2. **Không** nói "nhóm tái lập Bảng I / Bảng II" — hai bảng đó cần train RL.
-3. **Không** nói "paper tuyên bố real-time" — paper không nói vậy; tuyên bố nằm ở README/mô tả repo.
-
----
+1. Không nói "GMR nhanh hơn PHC/ProtoMotions" — paper và nhóm đều không đo tốc độ các phương pháp kia.
+2. Không nói "tái lập Bảng I/II" — cần train RL.
+3. Không nói "paper tuyên bố real-time" — tuyên bố ở README/mô tả repo.
 
 ## 3. Nhật ký cài đặt
 
-Nhật ký đầy đủ nằm ở `logs/nhat_ky_cai_dat.md` (15 mục cài đặt + 4 mục FIX + MEDIA + RV-23), kèm 6 log thô (`_conda_create.log`, `_conda_libstdcxx.log`, `_pip_install_editable*.log`, `_pip_proxsuite.log`, `_smplx_attempt.log`) và `logs/lenh_da_chay.md`. Mục này tóm tắt **bảy sự cố đáng kể** — chọn theo tiêu chí: có ảnh hưởng tới số liệu hoặc tới kết luận, không phải sự cố vặt.
+Nhật ký đầy đủ: `logs/nhat_ky_cai_dat.md` (15 mục + 4 FIX + MEDIA + RV-23), 6 log thô, `logs/lenh_da_chay.md`. Dưới đây là 7 sự cố ảnh hưởng tới số liệu hoặc kết luận.
 
 ### 3.1 Môi trường cuối cùng
 
 | Mục | Giá trị |
 |---|---|
-| Máy | LENOVO 83GS (laptop), Windows 11 Home Single Language 10.0.26300 |
-| CPU / RAM | Intel Core i5-12450HX, 8 nhân / 12 luồng · 16.873.545.728 byte (~15,7 GiB) |
-| GPU | NVIDIA GeForce RTX 4050 Laptop GPU, 6144 MiB — **không dùng** cho đường đo (chạy CPU) |
-| Conda / Python | conda 26.7.1 (Miniconda3) · Python 3.10.21, env `gmr` |
-| Repo | `third_party/GMR`, HEAD `25f56db`, LICENSE MIT |
-| Gói chính | `mujoco 3.17.0`, `mink 1.3.0`, `torch 2.14.1`, `smplx 0.1.28`, `daqp 0.11.2`, `qpsolvers 4.13.0`, **`proxsuite 0.7.2.post1` (ghim)** |
-| `requirements.txt` | 45 dòng, lấy nguyên văn từ `pip freeze` của env `gmr`, có `-e git+…GMR@25f56db…` |
-| Cổng G1 | `smplx_to_robot.py --help` exit 0, in đủ usage + 17 robot — **ĐẠT** |
+| Máy / OS | LENOVO 83GS, Windows 11 Home Single Language 10.0.26300 |
+| CPU / RAM / GPU | i5-12450HX 8 nhân/12 luồng · ~15,7 GiB · RTX 4050 Laptop 6 GiB (**không dùng** khi đo) |
+| Conda / Python | conda 26.7.1 · Python 3.10.21, env `gmr` |
+| Gói chính | `mujoco 3.17.0`, `mink 1.3.0`, `torch 2.14.1`, `smplx 0.1.28`, `daqp 0.11.2`, **`proxsuite 0.7.2.post1` (ghim)** |
+| `requirements.txt` | 45 dòng từ `pip freeze` thật, có `-e git+…GMR@25f56db…` |
+| Cổng G1 | `smplx_to_robot.py --help` exit 0, in 17 robot — **ĐẠT** |
 
 ### 3.2 Bảy sự cố
 
-**(1) `proxsuite` không có wheel cho Windows → `pip install -e .` thất bại.**
-Lần cài đầu (21:24–21:31) chết ở bước chuẩn bị metadata của `proxsuite>=0.2.9` (dependency của `qpsolvers[proxqp]`): pip tải source 54,7 MB rồi gọi CMake, nhưng máy không có MSVC (`where cl` rỗng) nên báo `CMAKE_C_COMPILER not set` và `metadata-generation-failed`. Đã thử hai hướng: tìm wheel win-64 cho bản 0.8.2 (không có, chỉ có sdist) và tìm trên conda-forge (chỉ build cho linux/osx). **Cách xử lý:** ghim `proxsuite==0.7.2.post1` — bản duy nhất có wheel `cp310-win_amd64` (4,3 MB) — rồi cài lại `pip install -e .`, thành công exit 0. **Không sửa một dòng nào trong `pyproject.toml`**; chỉ ghim phiên bản từ bên ngoài. Chấp nhận được vì GMR/mink dùng solver mặc định **daqp**, `proxqp` chỉ là backend dự phòng.
+**(1) `proxsuite` không có wheel Windows.** Lần cài đầu chết ở metadata `proxsuite>=0.2.9` (dependency của `qpsolvers[proxqp]`): pip tải source 54,7 MB, CMake báo `CMAKE_C_COMPILER not set` vì máy không có MSVC. Bản 0.8.2 chỉ có sdist; conda-forge chỉ build linux/osx. **Xử lý:** ghim `proxsuite==0.7.2.post1` — bản duy nhất có wheel `cp310-win_amd64` (4,3 MB) — cài lại exit 0. Không sửa `pyproject.toml`; chấp nhận được vì solver mặc định là **daqp**.
 
-**(2) Bước `libstdcxx-ng` trong README không áp dụng cho Windows.**
-`conda install -c conda-forge libstdcxx-ng` trả `PackagesNotFoundInChannelsError`. Nguyên nhân: đây là gói **chỉ có cho linux-64** (thư viện C++ của GCC); bước này trong README nhằm sửa lỗi render trên Ubuntu. **Cách xử lý:** bỏ qua có ghi chép, và kiểm chứng bù bằng việc chạy thật có mở cửa sổ MuJoCo ở V3 — nếu render lỗi sẽ thấy ngay.
+**(2) `libstdcxx-ng` trong README chỉ có cho Linux.** `conda install -c conda-forge libstdcxx-ng` trả `PackagesNotFoundInChannelsError`. Bỏ qua có ghi chép; kiểm chứng bù bằng việc chạy thật có mở cửa sổ MuJoCo.
 
-**(3) Đường SMPL-X bị chặn bởi license → phải đổi đường dữ liệu.**
-Repo không kèm body model: `assets/body_models/` không tồn tại, còn `utils/smpl.py` gọi `smplx.create(<assets/body_models>, "smplx", …)` nên bắt buộc phải có `SMPLX_NEUTRAL/FEMALE/MALE.pkl`. Chạy thử ra `FileNotFoundError`. Cả body model SMPL-X và dữ liệu AMASS/OMOMO đều phải đăng ký tài khoản và ký license tại trang của Max Planck, không có đường tải công khai; nhóm không có tài khoản license này. **Quyết định:** chuyển sang `scripts/bvh_to_robot.py` với LAFAN1 BVH — dữ liệu tải công khai, repo có sẵn 6 config IK `bvh_lafan1_to_*.json`, và đây là đường chính README hướng dẫn cho BVH. **Hệ quả phải ghi rõ trong báo cáo: V3 và V5 đo trên đường BVH, không phải đường SMPL-X như bài báo.**
+**(3) SMPL-X bị chặn bởi license → đổi đường dữ liệu.** Repo không kèm body model nhưng `utils/smpl.py` bắt buộc gọi `smplx.create(...)`. SMPL-X và AMASS/OMOMO đều phải đăng ký + ký license tại Max Planck, không có đường tải công khai. **Quyết định:** dùng `bvh_to_robot.py` + LAFAN1 BVH (công khai, repo có 6 config `bvh_lafan1_*`). **Hệ quả: V3/V5 đo trên đường BVH, không phải SMPL-X như paper.**
 
-**(4) KI-01 — robot cúi gập người khi phát lại.**
-Khi render `g1_walk4_no_rate_limit_1.pkl`, robot gập hẳn về trước, đầu cúi, chân khuỵu. Nhóm đã loại trừ bốn giả thuyết bằng số đo chứ không bằng cảm nhận:
+**(4) KI-01 — robot cúi gập khi phát lại.** Render `g1_walk4_no_rate_limit_1.pkl` thấy robot gập về trước, chân khuỵu. Đã loại trừ bằng số đo:
 
 | Motion | frames | `waist_pitch` TB ± std | `hip_pitch` | `knee` | `root z` |
 |---|---|---|---|---|---|
 | `walk4_subject1` | 4.917 | **+29,52° ± 1,70** | −56,3 / −56,1° | +37,5 / +39,3° | 0,766 m |
 | `walk3_subject1` | — | +25,19° ± 4,27 | −11,8 / −11,4° | +33,3 / +34,9° | 0,729 m |
-| `dance1_subject2` (repo đánh dấu OK) | 3.944 | +18,62° ± 8,70 | −23,1 / −20,0° | +49,3 / +47,9° | 0,754 m |
+| `dance1_subject2` | 3.944 | +18,62° ± 8,70 | −23,1 / −20,0° | +49,3 / +47,9° | 0,754 m |
 
-Tỉ lệ scale người→robot = 1,75/1,8 = 0,972 (bình thường); viewer và retarget dùng **cùng** file `g1_mocap_29dof.xml`; đổi clip thì tư thế đổi theo clip. **Nguyên nhân:** `walk4_subject1.bvh` là clip **đi bộ khom lưng** của LAFAN1 — retarget tái hiện trung thực, pipeline không lỗi. Bằng chứng phụ: `waist_pitch` của walk4 gần như hằng số (std 1,7° so với 6,0° và 8,7° của hai clip kia), tức tư thế cố định suốt clip chứ không phải nhiễu ngẫu nhiên. **Cách xử lý:** đổi motion chính thức sang `walk1_subject1.bvh`, chạy lại V3, giữ walk4 làm ví dụ "motion khó". Kết luận này có được nhờ so sánh **ba motion qua cùng một pipeline**, không phải nhờ nhìn một clip rồi đoán.
+Scale người→robot 1,75/1,8 = 0,972 (bình thường); viewer và retarget dùng **cùng** `g1_mocap_29dof.xml`; đổi clip thì tư thế đổi theo. **Nguyên nhân:** `walk4` là clip **đi bộ khom lưng** của LAFAN1 — retarget tái hiện trung thực, pipeline không lỗi (`waist_pitch` gần như hằng số, std 1,7° so với 6,0° và 8,7°). **Xử lý:** chuyển motion chính thức sang `walk1_subject1`, chạy lại V3; giữ walk4 làm ví dụ motion khó.
 
-**(5) KI-02 / RV-13 — cột `cmd` ghi một cờ chưa từng được truyền.**
-Trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi in ra CSV** (dòng 20, 23), còn lệnh thật (dòng 26) **không** kèm cờ. Vì vậy 4 dòng `mode = rate_limit` thực chất là lần chạy **không** giới hạn tốc độ. Ba nguồn độc lập xác nhận: (a) mã script; (b) log của chính các lần đó ghi `Actual rendering FPS` 64–136, trong khi một bộ giới hạn 30 Hz không thể cho 64 fps; (c) đo riêng thư viện trong env `gmr`: `RateLimiter(30).sleep()` × 300 → 14,004 s = **21,42 Hz (46,68 ms/lần)**, tức thư viện chậm hơn 30 Hz chứ không nhanh hơn. **Cách xử lý:** xoá 4 dòng khỏi CSV, rút toàn bộ kết luận về `--rate_limit`, và ghi lại bản chất: cờ này là công cụ phát lại cho mắt người xem, **không dùng để đo throughput**. Bài học được đưa vào mục 7: cột `cmd` là **hợp đồng tái lập**, một dòng sai làm cả bảng mất giá trị — và người phát hiện là người **không viết ra nó**, đây chính là lý do phải tách vai Review.
+**(5) KI-02/RV-13 — cột `cmd` ghi cờ chưa từng truyền.** `measure_v3.ps1` chỉ ghép `--rate_limit` vào **chuỗi in ra CSV** (dòng 20, 23), lệnh thật (dòng 26) không có cờ. Ba nguồn xác nhận: mã script; log các lần đó ghi 64–136 fps (bộ giới hạn 30 Hz không thể); đo lại `RateLimiter(30)` × 300 = 14,004 s = **21,42 Hz (46,68 ms)** — thư viện chậm hơn 30 Hz. **Xử lý:** xoá 4 dòng, rút kết luận về `--rate_limit`; cờ này chỉ để phát lại cho mắt người, không dùng đo throughput.
 
-**(6) RV-14 — log không chứa số đo, và lỗi font khi sửa.**
-Ban đầu `wall_clock_s` chỉ được in ra console PowerShell, không ghi vào file log của từng lần chạy, nên `ms_per_frame` và `realtime_factor` **không thể đối chiếu ngược**. Cách sửa: mỗi lần chạy ghi thêm một dòng cuối vào chính file log:
+**(6) RV-14 — log không chứa số đo.** Ban đầu `wall_clock_s` chỉ in ra console. Đã thêm dòng cuối vào từng log: `END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 frames=7840 exit=0 …`. Lần đầu dùng `-Encoding utf8` làm vỡ file UTF-16LE → đổi `-Encoding Unicode`, **chạy lại toàn bộ**; 20/20 log đo có dòng `END`.
 
-```
-END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 frames=7840 exit=0 at=2026-11-20 22:50:56
-```
+**(7) Hai đợt V3 lệch 14,4 % — và retarget tất định.** Đợt cũ (`c62e74f`, n = 3): 14,034/15,139/16,339 → mean **15,171**. Đợt mới (`f467075`, n = 5): mean **17,349**, median **17,272**. Chạy lại vì log hỏng (sự cố 6), không vì số xấu. Băm SHA256 **40 pkl**: mọi lần chạy cùng cặp (robot, motion) **giống nhau từng byte** — G1+walk1 ×20 `E7E3B906…`, T1+walk1 ×7 `4E716187…`, PM01+walk1 ×5 `57B693A8…`, G1+walk4 ×5 `37F0ACD2…`. ⇒ chênh do **trạng thái máy**, không do thuật toán; chọn đợt mới (chậm hơn, bảo thủ).
 
-Lần ghi đầu dùng `-Encoding utf8` nên chèn UTF-8 vào file log vốn là UTF-16LE của PowerShell, chữ bị vỡ → đổi sang `-Encoding Unicode` và **chạy lại toàn bộ**. Kết quả: **20/20 log của các lần đo** (6 log V3 + 14 log V5) có dòng `END`, khớp CSV tuyệt đối.
+### 3.3 Ba bài học
 
-**(7) Chênh 14,4 % giữa hai đợt đo V3 — và bằng chứng retarget là tất định.**
-Đợt cũ (`c62e74f`, n = 3): 14,034 · 15,139 · 16,339 → mean **15,171**. Đợt mới (`f467075`, n = 5): mean **17,349**, median **17,272**. Lệch **+14,36 %** trên cùng máy, cùng input, cùng commit repo. Lý do chạy lại **không phải vì số xấu** mà vì định dạng log hỏng (sự cố 6) — nhưng đợt mới là đợt duy nhất có log đối chiếu được, nên lấy làm số chính thức.
-
-Để trả lời câu "chênh do thuật toán hay do máy", nhóm băm SHA256 toàn bộ **40 file pkl**. Kết quả: mọi lần chạy của cùng một cặp (robot, motion) cho ra file **giống nhau từng byte**, bất kể đợt đo, bất kể có/không `--rate_limit`:
-
-| Nhóm pkl | Số file | SHA256 (rút gọn) |
-|---|---|---|
-| G1 + `walk1_subject1` | 20 | `E7E3B906F22D3869…` |
-| T1 29dof + `walk1_subject1` | 7 | `4E7161873D508ABE…` |
-| PM01 + `walk1_subject1` | 5 | `57B693A8AAC72FE8…` |
-| G1 + `walk4_subject1` | 5 | `37F0ACD2DD0EFF3C…` |
-| Ba file KI-01 lẻ | 3 | `7A8FFEBE…`, `C9488E53…`, `2C6498E5…` |
-
-**Kết luận:** chênh lệch 14,4 % **không đến từ thuật toán** (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU). Đây chính là bản chất của một phép đo wall-clock toàn tiến trình. Hệ quả khi viết báo cáo: **không** được viết "17,35 ms" như thể chính xác đến 0,4 ms; phải nêu sai số giữa hai phiên ≈ 14 %, lớn hơn CV trong một phiên (2,13 %).
-
-### 3.3 Ba điều nhật ký này dạy nhóm
-
-1. **Cài không được không phải thất bại** — miễn là ghi rõ tắc ở đâu và đã thử gì. Ba sự cố (1), (2), (3) đều kết thúc bằng một quyết định có lý do, không phải bằng cách lách.
-2. **Review độc lập có giá trị bằng cả một người làm.** Sự cố (5) do Review phát hiện; nếu không tách vai, bảng kết quả sẽ chứa một kết luận không có bằng chứng.
-3. **Số đo phải tự truy vết được.** Sau sự cố (6), mỗi con số trong CSV đều lần ngược được tới một dòng `END` trong log của chính lần chạy đó.
-
----
+1. Cài không được không phải thất bại, miễn ghi rõ tắc ở đâu và đã thử gì.
+2. Review độc lập có giá trị bằng một người làm — sự cố (5) do Review phát hiện.
+3. Số đo phải tự truy vết: mỗi số trong CSV lần ngược được tới dòng `END` của chính lần chạy.
 
 ## 4. Kết quả chạy mô hình có sẵn, đối chiếu với bài báo
 
-### 4.1 Đối tượng đo và lệnh chạy
+### 4.1 Thiết lập
 
-- Input: `walk1_subject1.bvh` (LAFAN1), **7.840 frame, 30 fps, 261,333 s**.
-- Robot: `unitree_g1` (29 DoF) — robot duy nhất bài báo dùng.
-- Chế độ: **không** `--rate_limit`.
-- Lệnh (nguyên văn từ cột `cmd` của CSV):
+- Input `walk1_subject1.bvh` — **7.840 frame, 30 fps, 261,333 s**; robot `unitree_g1` (29 DoF); **không** `--rate_limit`.
+- Lệnh (nguyên văn cột `cmd`): `python scripts/bvh_to_robot.py --bvh_file ..\data\lafan1\walk1_subject1.bvh --format lafan1 --robot unitree_g1 --save_path ../../results/pkl/g1_walk1_subject1_run2.pkl`
+- 1 warm-up (bị loại) + 5 lần đo, mỗi lần một process mới; wall-clock cả tiến trình chia 7.840 frame.
+- Nguồn: `results/v3_runtime.csv` (**bản đo cũ, 13 cột**, chỉ `_process`), `results/v3_raw.csv`, log `results/logs/v3_walk1_subject1_run1..6.log`.
 
-```
-python scripts/bvh_to_robot.py --bvh_file ..\data\lafan1\walk1_subject1.bvh \
-  --format lafan1 --robot unitree_g1 \
-  --save_path ../../results/pkl/g1_walk1_subject1_run2.pkl
-```
-
-- Quy trình: 1 lần warm-up (bị loại) + 5 lần đo, mỗi lần một process mới; đo bằng wall-clock của cả tiến trình (`Measure-Command`), chia cho 7.840 frame.
-- Nguồn số: `results/v3_runtime.csv` — **bản đo cũ, 13 cột**, chỉ có `ms_per_frame_process`; bản thô `results/v3_raw.csv`; log từng lần `results/logs/v3_walk1_subject1_run1..6.log`.
-
-### 4.2 Bảng từng lần chạy
-
-Số lấy từ `results/v3_runtime.csv` (**bản đo cũ, 13 cột**, chỉ có `ms_per_frame_process`), đối chiếu với dòng `END` trong `results/logs/v3_walk1_subject1_run1..6.log`:
+### 4.2 Từng lần chạy
 
 | Lần | `phase` | `wall_clock_s` | `ms_per_frame_process` | Ghi chú |
 |---|---|---|---|---|
-| 1 | `warmup` | 132,473 | 16,897 | **bị loại** — không tính vào mọi thống kê |
-| 2 | `measure_1` | 137,370 | 17,522 | log `run2`, khớp `END wall_s=137.37` |
+| 1 | `warmup` | 132,473 | 16,897 | **bị loại** |
+| 2 | `measure_1` | 137,370 | 17,522 | log `run2`, `END wall_s=137.37` |
 | 3 | `measure_2` | 135,211 | 17,246 | log `run3` |
 | 4 | `measure_3` | 139,960 | 17,852 | log `run4` |
 | 5 | `measure_4` | 132,128 | 16,853 | log `run5` |
 | 6 | `measure_5` | 135,413 | 17,272 | log `run6` |
 
-| Thống kê (n = 5, bỏ warm-up) | Giá trị |
+n = 5: mean **17,349**, median **17,272**, sd 0,369, **CV 2,13 %** (≤ 5 %), biên độ 16,853–17,852; `fps_out_process` 57,9; `realtime_factor_process` **1,93**. Cả 5 giá trị đều < 20 ms nên kết luận không phụ thuộc chọn mean hay median. Không dùng cột `realtime_factor` từng dòng.
+
+### 4.3 Bằng chứng hình ảnh
+
+| Ảnh | Nội dung |
 |---|---|
-| Trung bình | 17,349 ms/frame |
-| **Trung vị (số dùng để kết luận)** | **17,272 ms/frame** |
-| Độ lệch chuẩn (ddof = 1) | 0,369 ms |
-| CV | **2,13 %** (≤ 5 % — đạt ngưỡng lặp lại của nhóm) |
-| Biên độ thô | 16,853 – 17,852 ms |
-| `fps_out_process` (dẫn xuất) | 57,9 frame/s |
-| `realtime_factor_process` = 33,333 / trung vị | **1,93** |
-
-> **Cách đọc.** Cột `realtime_factor` **trong CSV** là của từng lần chạy (`motion_duration_s / wall_clock_s`), **không** dùng để báo cáo. Số tổng hợp 1,93 ở trên tính bằng `33,333 / 17,272`. Cả 5 giá trị đều nằm dưới ngưỡng 33,3 ms, nên kết luận không phụ thuộc việc chọn trung vị hay trung bình.
-
-### 4.3 Đồ thị và bằng chứng hình ảnh
-
-| Ảnh | Nội dung | Nguồn |
-|---|---|---|
-| `results/figures/v3_ms_per_frame_g1_2026-11-20.png` | ms/frame theo 5 lần đo, có đường ngưỡng 33,33 ms | sinh bằng `third_party/_run/plot_v3.py` từ CSV |
-| `results/figures/v3_terminal_start_g1_2026-11-20.png` | cửa sổ lệnh đo đang chạy (thấy lệnh + thời điểm) | chụp màn hình |
-| `results/figures/v3_terminal_result_g1_2026-11-20.png` | kết quả một lần chạy: `TotalSeconds`, `ms_per_frame`, `realtime_factor` | chụp màn hình |
-| `results/figures/v3_render_mujoco_g1_2026-11-20.png` | cửa sổ MuJoCo đang phát G1 | chụp màn hình |
-| `results/figures/slide_v3_walk1_g1_f450/f900/f1350.png` | 3 khung 25/50/75 % của clip chính thức | trích từ `results/media/v3_walk1_g1.mp4` |
+| `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame 5 lần đo + đường ngưỡng 33,33 ms |
+| `v3_terminal_start_g1_2026-11-20.png` | cửa sổ lệnh đo đang chạy |
+| `v3_terminal_result_g1_2026-11-20.png` | kết quả một lần chạy (thời gian, ms, rtf) |
+| `v3_render_mujoco_g1_2026-11-20.png` | MuJoCo đang phát G1 |
+| `slide_v3_walk1_g1_f450/f900/f1350.png` | 3 khung 25/50/75 % của clip chính thức |
 
 ### 4.4 Đối chiếu với bài báo
 
-**Không có mốc so sánh tốc độ trong bài báo.** `docs/paper_notes.md` §12 đã quét toàn văn 9 trang: không có ms/frame, không có FPS, không có cấu hình CPU/GPU. Vì vậy phép đối chiếu duy nhất hợp lệ là so với **ngưỡng do nhóm đặt trước**: 33,3 ms/frame (1000/30, suy từ tốc độ phát LAFAN1).
+Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so được với **ngưỡng nhóm đặt**: 17,272 ms ≤ 33,3 ms ⇒ theo bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`, **tái lập được ở mức cả tiến trình** (điều kiện đủ: `retarget ≤ process`). Hai giới hạn phải nói cùng lúc: (a) **không** được nói "vòng lặp retarget đạt real-time" — bản đo cũ không có `ms_per_frame`, số 17,272 gồm init + viewer + render + ghi pkl, là **cận trên bảo thủ**; (b) sai số **giữa hai phiên ≈ 14 %**, lớn hơn CV trong phiên (2,13 %) ⇒ báo **17,3 ms** kèm sai số giữa phiên, không phải 17,35 ms chính xác đến 0,4 ms. Ba bảng paper **không đối chiếu được** và **không được đối chiếu** — chúng đo policy, không đo tốc độ.
 
-Kết quả: `ms_per_frame_process` = **17,272 ms** (trung vị, n = 5) **≤ 33,3 ms**. Theo bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`, đây là **điều kiện đủ** để kết luận tuyên bố "real-time" **tái lập được ở mức cả tiến trình**: vì `retarget ≤ process`, nếu cả tiến trình đã dưới ngưỡng thì vòng lặp retarget chắc chắn cũng dưới ngưỡng. Không cần biết `ms_per_frame` chính xác là bao nhiêu.
+### 4.5 Hạn chế phép đo
 
-Hai giới hạn của câu trên phải nói cùng lúc:
-
-- **Không được nói "retarget đạt real-time"** như thể đã đo riêng vòng lặp retarget. Bản đo cũ không có cột `ms_per_frame`; số 17,272 ms bao gồm khởi tạo, viewer, render và ghi pkl — tức là **cận trên bảo thủ**, không phải thời gian của riêng `retarget()`.
-- **Sai số giữa hai phiên đo là khoảng 14 %** (đợt cũ 15,171 ms → đợt mới 17,349 ms, cùng máy cùng input), lớn hơn CV trong một phiên (2,13 %). Vì vậy báo cáo ghi **17,3 ms** kèm sai số giữa phiên, không ghi "17,35 ms" như một con số chính xác đến 0,4 ms.
-
-So với **ba bảng của paper**: không đối chiếu được, và không được đối chiếu. Bảng I/II/III đo policy đã huấn luyện (xem §2.5), không đo tốc độ retargeting. Cột "bài báo" của dòng V3 vì thế ghi **"không nêu"**, không phải "chưa tìm thấy".
-
-### 4.5 Hạn chế của phép đo (phải ghi, không được bỏ)
-
-1. **Chỉ có số cả tiến trình.** `ms_per_frame_process` gồm cả khởi động interpreter, nạp model, khởi tạo viewer, render và ghi pkl — nên là **cận trên bảo thủ**, không phải thời gian của riêng `retarget()`.
-2. **Không xác minh được `CUDA_VISIBLE_DEVICES`.** Bản đo cũ không có cột `cuda_visible`. Việc "chạy CPU" hiện là suy luận từ mã (đường BVH không tham chiếu `cuda`), không phải bằng chứng cấu hình.
-3. **Một máy, một hệ điều hành.** Windows 11, trong khi README chỉ test Ubuntu 22.04/20.04. Kết quả không đại diện cho Linux.
-4. **Đồng hồ Windows thô.** Hạt `sleep` ~15,6 ms là lý do `RateLimiter(30)` chỉ đạt 21,4 Hz; với wall-clock thì ảnh hưởng nhỏ hơn nhưng không bằng 0.
-5. **CV của T1 trong V5 vượt ngưỡng** (11,32 % > 5 %) → theo luật nhóm phải báo **trung vị**, không báo mean; bảng §2.4 đã làm đúng.
-
----
+1. Chỉ có số **cả tiến trình**, là cận trên; không phải thời gian riêng `retarget()`.
+2. Không xác minh `CUDA_VISIBLE_DEVICES` — "chạy CPU" là suy luận từ mã, không phải bằng chứng cấu hình.
+3. Một máy Windows 11, trong khi README chỉ test Ubuntu 22.04/20.04.
+4. Đồng hồ Windows thô (hạt `sleep` ~15,6 ms) — ảnh hưởng nhỏ với wall-clock nhưng không bằng 0.
+5. T1 trong V5 có CV 11,32 % > 5 % ⇒ báo trung vị, không báo mean.
 
 ## 5. Kết quả tự huấn luyện (3 hạt giống)
 
-**Tình trạng thật:** GMR là **retargeting dựa trên tối ưu hình học**, không phải học tăng cường. Pipeline không có trọng số, không có vòng huấn luyện, không có hàm mất mát và **không có khái niệm hạt giống (seed)**. Vì vậy yêu cầu "tự huấn luyện cấu hình nhỏ, 3 hạt giống, ghi đường cong và thời gian" **không áp dụng trực tiếp** cho repo này — không phải nhóm bỏ qua, mà là đối tượng huấn luyện không tồn tại trong repo.
+GMR là **retargeting dựa trên tối ưu hình học**, không phải học tăng cường: không trọng số, không vòng huấn luyện, không hàm mất mát, **không có khái niệm seed**. Yêu cầu "train cấu hình nhỏ, 3 hạt giống, ghi đường cong" **không áp dụng** — không phải bỏ qua mà đối tượng huấn luyện không tồn tại.
 
-Phần RL duy nhất của công trình là **policy tracking của BeyondMimic** (dùng trong Bảng I/II/III của paper). Muốn "tự huấn luyện" đúng nghĩa thì phải dựng IsaacSim + BeyondMimic trên GPU, train ít nhất một policy cho một clip, rồi chạy 3 seed. Máy đo chỉ có GPU laptop 6 GiB (không dùng cho đường đo), không đủ cấu hình để dựng IsaacSim + BeyondMimic; nhóm cũng không có phiên bản IsaacSim phù hợp, và 10 ngày không đủ cho một vòng train + đánh giá.
+Phần RL duy nhất là **policy BeyondMimic** (Bảng I/II/III). Muốn train thật phải dựng IsaacSim + BeyondMimic trên GPU, train ít nhất một policy/clip rồi chạy 3 seed. Máy chỉ có GPU laptop 6 GiB (không dùng khi đo), không đủ cấu hình; 10 ngày không đủ một vòng train + đánh giá.
 
-**Phương án thay thế đã chốt trong kế hoạch (V4):** chạy lại **cùng một pipeline tối ưu** với **3 cấu hình**, ghi thời gian và khác biệt đầu ra, và giải thích rõ vì sao không có đường cong học. Ba cấu hình được lấy từ chính V5 (cùng motion, khác robot) — **số tái sử dụng, không phải phép đo mới**:
+**Phương án thay thế (V4):** chạy cùng pipeline với **3 cấu hình**, ghi thời gian và khác biệt. Ba cấu hình lấy từ V5 (cùng motion, khác robot) — **số tái sử dụng, không phải phép đo mới**:
 
-| Cấu hình | DoF | `ms_per_frame_process` (trung vị) | Khác biệt quan sát |
+| Cấu hình | DoF | `_process` (trung vị) | Khác biệt |
 |---|---|---|---|
-| Booster T1 29dof | 27 | 13,034 ms (n = 5) | nhanh nhất trong ba robot |
+| Booster T1 29dof | 27 | 13,034 ms (n = 5) | nhanh nhất |
 | Unitree G1 | 29 | 17,018 ms (n = 3) | trung gian |
 | ENGINEAI PM01 | 24 | 35,454 ms (n = 3) | chậm nhất, dù ít khớp nhất |
 
-Đọc bảng: **không có quan hệ đơn điệu giữa số DoF và thời gian** — PM01 chỉ 24 khớp nhưng chậm gấp 2,7 lần T1 27 khớp. Vì vậy không được viết "nhiều khớp thì chậm"; nguyên nhân nằm ở cấu hình IK/điều kiện solver của từng robot, và chỉ được nêu ở mức **giả thuyết** (chi tiết ở §6.5).
+Không có quan hệ đơn điệu giữa DoF và thời gian (PM01 24 khớp chậm 2,7× T1 27 khớp) ⇒ không được viết "nhiều khớp thì chậm". **Kết luận mục 5:** không có đường cong học để trình bày; ba seed không tồn tại để chạy; phần thay thế đã thực hiện. Muốn có 3 seed thật thì đối tượng phải là policy BeyondMimic — ngoài phạm vi.
 
-**Kết luận mục 5:** nhóm **không có đường cong học** để trình bày, vì không có quá trình học nào trong pipeline; ba "hạt giống" cũng không tồn tại để chạy. Phần thay thế (3 cấu hình) đã thực hiện và ghi ở trên. Nếu bắt buộc phải có 3 seed thật thì đối tượng phải là policy BeyondMimic — ngoài phạm vi giai đoạn 1 vì cần GPU + IsaacSim + thời gian train.
+## 6. Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu và đồ thị
 
----
+### 6.1 Mức 3: đổi embodiment
 
-## 6. Sim2sim: bảng tụt hiệu năng và đồ thị
-
-### 6.1 Sim2sim mức 3: nhóm đã làm gì
-
-Đề tài HR04 chọn **sim2sim mức 3**: giữ nguyên simulator, **cùng một chuyển động → ≥ 3 robot**, chạy lại chính sách **không huấn luyện lại**. Nhóm đã chạy đúng mức này với 3 robot trên cùng `walk1_subject1.bvh`:
+Đề tài chọn **sim2sim mức 3**: giữ simulator, **cùng motion → ≥ 3 robot**, không huấn luyện lại.
 
 | Robot | `--robot` | DoF | Trạng thái |
 |---|---|---|---|
 | Unitree G1 | `unitree_g1` | 29 | đo được (n = 3) |
 | Booster T1 29dof | `booster_t1_29dof` | 27 | đo được (n = 5) |
 | ENGINEAI PM01 | `engineai_pm01` | 24 | đo được (n = 3) |
-| Unitree H1 | `unitree_h1` | — | **bị chặn** (xem §6.6) |
-
-Simulator, motion, solver và toàn bộ pipeline giữ nguyên; chỉ đổi file MJCF và config IK theo robot. Đây là phép thử **đổi embodiment**, không phải phép thử nhiễu vật lý.
+| Unitree H1 | `unitree_h1` | — | **bị chặn** (§6.6) |
 
 ### 6.2 Vì sao không dùng nhiễu vật lý (DEC-02)
 
-Hướng dẫn môn mô tả cách làm sim2sim tối thiểu là **đổi tham số vật lý**: khối lượng khâu ±20 %, hệ số ma sát, thêm 1–3 bước trễ điều khiển, rồi vẽ hiệu năng theo mức nhiễu. Nhóm **không làm** đúng recipe đó, và lý do không phải "thiếu thời gian" mà là **phép thử vô nghĩa với pipeline này**:
+Hướng dẫn môn mô tả sim2sim tối thiểu bằng **đổi tham số vật lý** (khối lượng ±20 %, ma sát, trễ 1–3 bước). Nhóm không làm vậy vì phép thử **vô nghĩa với pipeline này**:
 
-1. **GMR là retargeting động học, không có physics trong vòng tính.** Mỗi frame chỉ chạy bài toán ngược trên vị trí/hướng khớp (Mink, tối đa 10 vòng lặp); không có tích phân lực, không có ma sát, không có lực tiếp xúc. Khối lượng khâu không xuất hiện ở bất kỳ bước nào của đường tính.
-2. **Đổi khối lượng không làm đổi một byte đầu ra.** Khối lượng không tham gia vào phép tính: đường retarget chỉ dùng vị trí/hướng khớp và tham số hình học (chiều dài khâu, hệ số scale, giới hạn khớp), không dùng mass/inertia/ma sát. Tính tất định của pipeline đã được kiểm bằng SHA256: **40 file pkl** thuộc các cặp (robot, motion) khác nhau, chạy ở các đợt khác nhau, có/không `--rate_limit`, đều **trùng hash trong cùng một cặp** (`E7E3B906…` cho G1+walk1 ×20, `4E716187…` cho T1+walk1 ×7, `57B693A8…` cho PM01+walk1 ×5, `37F0ACD2…` cho G1+walk4 ×5). Cùng đầu vào ⇒ cùng đầu ra từng byte, không có nguồn ngẫu nhiên nào trong vòng lặp.
-3. **Vì vậy một "bảng tụt hiệu năng theo mức nhiễu vật lý" sẽ là bảng giả.** Mọi mức ±20 % đều cho cùng một kết quả; vẽ nó ra chỉ tạo cảm giác đã kiểm chứng độ bền trong khi thực chất không đo được gì. Nhóm từ chối làm bảng đó.
+1. **Không có physics trong vòng tính.** Mỗi frame chỉ giải bài toán ngược trên vị trí/hướng khớp (Mink, ≤ 10 vòng); không tích phân lực, không ma sát, không lực tiếp xúc. Khối lượng khâu không xuất hiện ở bất kỳ bước nào.
+2. **Đổi khối lượng không đổi một byte pkl.** Đường tính chỉ dùng qpos, chiều dài khâu, hệ số scale, giới hạn khớp. Tính tất định đã kiểm bằng SHA256: **40 pkl** thuộc các cặp (robot, motion) khác nhau, khác đợt, có/không `--rate_limit`, đều **trùng hash trong cùng cặp**. Cùng đầu vào ⇒ cùng đầu ra từng byte, không có nguồn ngẫu nhiên.
+3. **Bảng "tụt theo mức nhiễu vật lý" sẽ là bảng giả.** Mọi mức ±20 % cho cùng kết quả; vẽ ra chỉ tạo cảm giác đã kiểm chứng độ bền. Nhóm từ chối làm bảng đó.
 
-Thay vào đó, nhóm giữ **mức 3** (đổi embodiment) và bổ sung **bốn phép thử nhiễu có tác dụng thật lên đầu vào của bài toán ngược** — đúng phương án C đã chốt tại DEC-02 (`docs/quyet_dinh.md`) và đặc tả tại `docs/v6_noise_spec.md`.
+Thay bằng **bốn phép thử nhiễu có tác dụng thật lên đầu vào bài toán ngược** (DEC-02, `docs/v6_noise_spec.md`).
 
-### 6.3 Bốn phép thử nhiễu thay thế
+### 6.3 Bốn phép thử
 
-Đầu vào cố định: `walk1_subject1.bvh`, robot `unitree_g1`, baseline = lần chạy sạch hiện có.
+Input cố định `walk1_subject1.bvh` → `unitree_g1`; baseline là lần chạy sạch.
 
 | # | Phép thử | Mức | Cách làm |
 |---|---|---|---|
-| N1 | **Nhiễu khớp** | σ = 0,5° · 1° · 2° · 5° | Cộng Gaussian vào mọi kênh rotation của BVH trước khi retarget |
-| N2 | **Trễ điều khiển** | k = 1 · 2 · 3 · 5 frame | Dịch chuỗi frame đi k (mô phỏng độ trễ truyền/nhận) |
-| N3 | **Mất frame** | p = 1 % · 5 % · 10 % | Bỏ ngẫu nhiên p % frame, nội suy tuyến tính để lấp |
-| N4 | **Lệch tỉ lệ người** | ±10 % · ±20 % | Scale chiều cao người — đại lượng "tương đương khối lượng" của bài toán động học |
+| N1 | Nhiễu khớp | σ = 0,5 · 1 · 2 · 5° | Cộng Gaussian vào mọi kênh rotation BVH |
+| N2 | Trễ điều khiển | k = 1 · 2 · 3 · 5 frame | Dịch chuỗi frame đi k |
+| N3 | Mất frame | p = 1 · 5 · 10 % | Bỏ ngẫu nhiên p %, nội suy tuyến tính |
+| N4 | Lệch tỉ lệ người | ±10 · ±20 % | Scale chiều cao người |
 
-Mỗi mức chạy **1 lần**, không phải 1 warm-up + 3 lần: phép thử này đo **độ lệch có hệ thống** so với baseline, không đo thời gian, nên không chịu ràng buộc CV ≤ 5 %. Điều này được ghi rõ để không bị coi là vi phạm hợp đồng 1+3 của `docs/dinh_nghia_phep_do.md`.
+Mỗi mức chạy **1 lần** vì đo **độ lệch có hệ thống**, không đo thời gian — **không** vi phạm hợp đồng 1+3. Năm chỉ số: `dq_mean` (°), `dq_max` (°), `dr_rmse` (mm), `pct_frames_gt5deg` (%), `still_converges` (0/1). Trước khi chạy, driver được kiểm chứng: chạy lại bản sạch cho `|Δq| = 0,0000°`, `dr_rmse = 0,000 mm` so với baseline.
 
-Năm chỉ số ghi cho mỗi mức: `dq_mean` (độ, trung bình |Δq| so với baseline), `dq_max` (độ), `dr_rmse` (mm, RMSE vị trí gốc), `pct_frames_gt5deg` (%, tỉ lệ frame có khớp lệch > 5° — proxy "chuyển động hỏng"), `still_converges` (0/1).
+**Giả thuyết:** retargeting giải **gần như độc lập** từng frame — frame trước chỉ là warm start, không phải ràng buộc tích lũy — nên sai số **không tích lũy theo thời gian**. Ngoại lệ đã biết: tại **frame biên** (ngay sau điểm dịch/nối clip), warm start có thể làm lệch cục bộ vài chục độ ở đúng một frame rồi tắt nhanh. Kết quả khác giả thuyết thì ghi đúng kết quả, không sửa số.
 
-**Giả thuyết cần kiểm (được phép sai):** retargeting giải tối ưu **độc lập từng frame** nên sai số không tích lũy. Kỳ vọng N1, N3, N4 tăng gần tuyến tính theo mức nhiễu; N2 (trễ) không làm sai tư thế mà chỉ **lệch pha thời gian** — nếu so đúng cặp frame thì `dq_mean` ≈ 0, còn so lệch frame thì rất lớn. Nếu kết quả khác giả thuyết, ghi đúng kết quả, không sửa số cho khớp.
+### 6.4 Kết quả
 
-### 6.4 Kết quả phép thử nhiễu
+Nguồn: `results/v6_noise_sweep.csv` (nhánh `task/v6-noise`, chờ PR 8 merge), log `results/logs/v6_*.log`, đồ thị `results/figures/v6_noise_vs_deviation.png`. Baseline `g1_walk1_subject1_run1.pkl` (`E7E3B906…`), 7.839 frame.
 
-> ⛔ **CHỜ SỐ LIỆU — mục 6.4. Nguồn: `results/v6_noise_sweep.csv` (Run đang chạy theo `docs/v6_noise_spec.md`).**
-> - **Cần điền:** bảng 4 phần (N1–N4), mỗi dòng một mức nhiễu với 5 chỉ số ở §6.3; kèm 1 câu kết luận "mức nào vô hại, mức nào làm hỏng, vì sao".
-> - **Đồ thị:** `results/figures/v6_noise_vs_deviation.png` (trục x = mức nhiễu, trục y = `dq_mean` và `pct_frames_gt5deg`).
-> - **Quy tắc:** điền nguyên số từ CSV; không nội suy mức chưa chạy; N2 phải ghi rõ cách so cặp frame (đúng pha hay lệch pha).
-> - **Người xác nhận:** Mạnh (Run) xuất CSV, Trường (mục 6) đối chiếu, Duy duyệt câu kết luận.
+**N1 — nhiễu khớp:**
 
-### 6.5 Bảng tụt hiệu năng theo robot
+| σ (°) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+|---|---|---|---|---|---|
+| 0,5 | 0,56 | 7,56 | 1,20 | 0,51 | 1 |
+| 1 | 1,10 | 14,11 | 1,56 | 5,55 | 1 |
+| 2 | 2,18 | 25,80 | 2,02 | **87,74** | 1 |
+| 5 | 5,41 | 63,89 | 3,52 | **100,00** | 1 |
 
-Số lấy từ `results/v5_sim2sim.csv` (bản thô `results/v5_raw.csv`; log `results/logs/v5_<robot>_walk1_subject1_run*.log`), bỏ dòng `phase = warmup`:
+**N2 — trễ (so đúng cặp frame):**
 
-| Robot | DoF | n | Trung vị ms/frame | CV | `realtime_factor_process` | So với ngưỡng 33,3 ms |
+| k | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+|---|---|---|---|---|---|
+| 1 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| 2 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| 3 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| 5 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+
+**N3 — mất frame:**
+
+| p (%) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | conv. |
+|---|---|---|---|---|---|
+| 1 | 0,0033 | 6,83 | 0,17 | 0,013 | 1 |
+| 5 | 0,0158 | 6,09 | 0,36 | 0,077 | 1 |
+| 10 | 0,0355 | 10,99 | 0,62 | 0,306 | 1 |
+
+**N4 — lệch tỉ lệ người:**
+
+| Mức (%) | `dq_mean` | `dq_max` | `dr_rmse` (mm) | `pct_gt5°` (%) | frame bão hoà (Δ) |
+|---|---|---|---|---|---|
+| −20 | 1,86 | 29,65 | 718,53 | 90,43 | 1.819 (−46) |
+| −10 | 0,73 | 19,27 | 358,57 | **6,37** | 1.793 (−72) |
+| +10 | 1,88 | 33,32 | 359,32 | **94,77** | 2.002 (+137) |
+| +20 | 3,14 | 42,82 | 718,51 | 98,05 | 2.166 (+301) |
+
+**Năm nhận xét:**
+
+1. **N1 — trung bình gần tuyến tính, chỉ số ngưỡng bùng nổ phi tuyến.** `dq_mean` 0,56 → 1,10 → 2,18 → 5,41°; `pct_gt5°` 0,51 → 5,55 → 87,74 → 100 %. Vì là chỉ số **ngưỡng**: khi sai số trung bình chạm ~2° thì gần như mọi frame có ít nhất một khớp vượt 5°. **Ngưỡng hỏng nằm giữa σ = 1° và 2°.** Frame bão hoà: 1.875 / 1.910 / 2.122 / 3.550 (baseline 1.865).
+2. **N2 — trễ chỉ lệch pha, không sai tư thế.** `dq_mean` = 0,0010°, `dr_rmse` = 0,03 mm ≈ 0 với mọi k = 1…5. Ngoại lệ: đúng **1 frame biên** (0,013 % ≈ 1/7.839) lệch tới 36°, rồi **tắt dần** (0,31° → 0,10° → 0,05° → 0,02°): tại frame biên IK khởi tạo từ nghiệm frame trước nên phụ thuộc trạng thái khởi tạo — **hiệu ứng biên cục bộ**, không phải tích lũy. Nếu so lệch frame, `dq_mean` sẽ rất lớn và kết luận "trễ làm hỏng tư thế" là **sai phương pháp**.
+3. **N3 — mất frame gần như vô hại.** `dq_mean` 0,0033 → 0,0355°, `pct` ≤ 0,31 % vì frame thiếu được nội suy tuyến tính.
+4. **N4 — nguy hiểm nhất và bất đối xứng.** ±10 %: **6,37 %** (co) vs **94,77 %** (giãn); ±20 %: 90,43 % và 98,05 %. **Đọc phần chênh, không đọc trị tuyệt đối:** bản sạch đã có **1.865/7.839 frame (23,8 %)** chạm giới hạn, chủ yếu `waist_pitch` (745 frame); so baseline, +10 % là +137, +20 % là +301, −10 % là −72, tập trung ở `ankle_roll`. Chênh cỡ 10² frame **không đủ** giải thích 6,4 % vs 94,8 %; phần còn lại là **hình học tay/chân không với tới đích khi người cao hơn robot** — giải thích định tính, chưa tách định lượng.
+5. **`dr_rmse` 359/719 mm của N4 KHÔNG phải sai tư thế.** Con số **đối xứng theo |mức|** (−10: 358,57 · +10: 359,32 · −20: 718,53 · +20: 718,51), tỉ lệ với độ lớn scale, không phụ thuộc dấu ⇒ **quỹ đạo gốc bị scale**, không phải retarget hỏng dáng. Sai tư thế thật nằm ở `dq_mean`/`pct_gt5°`, và hai chỉ số đó **bất đối xứng**. **Cấm** viết "N4 làm retarget hỏng, lệch 719 mm".
+
+**Kết luận §6.4:** IK hội tụ **15/15** mức, không NaN/phân kỳ. Vô hại: trễ đúng pha (N2), mất frame ≤ 10 % (N3). Làm hỏng: nhiễu khớp từ **2°** (N1), lệch tỉ lệ từ **±10 %** (N4, giãn nặng hơn). Cơ chế: sai số **không tích lũy theo thời gian** — chỉ **một frame biên** chịu trạng thái khởi tạo của IK rồi tắt nhanh; các mức hỏng còn lại do **bão hoà giới hạn khớp** (một phần) và **hình học tay/chân không với tới đích** (phần còn lại). Kết quả này **không đổi** kết luận tốc độ ở mục 7; nó thêm trục độ bền đầu vào.
+
+### 6.5 Tụt hiệu năng theo robot
+
+Nguồn `results/v5_sim2sim.csv` (thô `v5_raw.csv`; log `v5_<robot>_…`), bỏ warm-up:
+
+| Robot | DoF | n | Trung vị ms | CV | rtf | So ngưỡng 33,3 ms |
 |---|---|---|---|---|---|---|
 | Booster T1 29dof | 27 | 5 | **13,034** | 11,32 % | **2,56** | đạt, dư 20,3 ms |
 | Unitree G1 | 29 | 3 | **17,018** | 4,59 % | **1,96** | đạt, dư 16,3 ms |
 | ENGINEAI PM01 | 24 | 3 | **35,454** | 3,01 % | **0,94** | **vượt 2,2 ms (6,4 %)** |
 | Unitree H1 | — | — | — | — | — | bị chặn (§6.6) |
 
-**Robot tụt nhiều nhất là PM01.** Đây là robot **ít khớp nhất** (24 DoF) nhưng chậm nhất (35,454 ms), chậm **2,7 lần** T1 27 khớp. Vì vậy nguyên nhân **không phải** số bậc tự do. Ba giả thuyết còn mở, chỉ nêu ở mức giả thuyết: (a) cấu hình IK của PM01 đặt nhiều key body/trọng số hơn nên mỗi vòng lặp tốn hơn; (b) số vòng lặp solver thực tế chạm trần 10 nhiều hơn; (c) mô hình MJCF/mesh của PM01 nặng hơn, làm phần render/ghi pkl tăng. Chưa có phép đo tách ba nguyên nhân này — muốn tách phải có `t_init` và số vòng lặp từng frame, tức chạy probe `scripts/measure_runtime.py`.
-
-Hai lưu ý bắt buộc khi đọc bảng:
-
-- PM01 vượt ngưỡng ở mức **cả tiến trình**. Theo bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md`, vì **không có** `ms_per_frame`, trường hợp PM01 là **"chưa kết luận được"** — không được viết "PM01 không đạt real-time" như kết luận về vòng lặp retarget.
-- Cột `realtime_factor` trong CSV là của từng lần chạy; ba số 2,56 / 1,96 / 0,94 ở trên đều tính bằng `33,333 / trung vị`.
+PM01 **ít khớp nhất nhưng chậm nhất**, gấp 2,7 lần T1 ⇒ nguyên nhân **không phải** số DoF. Ba giả thuyết (chưa tách): cấu hình IK nhiều key body hơn; số vòng solver chạm trần 10 nhiều hơn; mô hình MJCF/mesh nặng hơn. Thứ tự chạy đã kiểm soát (PM01 chạy đầu, nhiệt GPU 51–57 °C). PM01 vượt ngưỡng ở mức **cả tiến trình**; theo §6.1 của định nghĩa phép đo, vì không có `ms_per_frame`, trạng thái đúng là **"chưa kết luận được"** — không được nói "PM01 không đạt real-time".
 
 ### 6.6 Vì sao H1 bị chặn
 
-Ba nguồn độc lập: (a) `bvh_to_robot.py` từ chối `--robot unitree_h1` với `invalid choice` và **exit 2** — lỗi argparse xảy ra **trước** khi nạp model, nên không thể nhầm với lỗi runtime; (b) không có file `ik_configs/bvh_lafan1_to_h1.json` (chỉ có 6 config `bvh_lafan1_*`); (c) README để cột BVH của `unitree_h1`/`unitree_h1_2` là **TBD**. Đường SMPL-X có H1 nhưng bị license SMPL-X chặn (mục 3, sự cố 3). Lý do gốc là danh sách `--robot` sinh từ `IK_CONFIG_DICT["bvh_lafan1"]`, README chỉ là bằng chứng phụ.
+Ba nguồn: (a) `--robot unitree_h1` → `invalid choice`, **exit 2** (argparse, trước khi nạp model); (b) không có `ik_configs/bvh_lafan1_to_h1.json` (chỉ 6 config `bvh_lafan1_*`); (c) README để cột BVH của H1 là **TBD**. Đường SMPL-X có H1 nhưng bị license chặn. Lý do gốc: danh sách `--robot` sinh từ `IK_CONFIG_DICT["bvh_lafan1"]`.
 
-### 6.7 Chất lượng ánh xạ: hai chỉ tiêu chưa đo
+### 6.7 Hai chỉ tiêu hình học chưa đo
 
-`docs/dinh_nghia_phep_do.md` §1.2 yêu cầu đo `min_body_height` (m, kỳ vọng ≈ 0) và `foot_slide` (mm/s, ngưỡng nhóm đặt ≤ 50 mm/s) để chứng minh "ánh xạ không bị hỏng".
-
-**Kết quả giai đoạn 1: không đo được.** `results/v5_sim2sim.csv` không có hai cột này — đây là thiếu so với hợp đồng §5.3, không phải lỗi đánh máy. Nguyên nhân: phép tính cần FK trên từng frame của 3 pkl (khoảng 23.500 frame) và một script chưa có người nhận; Mạnh bận chuỗi đo V3/V5, Vỹ bận `measure_runtime.py`. Nhóm **không** suy ra hai chỉ tiêu này từ ảnh render: ảnh chỉ chứng minh "robot đứng được, tư thế hợp lý", không đo được mm hay mm/s.
-
-Bằng chứng định tính duy nhất hiện có là ba ảnh render cùng frame 2000 ở §6.8 và ba clip video. Đây là thiếu sót được ghi thẳng ở mục 7.4, không được lấp bằng lời.
+`docs/dinh_nghia_phep_do.md` §1.2 yêu cầu `min_body_height` và `foot_slide`, nhưng `v5_sim2sim.csv` **không có** hai cột này — thiếu so với hợp đồng §5.3. Cần FK trên ~23.500 frame và một script chưa có người nhận; nhóm **không** suy từ ảnh render (ảnh không đo được mm hay mm/s). Đây là thiếu sót ghi ở §7.4, không lấp bằng lời.
 
 ### 6.8 Đồ thị
 
 | Ảnh | Nội dung |
 |---|---|
-| `results/figures/v5_ms_per_frame_robots_2026-11-20.png` | trung vị ms/frame 3 robot (thanh sai số min–max), có ngưỡng 33,33 ms |
-| `results/figures/v5_sim2sim_g1_frame2000_2026-11-20.png` | G1 tại frame 2000, cùng motion |
-| `results/figures/v5_sim2sim_t1_frame2000_2026-11-20.png` | T1 29dof tại frame 2000 |
-| `results/figures/v5_sim2sim_pm01_frame2000_2026-11-20.png` | PM01 tại frame 2000 |
-| `results/figures/slide_v5_sim2sim_f450/f900/f1350.png` | 3 khung từ clip ghép 3 robot (mỗi robot 20 s) |
-| `results/figures/v6_noise_vs_deviation.png` | **chờ sinh** từ `results/v6_noise_sweep.csv` (§6.4) |
+| `v5_ms_per_frame_robots_2026-11-20.png` | trung vị ms/frame 3 robot, thanh min–max, ngưỡng 33,33 ms |
+| `v5_sim2sim_{g1,t1,pm01}_frame2000_2026-11-20.png` | 3 robot tại cùng frame 2000 |
+| `slide_v5_sim2sim_f450/f900/f1350.png` | 3 khung từ clip ghép 3 robot |
+| `v6_noise_vs_deviation.png` | `dq_mean` + `pct_gt5°` theo 15 mức N1–N4 |
 
-Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` — 60,00 s, 1280×720, 30 fps, h264; **không commit** (`*.mp4` bị gitignore), nộp kèm link.
-
----
+Video `results/media/v5_sim2sim_g1_t1_pm01.mp4` — 60 s, 1280×720, 30 fps; **không commit**, nộp kèm link.
 
 ## 7. Kết luận
 
 ### 7.1 Câu kết luận
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,272 ms** (trung vị, n = 5, CV 2,13 %), `realtime_factor_process` = **1,93**, theo **bản đo cũ 13 cột** `results/v3_runtime.csv`. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,3 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ: `retarget ≤ process = 17,272 ≤ 33,3 ms`). Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU phù hợp để dựng IsaacSim/BeyondMimic và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II chỉ được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = **17,272 ms** (trung vị, n = 5, CV 2,13 %), `realtime_factor_process` = **1,93**, theo **bản đo cũ 13 cột**. Áp bảng bắc cầu §6.1 của `docs/dinh_nghia_phep_do.md` với ngưỡng 33,3 ms → **tái lập được ở mức cả tiến trình** (điều kiện đủ). `ms_per_frame` (chỉ vòng retarget) **không đo được** vì bản đo cũ không có cột đó. Phần **bảng số của paper** (I, II, III) **không tái lập được** — đo policy đã train trong IsaacSim, cần GPU + 84 policy; số 104,1 mm của Bảng II chỉ nằm ở cột "bài báo", không đối chiếu với số nào nhóm đo.
 
-**Vì sao là "một phần" chứ không phải "tái lập được":** tuyên bố "real-time trên CPU" đúng ở mức đo được, nhưng đó là tuyên bố của **repo**, không phải một bảng của paper. Ba bảng định lượng của paper — phần đúng nghĩa "kiểm chứng bài báo" — không tái lập được với nguồn lực của nhóm. Hai vế này không thể gộp thành một chữ "tái lập được".
+Vì sao "một phần": tuyên bố "real-time" đúng ở mức đo được nhưng là tuyên bố **của repo**, không phải bảng của paper; ba bảng định lượng — phần đúng nghĩa "kiểm chứng bài báo" — ngoài phạm vi. V5 củng cố: 2/3 robot dưới ngưỡng (T1 13,034 → 2,56; G1 17,018 → 1,96); PM01 35,454 → 0,94 nhưng **"chưa kết luận được"** theo §6.1.
 
-**Kết quả V5 củng cố, không thay đổi kết luận:** 2/3 robot dưới ngưỡng (T1 13,034 ms → 2,56; G1 17,018 ms → 1,96), PM01 vượt ngưỡng ở mức cả tiến trình (35,454 ms → 0,94). Với PM01, vì không có `ms_per_frame`, trạng thái đúng là **"chưa kết luận được"** theo §6.1 — không được nói "PM01 không đạt real-time" như kết luận về vòng lặp retarget.
+### 7.2 Điều kiện để câu trên đứng vững
 
-### 7.2 Năm điều kiện để câu trên đứng vững
+1. Số 17,272 lấy từ bản đo cũ đã Review PASS; không trộn đợt cũ `c62e74f` (15,171).
+2. Ngưỡng 33,3 ms chốt trước, không đổi sau khi thấy số.
+3. Không dùng "tái lập được" cho toàn bộ paper — chỉ phần thời gian thực.
+4. Không nói "retarget đạt real-time"; muốn chắc phải chạy probe `measure_runtime.py` (@`5f9cdd5`) — **chưa làm**.
+5. Kết quả nhiễu (§6.4) không đổi kết luận tốc độ; nó chỉ thêm nhận định về độ bền.
 
-1. Số 17,272 ms lấy từ **bản đo cũ** đã được Review chấm PASS (RV-13/14/16/17 đóng); không trộn với đợt đo cũ `c62e74f` (15,171 ms).
-2. Ngưỡng 33,3 ms đã chốt **trước** khi thấy số và không đổi sau đó.
-3. Không dùng từ "tái lập được" cho **toàn bộ bài báo** — chỉ cho phần thời gian thực.
-4. Không viết "retarget đạt real-time" như thể đã đo riêng vòng lặp retarget. Muốn nói chắc hơn phải chạy probe (`scripts/measure_runtime.py` @`5f9cdd5`) — việc này **chưa làm**.
-5. Kết quả 4 phép thử nhiễu (§6.4) **không** làm đổi kết luận về tốc độ; nó chỉ bổ sung nhận định về độ bền đầu vào. Nếu kết quả nhiễu xấu, phải viết thêm một câu về độ bền, không được sửa số tốc độ.
+### 7.3 Ba câu "chênh thì vì sao"
 
-### 7.3 Ba câu trả lời cho "chênh thì vì sao"
+**(a) Hai đợt V3 lệch 14,4 % — do máy, không do thuật toán.** 15,171 → 17,349 ms (mean), cùng máy/input/commit. 40 pkl trùng SHA256 tuyệt đối theo cặp ⇒ cùng đầu ra từng byte mà thời gian khác 14 % ⇒ môi trường chạy. Đợt mới chậm hơn nên chọn là bảo thủ.
 
-**(a) Chênh 14,4 % giữa hai đợt đo V3 — do trạng thái máy, không do thuật toán.**
-Đợt cũ: 14,034 · 15,139 · 16,339 → mean 15,171 ms. Đợt mới: mean 17,349 ms, median 17,272 ms. Lệch **+14,36 %** trên cùng máy, cùng input, cùng commit `25f56db`. Bằng chứng tách nguyên nhân: **40 file pkl** của các cặp (robot, motion) trùng SHA256 tuyệt đối (`E7E3B906…` ×20, `4E716187…` ×7, `57B693A8…` ×5, `37F0ACD2…` ×5). Cùng đầu ra từng byte mà thời gian khác 14 % ⇒ khác biệt nằm ở môi trường chạy (tải nền, nhiệt, lập lịch CPU), không ở thuật toán. Đợt mới **chậm hơn** nên chọn làm số chính thức là bảo thủ, không phải cherry-pick.
+**(b) PM01 chậm nhất dù ít khớp nhất.** 24 DoF / 35,454 ms vs 27 DoF / 13,034 ms. Số DoF không giải thích; ba giả thuyết IK/solver/model chưa tách. Đã kiểm soát thermal (PM01 chạy đầu).
 
-**(b) Chênh giữa 3 robot — PM01 chậm nhất dù ít khớp nhất.**
-T1 27 DoF: 13,034 ms; G1 29 DoF: 17,018 ms; PM01 24 DoF: 35,454 ms. PM01 chậm **2,7 lần** T1. Số bậc tự do **không** giải thích được thứ tự này, nên câu "nhiều khớp thì chậm" là sai. Ba giả thuyết còn mở — cấu hình IK nhiều key body hơn, số vòng lặp solver chạm trần 10 nhiều hơn, mô hình MJCF/mesh nặng hơn — đều **chưa được tách** vì thiếu `t_init` và số vòng lặp từng frame. Thứ tự chạy đã được kiểm soát (PM01 chạy **đầu tiên** trên máy nguội, nhiệt GPU 51–57 °C), nên không quy được cho thermal.
+**(c) Nhóm vs paper — không có mốc.** Paper không công bố ms/FPS/hardware, nên câu đúng là "không có số của paper để chênh"; mốc duy nhất là ngưỡng nhóm đặt.
 
-**(c) Chênh giữa nhóm và paper — không có mốc so sánh.**
-Paper không công bố ms/frame, FPS hay cấu hình phần cứng (`docs/paper_notes.md` §12). Vì vậy câu trả lời đúng là **"không có số của paper để chênh"**, không được bịa một tỉ lệ hay viết "gần với paper". Mốc duy nhất là ngưỡng 33,3 ms do nhóm đặt từ tốc độ phát LAFAN1.
+### 7.4 Thiếu sót phải nêu
 
-### 7.4 Thiếu sót phải nêu (không được giấu)
-
-- **Chưa có kết quả 4 phép thử nhiễu** (N1–N4, §6.4) — Run đang chạy theo `docs/v6_noise_spec.md`; bảng và đồ thị sẽ điền khi có `results/v6_noise_sweep.csv`.
-- **Chưa đo `min_body_height` / `foot_slide`** — §6.7; CSV V5 không có hai cột này.
-- **Chưa đo `ms_per_frame`** (vòng lặp retarget) — §4.5; chỉ có số cả tiến trình.
-- **Chưa xác minh `CUDA_VISIBLE_DEVICES`** trên bản đo cũ — "chạy CPU" là suy luận từ mã.
-- Toàn bộ kết quả trên **một máy Windows**, không đại diện cho Linux/Ubuntu như README giả định.
-- Ba bảng I/II/III của paper **ngoài phạm vi** — cần GPU + IsaacSim + 84 policy + ROS node.
-
----
+- `min_body_height` / `foot_slide` **chưa đo** (§6.7).
+- `ms_per_frame` **chưa đo**; chỉ có số cả tiến trình (§4.5).
+- `CUDA_VISIBLE_DEVICES` **chưa xác minh** trên bản đo cũ.
+- Kết quả trên **một máy Windows**, không đại diện Linux.
+- Bất đối xứng N4 mới giải thích **định tính**, chưa định lượng phần đóng góp.
+- Ba bảng I/II/III của paper **ngoài phạm vi**.
 
 ## 8. Phân công công việc và tự thuật từng thành viên
-
-> Bảng dưới là **khung**. Cột "tự thuật" do từng thành viên tự viết 3–5 dòng, không ai viết thay. Nội dung tự thuật phải trả lời: đã làm gì · khó nhất ở đâu · học được gì · tự đánh giá mức đóng góp (%).
 
 ### 8.1 Bảng phân công
 
 | # | Thành viên | MSSV | Vai trò | Worktree / nhánh | Sản phẩm chính | Bằng chứng |
 |---|---|---|---|---|---|---|
-| 1 | Trần Nguyễn Khánh Duy | 2001230120 | Planner · Research · Writing mục 1, 2, 7 | `main` · `gmr-research` (`task/v1-tuyen-bo`) · `gmr-writing` | `docs/v1_tuyen_bo.md`, `docs/paper_notes.md`, `docs/dinh_nghia_phep_do.md`, `docs/quyet_dinh.md`, mục 1–2–7 | commit `f0a8fff`; review PASS 5/5 |
-| 2 | Đặng Duy Mạnh | 2001240271 | Run · Writing mục 3 | `gmr-run` (`task/v2-cai-dat` → `task/v3-runtime` → `task/v5-sim2sim`) | `logs/nhat_ky_cai_dat.md`, `logs/lenh_da_chay.md`, `requirements.txt`, `results/v3_runtime.csv`, `results/v5_sim2sim.csv`, `results/figures/*`, `results/media/*` | commit `f467075`, `5c05497`; 20/20 log đo có dòng `END` |
-| 3 | Trương Thái Vỹ | 2001240577 | Code · Writing mục 5 | `gmr-code` (`task/code-scripts` → `task/code-scripts3` → `task/v4-phan-tich`) | `scripts/measure_runtime.py`, `scripts/test_measure_runtime.py`, `scripts/NOTES.md`, mục 5 | commit `5f9cdd5`; 12 test PASS |
-| 4 | Hà Mạnh Trường | 2045240326 | Review · Writing mục 6 | `gmr-review` (`task/review-qa`) | `report/review_notes.md`, checklist 5 điểm, 29 ticket RV | 7 PR được chấm; RV-13 phát hiện sai cột `cmd` |
+| 1 | Trần Nguyễn Khánh Duy | 2001230120 | Planner · Research · Writing 1, 2, 7 | `main` · `gmr-research` · `gmr-writing` | `v1_tuyen_bo.md`, `paper_notes.md`, `dinh_nghia_phep_do.md`, `quyet_dinh.md`, mục 1–2–7 | commit `f0a8fff`; Review PASS 5/5 |
+| 2 | Đặng Duy Mạnh | 2001240271 | Run · Writing 3 | `gmr-run` (`task/v2-cai-dat` → `v3-runtime` → `v5-sim2sim` → `v6-noise`) | nhật ký, `lenh_da_chay.md`, `requirements.txt`, CSV V3/V5/V6, ảnh, video | `f467075`, `5c05497`, `4e23df0`; 20/20 log `END` |
+| 3 | Trương Thái Vỹ | 2001240577 | Code · Writing 5 | `gmr-code` (`task/code-scripts` → `code-scripts3` → `v4-phan-tich`) | `measure_runtime.py`, test, `NOTES.md`, mục 5 | `5f9cdd5`; 12 test PASS |
+| 4 | Hà Mạnh Trường | 2045240326 | Review · Writing 6 | `gmr-review` (`task/review-qa`) | `review_notes.md`, checklist 5 điểm, 29 ticket RV | 7 PR; RV-13 phát hiện cờ giả |
 
-### 8.2 Tự thuật từng thành viên
+### 8.2 Tự thuật
 
-> ✍️ **CHỜ NỘI DUNG — mỗi người 3–5 dòng, viết ở ngôi thứ nhất.**
+> ✍️ **CHỜ NỘI DUNG — mỗi người 3–5 dòng, ngôi thứ nhất: đã làm gì · khó nhất ở đâu · học được gì · % đóng góp.**
 
-**Trần Nguyễn Khánh Duy (Nhóm trưởng · Planner/Research/Writing 1–2–7)**
+**Duy (Planner/Research/Writing 1–2–7)**
 - `[CHỜ TỰ THUẬT: việc đã làm — đọc paper, chốt tuyên bố, viết định nghĩa phép đo, điều phối merge, viết mục 1–2–7]`
-- `[CHỜ TỰ THUẬT: khó nhất — chọn tuyên bố khi paper không có số tốc độ; cân bằng giữa "đúng yêu cầu môn" và "đo được thật"]`
-- `[CHỜ TỰ THUẬT: học được — vì sao phải tách vai phản biện; cách viết bảng 2 cột]`
-- `[CHỜ TỰ THUẬT: tự đánh giá % đóng góp]`
+- `[CHỜ TỰ THUẬT: khó nhất — chọn tuyên bố khi paper không có số tốc độ]`
+- `[CHỜ TỰ THUẬT: học được — vì sao phải tách vai phản biện]`
+- `[CHỜ TỰ THUẬT: % đóng góp]`
 
-**Đặng Duy Mạnh (Run · Writing mục 3)**
-- `[CHỜ TỰ THUẬT: việc đã làm — cài env, 7 sự cố, chạy V3/V5, quay video, viết nhật ký]`
-- `[CHỜ TỰ THUẬT: khó nhất — proxsuite trên Windows; KI-01; sửa định dạng log UTF-16]`
+**Mạnh (Run/Writing 3)**
+- `[CHỜ TỰ THUẬT: việc đã làm — cài env, 7 sự cố, V3/V5/V6, video, nhật ký]`
+- `[CHỜ TỰ THUẬT: khó nhất — proxsuite trên Windows; KI-01; log UTF-16]`
 - `[CHỜ TỰ THUẬT: học được — log phải chứa chính con số mình báo cáo]`
-- `[CHỜ TỰ THUẬT: tự đánh giá % đóng góp]`
+- `[CHỜ TỰ THUẬT: % đóng góp]`
 
-**Trương Thái Vỹ (Code · Writing mục 5)**
-- **[CHỜ TỰ THUẬT: việc đã làm — `measure_runtime.py` có `--dry-run`, 12 test, hợp đồng CSV 30 cột]**
-- **[CHỜ TỰ THUẬT: khó nhất — tách hai đại lượng `ms_per_frame` / `_process`; giữ tương thích CLI khi hợp đồng đổi tên cột]**
-- `[CHỜ TỰ THUẬT: học được — viết test trước giúp đổi hợp đồng không vỡ]`
-- `[CHỜ TỰ THUẬT: tự đánh giá % đóng góp]`
+**Vỹ (Code/Writing 5)**
+- `[CHỜ TỰ THUẬT: việc đã làm — measure_runtime.py, 12 test, hợp đồng CSV 30 cột]`
+- `[CHỜ TỰ THUẬT: khó nhất — tách ms_per_frame / _process; đổi tên cột]`
+- `[CHỜ TỰ THUẬT: học được — test trước giúp đổi hợp đồng không vỡ]`
+- `[CHỜ TỰ THUẬT: % đóng góp]`
 
-**Hà Mạnh Trường (Review · Writing mục 6)**
-- `[CHỜ TỰ THUẬT: việc đã làm — checklist 5 điểm, chấm 7 PR, 29 ticket RV, đối chiếu CSV với log]`
-- **[CHỜ TỰ THUẬT: khó nhất — phát hiện cờ `--rate_limit` chưa từng được truyền; chứng minh bằng 3 nguồn độc lập]**
-- `[CHỜ TỰ THUẬT: học được — người viết ra số không phải người kiểm số]`
-- `[CHỜ TỰ THUẬT: tự đánh giá % đóng góp]`
+**Trường (Review/Writing 6)**
+- `[CHỜ TỰ THUẬT: việc đã làm — checklist, 7 PR, 29 RV, đối chiếu CSV–log]`
+- `[CHỜ TỰ THUẬT: khó nhất — phát hiện --rate_limit chưa từng truyền]`
+- `[CHỜ TỰ THUẬT: học được — người viết số không phải người kiểm số]`
+- `[CHỜ TỰ THUẬT: % đóng góp]`
 
-### 8.3 Cam kết của nhóm
+### 8.3 Cam kết
 
-- Mọi số trong báo cáo đều lần ngược được tới file trong `results/` và dòng `END` trong log tương ứng.
-- Mọi số của paper nằm ở cột "bài báo" kèm số hiệu bảng/trang; không số nào bị chép sang cột "nhóm đo được".
-- Video demo và dữ liệu nặng (LAFAN1, pkl) **không** commit; nộp kèm link ngoài.
+Mọi số lần ngược được tới `results/` và dòng `END`; mọi số paper nằm ở cột "bài báo"; video/pkl/LAFAN1 không commit.
 
----
+# PHỤ LỤC A — Nhật ký phản biện (rút gọn)
 
-# PHỤ LỤC A — Nhật ký phản biện (dùng làm phụ lục chất lượng)
+Bản đầy đủ: `report/review_notes.md` (nhánh `task/review-qa`).
 
-Bản đầy đủ: `report/review_notes.md` (nhánh `task/review-qa`, do Trường viết). Dưới đây là các mục ảnh hưởng trực tiếp tới báo cáo:
+| Ticket | Phát hiện | Xử lý |
+|---|---|---|
+| RV-13 | 4 dòng `rate_limit` ghi cờ chưa từng truyền | Xoá 4 dòng, rút kết luận |
+| RV-14 | `wall_clock_s` không có trong log | Thêm dòng `END`, 20/20 log |
+| RV-15/16 | V5 1 lần/robot; CV 7,6 % | Chạy lại n=3/5, báo trung vị |
+| RV-17 | Tên cột `ms_per_frame` trần | Đổi `_process` |
+| RV-18 | Thiếu bảng 2 cột | §2.4 của báo cáo |
+| RV-23 | Hai đợt lệch 14,4 % | Mục 3 (7) + §7.3 |
+| RV-26 | rtf trong mô tả PR tính sai | Báo cáo luôn `33,333/median` |
 
-| Ticket | Phát hiện | Ảnh hưởng tới báo cáo | Trạng thái |
-|---|---|---|---|
-| **RV-13** | 4 dòng `rate_limit` trong CSV ghi cờ chưa từng được truyền | Cấm mọi bảng so sánh có/không `--rate_limit`; đã ghi ở mục 3 sự cố (5) | ĐÓNG — 4 dòng đã xoá |
-| **RV-14** | `wall_clock_s` không có trong log | Mỗi log phải có dòng `END`; đã sửa và chạy lại toàn bộ | ĐÓNG — 20/20 log đo |
-| **RV-15** | V5 chỉ 1 lần/robot | Bảng V5 phải n = 3 hoặc n = 5; PM01/T1/G1 đã chạy lại | ĐÓNG |
-| **RV-16** | CV đợt cũ 7,60 % > 5 % | Phải có n = 5 và báo trung vị (17,272) | ĐÓNG |
-| **RV-17** | Tên cột `ms_per_frame` trần nhưng đo cả tiến trình | Mọi số đầu-cuối phải có hậu tố `_process` | ĐÓNG |
-| **RV-18** | Chưa có bảng 2 cột bài báo/nhóm đo | Chính là bảng §2.4 của báo cáo | ĐÓNG bởi mục 2 |
-| **RV-23** | Hai đợt V3 lệch 14,4 %; thiếu bằng chứng tất định | Mục 3 sự cố (7) + mục 7.3 | ĐÓNG |
-| **RV-24** | T1 CV > 5 %, đồ thị vẽ mean | Mục 6 bắt buộc báo trung vị | ĐÓNG |
-| **RV-26** | rtf trong mô tả PR tính sai (1,92 / 1,54) | Báo cáo luôn tính `33,333/median` → 2,56 / 1,96 / 0,94 | ĐÓNG |
-| **RV-29** | V1 mô tả sai "V3 đo cả hai đại lượng" | Mục 2 ghi rõ V3 chỉ có `_process` | ĐÓNG |
-
-# PHỤ LỤC B — Tự kiểm theo danh mục của hướng dẫn
+# PHỤ LỤC B — Tự kiểm theo hướng dẫn
 
 | # | Điều kiện | Trạng thái |
 |---|---|---|
-| 1 | Đọc bài báo, ghi tuyên bố + số hiệu bảng/hình | ✅ mục 1, 2 (Bảng I/II/III, tr. 6–7) |
-| 2 | Nhật ký cài đặt đầy đủ, kể cả lỗi | ✅ mục 3 + `logs/nhat_ky_cai_dat.md` |
-| 3 | Chạy được mô hình có sẵn, có số để so | ✅ mục 4 (V3), số ở §2.4 |
-| 4 | Tự huấn luyện ≥ 1 cấu hình nhỏ, 3 hạt giống | ✅ **không áp dụng** — GMR không huấn luyện; mục 5 giải thích + thay bằng 3 cấu hình (số V5) |
-| 5 | Sim2sim + bảng tụt hiệu năng | ✅ mục 6: 3 robot + bảng; ⚠️ kết quả 4 phép thử nhiễu còn chờ (§6.4) |
-| 6 | Bảng tách cột "bài báo" / "nhóm đo được" | ✅ §2.4 |
-| 7 | Kết luận dứt khoát | ✅ mục 7: **tái lập một phần** |
-| 8 | Ghi commit + đọc LICENSE | ✅ đầu báo cáo (`25f56db`, MIT) |
-| 9 | Bảng phân công + tự thuật | ⚠️ bảng xong, tự thuật chờ 4 thành viên |
-| 10 | Tập trình bày, có video dự phòng | ⚠️ 3 clip đã có (`results/media/`), slide 13 phút mới có khung |
+| 1 | Tuyên bố + số hiệu bảng/hình | ✅ mục 1–2 (Bảng I/II/III, tr. 6–7) |
+| 2 | Nhật ký cài đặt đầy đủ | ✅ mục 3 |
+| 3 | Chạy mô hình có sẵn, có số so | ✅ mục 4 |
+| 4 | Train 3 hạt giống | ✅ không áp dụng — mục 5 giải thích + 3 cấu hình |
+| 5 | Sim2sim + bảng tụt hiệu năng | ✅ mục 6: 3 robot + nhiễu N1–N4 |
+| 6 | Bảng tách 2 cột | ✅ §2.4 |
+| 7 | Kết luận dứt khoát | ✅ mục 7: tái lập một phần |
+| 8 | Commit + LICENSE | ✅ đầu báo cáo |
+| 9 | Phân công + tự thuật | ⚠️ bảng xong, tự thuật chờ |
+| 10 | Tập trình bày + video | ⚠️ video có, slide mới có khung |
 
-# PHỤ LỤC C — Việc còn mở trước khi nộp
+# PHỤ LỤC C — Việc còn mở
 
-| # | Việc | Người | Chặn gì |
-|---|---|---|---|
-| 1 | Điền bảng + đồ thị phép thử nhiễu (§6.4) khi có `results/v6_noise_sweep.csv` | Mạnh → Trường | Tiêu chí "đồ thị theo mức nhiễu" |
-| 2 | Bổ sung `min_body_height` / `foot_slide` (hoặc chốt "không đo") | Mạnh hoặc Vỹ | Không chặn nộp, nhưng thiếu so với §1.2 |
-| 3 | 4 tự thuật + % đóng góp | 4 thành viên | Tiêu chí 9 |
-| 4 | `report/slides.md` 13 phút — khung đã có, cần số + tập bấm giờ | Duy + cả nhóm | Sản phẩm nộp |
-| 5 | Cập nhật `results/README.md` (còn mô tả bản cũ `smplx_to_robot.py --rate_limit`) | Mạnh | Không chặn, nhưng dễ gây hiểu sai |
-| 6 | Rà lại câu chữ nếu số nhiễu mâu thuẫn giả thuyết §6.3 | Trường | Chất lượng lập luận |
+| # | Việc | Người |
+|---|---|---|
+| 1 | Merge PR 8 (`task/v6-noise`) để CSV + ảnh vào `main` | Duy → Trường |
+| 2 | Bổ sung `min_body_height` / `foot_slide` hoặc chốt "không đo" | Mạnh/Vỹ |
+| 3 | 4 tự thuật + % đóng góp | 4 thành viên |
+| 4 | Hoàn thiện `slides.md`, tập bấm giờ ≤ 13 phút | Duy + nhóm |
+| 5 | Cập nhật `results/README.md` (còn mô tả bản cũ) | Mạnh |
+| 6 | Định lượng phần bất đối xứng N4 còn lại | Mạnh + Trường |
