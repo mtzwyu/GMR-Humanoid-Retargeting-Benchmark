@@ -179,3 +179,36 @@ Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũ
 Đọc bảng: **hash chỉ trùng trong cùng cặp (robot, motion)**; khác robot thì khác hash vì số dof khác nhau (G1 29 · T1 29dof 27 · PM01 24), khác motion cũng khác hash. (Lưu ý: không phải "15 pkl đều `E7E3B906…`" — con số đúng là **20 pkl** thuộc nhóm G1 + `walk1_subject1`.)
 
 **Kết luận:** chênh lệch 14,4 % giữa hai đợt đo **không** đến từ thuật toán (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU) — đúng bản chất của phép đo wall-clock toàn tiến trình.
+
+## V6 — phép thử nhiễu (DEC-02): 4 phép thử, 15 mức
+
+Đặc tả: `docs/v6_noise_spec.md` (DEC-02, phương án C). Input cố định `walk1_subject1.bvh` → `unitree_g1`; baseline = pkl của lần chạy sạch `g1_walk1_subject1_run1.pkl` (SHA256 `E7E3B906…`). Mỗi mức chạy **1 lần** — phép thử này đo **độ lệch có hệ thống**, **không** đo thời gian, nên không vi phạm hợp đồng 1 warm-up + 3 lần đo của V3/V5.
+
+Kiểm chứng trước khi chạy: driver `v6_run.py` chạy lại bản sạch cho ra **|Δq| = 0,0000° · dr_rmse = 0,000 mm** so với pkl baseline → driver trung thực với `bvh_to_robot.py` (chỉ bỏ phần viewer).
+
+| Phép thử | Mức | dq_mean (°) | dq_max (°) | dr_rmse (mm) | pct_frames_gt5deg (%) | converges |
+|---|---|---|---|---|---|---|
+| N1 nhiễu khớp | σ = 0,5° | 0,56 | 7,56 | 1,20 | 0,51 | 1 |
+| N1 | σ = 1° | 1,10 | 14,11 | 1,56 | 5,55 | 1 |
+| N1 | σ = 2° | 2,18 | 25,80 | 2,02 | 87,74 | 1 |
+| N1 | σ = 5° | 5,41 | 63,89 | 3,52 | 100,00 | 1 |
+| N2 trễ | k = 1 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| N2 | k = 2 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| N2 | k = 3 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| N2 | k = 5 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
+| N3 mất frame | p = 1 % | 0,0033 | 6,83 | 0,17 | 0,013 | 1 |
+| N3 | p = 5 % | 0,0158 | 6,09 | 0,36 | 0,077 | 1 |
+| N3 | p = 10 % | 0,0355 | 10,99 | 0,62 | 0,306 | 1 |
+| N4 lệch tỉ lệ | −20 % | 1,86 | 29,65 | 718,53 | 90,43 | 1 |
+| N4 | −10 % | 0,73 | 19,27 | 358,57 | 6,37 | 1 |
+| N4 | +10 % | 1,88 | 33,32 | 359,32 | 94,77 | 1 |
+| N4 | +20 % | 3,14 | 42,82 | 718,51 | 98,05 | 1 |
+
+**Đối chiếu giả thuyết (ghi đúng kết quả đo, không sửa số):**
+1. **N1:** `dq_mean` tăng **gần tuyến tính** theo σ (0,56 → 1,10 → 2,18 → 5,41 ứng với 0,5/1/2/5°) — khớp kỳ vọng. Nhưng `pct_frames_gt5deg` bùng nổ **phi tuyến** (0,5 % → 5,5 % → 87,7 % → 100 %) vì đây là chỉ số ngưỡng: khi sai số trung bình chạm ~2° thì gần như mọi frame đều có ít nhất một khớp vượt 5°.
+2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ: **1 frame** (pct 0,013 % ≈ 1/7839) lệch tới 36° — nghi do bộ giải IK khởi tạo từ nghiệm frame trước (warm start) chứ không phải tích lũy sai số; ghi nguyên trạng.
+3. **N3:** ảnh hưởng **rất nhỏ** (dq_mean 0,0033 → 0,0355°; pct ≤ 0,31 %) và tăng theo p — vì frame thiếu được lấp bằng nội suy tuyến tính nên tư thế gần như giữ nguyên.
+4. **N4:** lệch lớn và **bất đối xứng** (pct 6,4 % ở −10 % nhưng 94,8 % ở +10 %). `dr_rmse` 359/719 mm **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn), không phải sai tư thế — cần nói rõ khi viết báo cáo.
+5. `still_converges = 1` ở **cả 15 mức** → không mức nhiễu nào làm IK phân kỳ hay sinh NaN.
+
+Số thô: `results/v6_noise_sweep.csv`; đồ thị: `results/figures/v6_noise_vs_deviation.png`; lệnh: `logs/lenh_da_chay.md` mục 11.
