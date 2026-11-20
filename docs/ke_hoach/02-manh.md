@@ -2,6 +2,7 @@
 
 **Vai:** Run + Writing mục 3
 **Worktree:** `gmr-run` (chính) · `gmr-writing` (mục 3)
+**Branch:** `task/v2-cai-dat` → `task/v3-runtime` → `task/v5-sim2sim` (mỗi nhiệm vụ một branch, một PR)
 **Quyền riêng:** chỉ Mạnh được tạo/sửa conda env `gmr`. Không ai khác cần env.
 
 ## Việc theo ngày
@@ -43,6 +44,8 @@ Script `measure_runtime.py` của Vỹ là **sản phẩm nộp** (mã nhóm), k
 - `logs/lenh_da_chay.md` — mọi lệnh tái lập được
 - `requirements.txt` — từ `pip freeze` thực tế
 - `results/v3_runtime.csv`, `results/v5_sim2sim.csv`
+- `results/figures/*.png` + `results/figures/README.md` — ảnh bằng chứng theo quy ước trong `00-tong-quan.md`:
+  1. terminal chạy lệnh đo · 2. render robot trong MuJoCo · 3. đồ thị `ms_per_frame` · 4. ảnh mở CSV
 
 ## Ranh giới
 
