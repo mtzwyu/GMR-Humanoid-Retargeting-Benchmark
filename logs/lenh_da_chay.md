@@ -185,6 +185,8 @@ python third_party\_run\v6_plot.py
 
 Driver `v6_run.py` **không sửa `scripts/`**: nó lặp lại đúng vòng retarget của `bvh_to_robot.py` (cùng `GeneralMotionRetargeting`, cùng loader `lafan1`, cùng `actual_human_height = 1,75`) nhưng bỏ phần mở viewer; baseline vẫn là pkl của lần chạy `bvh_to_robot.py` và đã được kiểm chứng trùng khớp tuyệt đối.
 
+`v6_metrics.py` ghi thêm 2 cột bão hòa (`n_saturated_frames`, `n_frames_hit_limit_max`) + `max_dev_frame_index`, tính bằng `qpos_lo/qpos_hi` của `assets/unitree_g1/g1_mocap_29dof.xml` với dung sai 0,5°.
+
 ## Ghi chú tái lập
 
 - `third_party/_run/*.ps1|*.py` là script phụ trợ của Run (đo, vẽ, render, ghi video). Nằm trong `third_party/` nên **không commit**; nội dung đã chép trong log này và trong `logs/nhat_ky_cai_dat.md`.

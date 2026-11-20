@@ -30,7 +30,7 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 |---|---|---|---|
 | `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame theo từng lần đo (5 lần, **không** `--rate_limit`), đường ngưỡng 33,33 ms — **slide "kết quả V3"** | `python third_party/_run/plot_v3.py` (đọc `results/v3_runtime.csv`) | 2026-11-20 |
 | `v5_ms_per_frame_robots_2026-11-20.png` | **Trung vị** ms/frame (thanh sai số = min–max) cho V5 sim2sim: PM01 35,45 (n=3) · T1 29dof 13,03 (n=5) · G1 17,02 (n=3) — **slide "sim2sim"** | `python third_party/_run/plot_v3.py` (đọc `results/v5_sim2sim.csv`) | 2026-11-21 (vẽ lại sau RV-24; tệp giữ tên theo ngày tạo ban đầu) |
-| `v6_noise_vs_deviation.png` | V6: `dq_mean` và `pct_frames_gt5deg` theo từng mức nhiễu của 4 phép thử N1–N4 (15 mức, mỗi mức chạy 1 lần) — **slide "độ bền theo nhiễu"** | `python third_party/_run/v6_plot.py` (đọc `results/v6_noise_sweep.csv`) | 2026-11-21 |
+| `v6_noise_vs_deviation.png` | V6: 3 panel — `dq_mean`, `pct_frames_gt5deg`, `n_saturated_frames` (số frame có ≥1 khớp chạm giới hạn ±0,5°, có đường baseline 1865 frame) theo 15 mức nhiễu của 4 phép thử N1–N4 — **slide "độ bền theo nhiễu"** | `python third_party/_run/v6_plot.py` (đọc `results/v6_noise_sweep.csv`) | 2026-11-21 |
 
 ## 4. Ảnh mở file CSV kết quả
 

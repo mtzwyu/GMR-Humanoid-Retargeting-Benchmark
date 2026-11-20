@@ -206,9 +206,23 @@ Kiểm chứng trước khi chạy: driver `v6_run.py` chạy lại bản sạch
 
 **Đối chiếu giả thuyết (ghi đúng kết quả đo, không sửa số):**
 1. **N1:** `dq_mean` tăng **gần tuyến tính** theo σ (0,56 → 1,10 → 2,18 → 5,41 ứng với 0,5/1/2/5°) — khớp kỳ vọng. Nhưng `pct_frames_gt5deg` bùng nổ **phi tuyến** (0,5 % → 5,5 % → 87,7 % → 100 %) vì đây là chỉ số ngưỡng: khi sai số trung bình chạm ~2° thì gần như mọi frame đều có ít nhất một khớp vượt 5°.
-2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ: **1 frame** (pct 0,013 % ≈ 1/7839) lệch tới 36° — nghi do bộ giải IK khởi tạo từ nghiệm frame trước (warm start) chứ không phải tích lũy sai số; ghi nguyên trạng.
+2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ **1 frame** (pct 0,013 % = 1/7839) lệch 36,08°, đã truy ra: đó là **frame đầu tiên ngay sau điểm dịch** — cùng một frame đầu vào (frame 0) được retarget lần thứ hai, nên IK rơi vào một nghiệm cục bộ khác (warm start từ frame trước). Bằng chứng: `out[0]` vs `base[0]` = **0,0000°**; `out[1]` vs `base[0]` = **36,08°**; `out[2]` vs `base[1]` = 0,31°; rồi 0,10° → 0,05° → 0,02° → tắt dần. **Kết luận: đúng là frame biên sau warm-start, không phải sai số tích lũy**; cũng cho thấy IK có phụ thuộc warm-start ở 1 frame biên (không hoàn toàn độc lập từng frame như giả thuyết).
 3. **N3:** ảnh hưởng **rất nhỏ** (dq_mean 0,0033 → 0,0355°; pct ≤ 0,31 %) và tăng theo p — vì frame thiếu được lấp bằng nội suy tuyến tính nên tư thế gần như giữ nguyên.
 4. **N4:** lệch lớn và **bất đối xứng** (pct 6,4 % ở −10 % nhưng 94,8 % ở +10 %). `dr_rmse` 359/719 mm **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn), không phải sai tư thế — cần nói rõ khi viết báo cáo.
 5. `still_converges = 1` ở **cả 15 mức** → không mức nhiễu nào làm IK phân kỳ hay sinh NaN.
 
-Số thô: `results/v6_noise_sweep.csv`; đồ thị: `results/figures/v6_noise_vs_deviation.png`; lệnh: `logs/lenh_da_chay.md` mục 11.
+### Bão hòa khớp — lời giải cho bất đối xứng của N4
+
+Đếm số frame có **ít nhất 1 khớp nằm trong 0,5° so với giới hạn** (`qpos_lo`/`qpos_hi` của `g1_mocap_29dof.xml`), cột `n_saturated_frames`; cột `n_frames_hit_limit_max` = số khớp tối đa cùng bão hòa trong một frame.
+
+| Điều kiện | n_saturated_frames | n_frames_hit_limit_max | Khớp bão hòa nhiều nhất |
+|---|---|---|---|
+| Baseline sạch | 1.865 / 7.839 (23,8 %) | 3 | waist_pitch 745 · ankle_roll 452/412 |
+| N4 **−10 %** | 1.793 | 2 | waist_pitch 807 · shoulder_yaw 398 · ankle_roll 344/310 |
+| N4 **+10 %** | **2.002** | 3 | waist_pitch 783 · **ankle_roll 534/489** · shoulder_yaw 392 |
+| N4 **+20 %** | **2.166** | 3 | waist_pitch 843 · **ankle_roll 589/541** |
+| N1 σ = 5° | 3.550 | 5 | — |
+
+**Kết luận (3 câu):** Ở +10 %/+20 % (người cao hơn robot) số frame bão hòa **cao hơn** −10 % (2.002 / 2.166 so với 1.793), và phần tăng tập trung ở `ankle_roll` (534/489 so với 310/344) — hướng đúng giả thuyết "robot không với tới nên khớp bị ghì ở giới hạn". Tuy vậy mức chênh (≈200–370 frame) **không đủ lớn** để giải thích trọn vẹn khoảng cách `pct_frames_gt5deg` (6,4 % so với 94,8 %), nên bão hòa chỉ là **một phần** lời giải; phần còn lại là hình học tay/chân không với tới đích. Lưu ý `dr_rmse` 359/719 mm của N4 **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn) chứ **không phải sai tư thế** — chỉ số này không dùng để kết luận về tư thế.
+
+Số thô: `results/v6_noise_sweep.csv` (thêm 2 cột bão hòa + `max_dev_frame_index`); đồ thị: `results/figures/v6_noise_vs_deviation.png` (3 panel); lệnh: `logs/lenh_da_chay.md` mục 11.
