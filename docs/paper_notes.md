@@ -17,7 +17,7 @@ Mọi con số dưới đây chép từ **PDF gốc arXiv v1** (9 trang), kèm s
 | Số trang | 9 (2 cột, IEEE) | đếm từ PDF |
 | Hội nghị | ICRA 2026 — **chỉ repo ghi**, bài báo không ghi | mô tả repo GitHub |
 | Repo | https://github.com/YanjieZe/GMR · nhánh `master` | README |
-| Commit đọc ngày 2026-11-20 | `25f56db7` (2026-10-22) | GitHub API `/commits?per_page=1` |
+| Commit đọc ngày 2026-11-20 | `25f56db7` — **2026-10-23** giờ VN (commit `2026-10-22T17:04:45Z`) | GitHub API `/commits/25f56db7…` |
 | Giấy phép code | MIT | GitHub API `license.key = mit` |
 
 > Lưu ý: bản arXiv **v1 là bản duy nhất** tính đến 2026-11-20. Nếu sau này có v2, phải đọc lại — số trong bảng có thể đổi.
@@ -199,7 +199,7 @@ Kết quả định tính (trang 7): GMR được coi là faithful hơn PHC và 
 |---|---|---|
 | Mô tả repo | *"[ICRA 2026] GMR: General Motion Retargeting. Retarget human motions into diverse humanoid robots **in real time on CPU**. Retargeter for TWIST."* | GitHub API `/repos/YanjieZe/GMR` |
 | README, mục *Key features*, dòng 1 | *"**Real-time high-quality retargeting**, unlock the potential of real-time whole-body teleoperation"* | README `master` |
-| HEAD | `25f56db7` (2026-10-22) | `/commits?per_page=1` |
+| HEAD | `25f56db7` (**2026-10-23** giờ VN; `2026-10-22T17:04:45Z`) | `/commits/25f56db7…` |
 | Kích thước repo | ~281.766 KB (≈ 275 MB) | GitHub API `size` |
 | Số robot | **19 robot** (ID 0–18) + 2 TBD (AgiBot A2, OpenLoong) | README, bảng *Supported Robots* |
 | Cài đặt hiện tại | `uv sync` (khuyến nghị); conda + `pip install -e .` chỉ còn trong mục "Alternative" | README, mục Installation |
@@ -228,10 +228,19 @@ Kết quả định tính (trang 7): GMR được coi là faithful hơn PHC và 
 - Hardcode `src_fps = 30  # LAFAN1 data is typically 30 FPS`.
 - Theo README: batch **không có visualization** → hấp dẫn để đo, nhưng vì `cuda:0` nên **không dùng được** cho tuyên bố "trên CPU".
 
-### 13.2 Robot nào retarget được từ BVH LAFAN1 (cột BVH trong README)
+### 13.2 Robot nào retarget được từ BVH LAFAN1 — đếm theo `ik_configs`, không theo README
 
-✅ có: `unitree_g1`, `unitree_g1_with_hands`, `booster_t1_29dof`, `stanford_toddy`, `fourier_n1`, `engineai_pm01`, `unitree_h2`.
-TBD (chưa có): `unitree_h1`, `unitree_h1_2`, `booster_t1`, `booster_k1`, `hightorque_hi`, `galaxea_r1pro`, `kuavo_s45`, `berkeley_humanoid_lite`, `pnd_adam_lite`, `tienkung`, `pal_talos`, `fourier_gr3`.
+Đếm thực tế trong `general_motion_retargeting/ik_configs` (bản `25f56db7`, chỉ đọc): có **6** file `bvh_lafan1_to_*.json`:
+
+`bvh_lafan1_to_g1.json` · `..._h2.json` · `..._n1.json` · `..._pm01.json` · `..._t1_29dof.json` · `..._toddy.json`
+
+→ **6 robot**: `unitree_g1`, `unitree_h2`, `fourier_n1`, `engineai_pm01`, `booster_t1_29dof`, `stanford_toddy`.
+
+⚠ **README và `ik_configs` lệch nhau 1 robot:** README đánh ✅ ở cột BVH(LAFAN1) cho **`unitree_g1_with_hands`**, nhưng **không có** file `bvh_lafan1_to_g1_with_hands.json`. Lấy `ik_configs` làm chuẩn (đó là file script thực sự nạp); muốn dùng G1-có-tay qua BVH thì phải tự viết config. Vì vậy con số đúng là **6, không phải 7**.
+
+Ngoài LAFAN1, thư mục còn 4 file BVH cho định dạng khác: `bvh_nokov_to_g1.json`, `bvh_xsens_to_g1.json`, `bvh_xsens_to_h1_2.json`, `bvh_to_talos.json`.
+
+TBD (không có config LAFAN1): `unitree_h1`, `unitree_h1_2`, `booster_t1`, `booster_k1`, `hightorque_hi`, `galaxea_r1pro`, `kuavo_s45`, `berkeley_humanoid_lite`, `pnd_adam_lite`, `tienkung`, `pal_talos`, `fourier_gr3`.
 
 → V5 (sim2sim mức 3) **không được** chọn H1 nếu đi đường BVH; dùng **G1 + T1-29dof + PM01**.
 

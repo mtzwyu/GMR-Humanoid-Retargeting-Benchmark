@@ -95,7 +95,7 @@ Quy tắc cứng:
 1. **Cùng một máy** cho cả 3 lần đo của một cấu hình. Đổi máy → đổi `machine_id`, không trộn.
 2. `CUDA_VISIBLE_DEVICES=""` — `scripts/measure_runtime.py` tự đặt cho cả 2 process con. **Bản đo cũ không có cột `cuda_visible`**, nên khi trích số giai đoạn 1 phải ghi rõ "không xác minh được biến này".
 3. Tắt ứng dụng nặng, cắm sạc, không chạy song song việc khác trong lúc đo.
-4. **Ghim commit** repo GMR: hiện tại `25f56db7` (2026-10-22). Mọi CSV ghi `git_head`.
+4. **Ghim commit** repo GMR: hiện tại `25f56db7` (2026-10-23 giờ VN). Mọi CSV ghi `git_head`.
 5. `fps_src` phải khớp dữ liệu: LAFAN1 = 30. **Cấm** trộn file 120 Hz (ví dụ `assets/xsens_bvh_test/251021_04_boxing_120Hz_cm_3DsMax.bvh`) vào bảng so sánh chính.
 6. Robot mặc định: **`unitree_g1`** (robot duy nhất paper dùng — trang 3). Các robot khác chỉ dùng cho V5.
 

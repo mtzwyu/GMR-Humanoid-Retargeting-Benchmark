@@ -2,7 +2,7 @@
 
 **Nhóm 01 · HR-04 · Lớp 15DHTH07 · HK1 2026–2027 · ĐH Công Thương TP.HCM**
 Người chốt: Trần Nguyễn Khánh Duy (NT) · Ngày chốt: 2026-11-20
-Nguồn gốc: arXiv:2510.02252**v1** (9 trang) · repo https://github.com/YanjieZe/GMR, nhánh `master`, HEAD `25f56db7` (2026-10-22), giấy phép MIT.
+Nguồn gốc: arXiv:2510.02252**v1** (9 trang) · repo https://github.com/YanjieZe/GMR, nhánh `master`, HEAD `25f56db7` (2026-10-23 giờ VN), giấy phép MIT.
 Ghi chú đọc bài: `docs/paper_notes.md` · Định nghĩa phép đo: `docs/dinh_nghia_phep_do.md`
 
 ---
