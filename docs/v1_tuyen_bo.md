@@ -16,7 +16,7 @@ Bốn điều bắt buộc phải ghi kèm câu trên — thiếu một điều 
 1. **Nguồn của tuyên bố là repo, không phải bài báo.** Câu "real-time" lấy từ `README` (mục *Key features*, dòng 1) và mô tả repo GitHub (*"in real time on CPU"*).
 2. **Paper không công bố số.** arXiv:2510.02252 (9 trang) **không** có bất kỳ con số `ms/frame` hay FPS nào, cũng không nêu cấu hình CPU/GPU (đã kiểm tra toàn văn — `docs/paper_notes.md` §12). Vì vậy "giá trị gốc" của tuyên bố này là **định tính**.
 3. **Ngưỡng 33,3 ms là ngưỡng của nhóm**, không phải ngưỡng của paper: `1000/30`, suy ra từ tốc độ phát của chính dữ liệu nguồn LAFAN1 (README Ubisoft: *"496,672 motion frames at 30fps"*). Nhóm đặt trước, không đổi sau khi thấy số.
-4. **Giai đoạn 1 đo đại lượng nào:** V3 đo **cả hai** trong một lần chạy bằng `scripts/measure_runtime.py` — `ms_per_frame` (probe không viewer) và `ms_per_frame_process` (entry script). Ngưỡng 33,3 ms áp cho `ms_per_frame`; quy tắc bắc cầu khi thiếu số Nhóm A ở `docs/dinh_nghia_phep_do.md` §6.1 — **không** được quy đổi bằng hệ số 0,92.
+4. **Giai đoạn 1 đo đại lượng nào — chỉ `ms_per_frame_process`.** Bản đo V3 đã dùng là **bản đo cũ**: `results/v3_runtime.csv` có **13 cột** và **chỉ có `ms_per_frame_process`**, không có cột `ms_per_frame`. Script `scripts/measure_runtime.py` (@`5f9cdd5`) **có khả năng** đo cả hai (2 process) nhưng **chưa được dùng cho số liệu giai đoạn 1**, và Planner đã chốt **không chạy lại** V3/V5 bằng script mới. Vì vậy: (a) trong báo cáo phải gọi file đó là **"bản đo cũ"**, **không** trình bày như file đúng hợp đồng §5.1; (b) kết luận phải áp **bảng bắc cầu §6.1** của `docs/dinh_nghia_phep_do.md`, **không** suy ra `ms_per_frame`, **không** nhân hệ số 0,92.
 
 ---
 
@@ -108,9 +108,9 @@ Vì vậy phải tách **hai** đại lượng (định nghĩa đầy đủ: `do
 | `ms_per_frame` | process **probe** (`--retarget-only`, không viewer) | **chỉ** lời gọi `retarget()` từng frame |
 | `ms_per_frame_process` | process **entry script** (`bvh_to_robot.py`) | nạp BVH + `GMR(...)` + viewer + retarget + render + ghi pkl |
 
-**Giai đoạn 1 (V3) đo cả hai trong một lần chạy** bằng `scripts/measure_runtime.py` (Code đã chốt @ `5f9cdd5`). Ngưỡng 33,3 ms áp cho **`ms_per_frame`**; `_process` chỉ là cận trên chẩn đoán. Bảng bắc cầu khi thiếu số Nhóm A: `docs/dinh_nghia_phep_do.md` §6.1 (**không** nhân hệ số 0,92).
+**Giai đoạn 1 (V3) đo đại lượng nào — thực tế chỉ có `ms_per_frame_process`.** Số liệu đã thu dùng **bản đo cũ** (đo thẳng `bvh_to_robot.py`, không qua script mới), nên **không** có `ms_per_frame` (chỉ vòng lặp retarget). Script `scripts/measure_runtime.py` (@`5f9cdd5`) đã có khả năng đo cả hai, nhưng **chưa dùng** cho số giai đoạn 1 và Planner chốt **không chạy lại** V3/V5. Ngưỡng 33,3 ms vẫn áp cho `ms_per_frame`, nên khi viết báo cáo **bắt buộc** đi qua bảng bắc cầu `docs/dinh_nghia_phep_do.md` §6.1; **không** nhân hệ số 0,92.
 
-Script tự chạy 2 process con:
+Nếu dùng `scripts/measure_runtime.py` (chưa dùng cho giai đoạn 1) thì nó tự chạy 2 process con:
 
 1. **entry script** — `bvh_to_robot.py` chạy nguyên bản, có viewer → `ms_per_frame_process`;
 2. **probe** — chạy lại chính script với `--retarget-only`, **không** dựng `RobotMotionViewer` → `ms_per_frame`, và `t_init`.
@@ -120,7 +120,9 @@ Cả hai process đều được script đặt `CUDA_VISIBLE_DEVICES=""`.
 - Đo bằng `time.perf_counter()` (đồng hồ đơn điệu, độ phân giải cao). **Không** dùng `time.time()` như script gốc.
 - Ghi riêng `t_init` = thời gian khởi tạo `GMR(...)` (load MJCF + config), **không** cộng vào `ms_per_frame`.
 
-### 3.2 Lệnh chạy (tab Run thực thi)
+### 3.2 Lệnh chạy
+
+> ⚠ **Số liệu giai đoạn 1 KHÔNG dùng lệnh dưới đây.** Bản đo cũ đã chốt, Planner không cho chạy lại V3/V5. Lệnh dưới chỉ là **quy trình chuẩn** nếu sau này đo lại (hoặc cho V5), và để Run biết CLI đã chốt.
 
 CLI chính thức của `scripts/measure_runtime.py`:
 `--motion` (alias `--bvh-file`), `--robot`, `--runs N` (**tổng** số lần chạy, mặc định `4` = 1 warm-up + 3 đo), `--warmup-runs`, `--warmup-frames`, `--out` (alias `--csv`), `--raw-out`, `--fps-src`, `--script`, `--gmr-dir`, `--python`, `--dry-run`, `--frames`, `--work-dir`.
@@ -153,40 +155,49 @@ conda run -n gmr python scripts/bvh_to_robot.py \
 
 > ⚠ **Cảnh báo tên clip (bắt buộc đọc).** `walk1_subject1.bvh` dài **7840 frame = 261,3 giây** ở 30 fps. **Không được gọi nó là "Walk 1" của Bảng I paper** — "Walk 1" trong Bảng I chỉ dài **33 s** (trang 6). Đây là hai clip khác nhau; gộp lại là sai số liệu. Tên file LAFAN1 theo quy ước `[theme][take]_[subject].bvh` của Ubisoft — Run ghi lại **tên file thực tế + số frame** vào CSV.
 
-### 3.3 Đầu ra bắt buộc
+### 3.3 Đầu ra — phân biệt "bản đo cũ" và hợp đồng mới
 
-Script đo **cả hai đại lượng trong một lần chạy** và tự xuất 2 file; không cần chạy tay lần thứ hai.
+**Số liệu giai đoạn 1 là bản đo cũ**, không phải định dạng §5.1. Ghi rõ trong báo cáo:
 
-`results/v3_runtime.csv` — 1 dòng / lần chạy, đúng thứ tự cột của `SUMMARY_COLUMNS` (`scripts/measure_runtime.py` @ `5f9cdd5`), xem `docs/dinh_nghia_phep_do.md` §5.1. Tối thiểu phải có:
+`results/v3_runtime.csv` (bản đo cũ) — **13 cột**, **6 dòng** (1 warm-up + 5 lần đo):
 
-`run, motion, bvh_file, n_frames, n_frames_total, fps_src, ms_per_frame, ms_per_frame_mean, ms_per_frame_p95, fps_out, realtime_factor, t_init_s, ms_per_frame_process, fps_out_process, realtime_factor_process, cpu, os, python, git_head, cuda_visible, cmd, process_cmd, timestamp`
+`mode, phase, robot, input, frames, motion_duration_s, wall_clock_s, ms_per_frame_process, realtime_factor, exit_code, cmd, log, note`
 
-- `ms_per_frame*` / `fps_out` / `realtime_factor`: từ **probe** (`--retarget-only`), **không** dựng viewer.
-- `ms_per_frame_process` / `fps_out_process` / `realtime_factor_process`: từ **entry script**, có viewer + render + ghi pkl.
-- `cmd` = lệnh probe; `process_cmd` = lệnh entry script — hai cột này là bằng chứng tái lập, Review kiểm cả hai.
-- `t_init_s`: lấy từ probe.
+Ba điều bắt buộc khi trích số từ file này:
 
-`results/v3_runtime_raw.csv` — 1 dòng / frame, đúng hợp đồng `RAW_COLUMNS`: `run, motion, robot, frame, included, ms`.
+1. **Không có cột `ms_per_frame`** → kết luận phải đi qua bảng bắc cầu `docs/dinh_nghia_phep_do.md` §6.1, và nêu rõ số Nhóm A **không đo được** trong giai đoạn 1.
+2. Cột `realtime_factor` **trong file cũ là của cả tiến trình** (nó được tính từ `ms_per_frame_process`), nên khi viết báo cáo phải gọi đúng là **`realtime_factor_process`** — không được trình bày như `realtime_factor` của vòng lặp retarget.
+3. Dòng `phase = warmup` bị loại; chỉ dùng `measure_*`. Không cộng tất cả 6 dòng.
+
+Nếu sau này có người chạy lại bằng script mới, **định dạng đích** (hợp đồng §5.1, `SUMMARY_COLUMNS` @ `5f9cdd5`) là:
+
+`run, robot, motion, bvh_file, n_frames, n_warmup_frames, fps_src, ms_per_frame, ms_per_frame_mean, ms_per_frame_p95, fps_out, realtime_factor, t_init_s, cpu, ram_gb, os, python, numpy, mujoco, mink, torch, git_head, cuda_visible, cmd, timestamp, n_frames_total, ms_per_frame_process, fps_out_process, realtime_factor_process, process_cmd`
+
+- `ms_per_frame*` / `fps_out` / `realtime_factor`: từ **probe** (`--retarget-only`, không viewer).
+- `ms_per_frame_process` / `fps_out_process` / `realtime_factor_process`: từ **entry script**.
+- `cmd` = lệnh probe; `process_cmd` = lệnh entry script.
+
+`results/v3_runtime_raw.csv` (chỉ có khi chạy script mới) — 1 dòng / frame: `run, motion, robot, frame, included, ms`.
 
 ### 3.4 Sai số chấp nhận
 
 | Mức | Ngưỡng | Cách xử lý |
 |---|---|---|
-| Lặp lại giữa 3 lần chạy | **CV ≤ 5 %**, tính **riêng** cho `ms_per_frame` và `ms_per_frame_process` | nếu > 5 %: chạy thêm 2 lần, báo **trung vị** thay vì trung bình, và ghi rõ máy không ổn định |
-| Ngưỡng quyết định tuyên bố | `realtime_factor` ≥ **1,00** — áp cho **`ms_per_frame`** | xem §3.5 và `dinh_nghia_phep_do.md` §6.1 |
+| Lặp lại giữa các lần chạy | **CV ≤ 5 %**, tính **riêng** cho `ms_per_frame` và `ms_per_frame_process` | nếu > 5 %: chạy thêm 2 lần, báo **trung vị** thay vì trung bình, và ghi rõ máy không ổn định. Bản đo cũ có **5** lần đo → tính CV trên **cả 5**, không cắt còn 3 |
+| Ngưỡng quyết định tuyên bố | `realtime_factor` ≥ **1,00** — áp cho **`ms_per_frame`** | giai đoạn 1 không có số này: đọc cột cũ thành `realtime_factor_process` và áp §6.1 |
 | Dung sai kỹ thuật của phép đo | ± 5 % (làm tròn 0,1 ms; 0,1 fps) | — |
 
 **Không có sai số "so với paper"** vì paper không có số. Đây là điểm yếu cố hữu của tuyên bố này và phải viết thẳng trong báo cáo.
 
 ### 3.5 Ba mức kết luận (chốt trước, không đổi sau khi thấy số)
 
-| `realtime_factor` (trung bình 3 lần) | Kết luận |
+| `realtime_factor` (trung bình các lần đo) | Kết luận |
 |---|---|
 | ≥ 1,00 | **Tái lập được** — GMR retarget nhanh ít nhất bằng tốc độ phát của dữ liệu nguồn trên CPU |
 | 0,80 – 0,99 | **Tái lập một phần** — gần real-time, phải nêu cấu hình CPU và đề xuất CPU mạnh hơn |
 | < 0,80 | **Không tái lập được** — phải thử thêm máy thứ hai trước khi kết luận; nếu vẫn < 0,80 thì kết luận "không tái lập trên CPU phổ thông", kèm phân tích nút thắt (2 stage IK × 10 vòng lặp) |
 
-Bảng trên dành cho `ms_per_frame` (số chính thức, lấy từ probe). Chỉ khi **thiếu** số Nhóm A (probe lỗi, hoặc ai đó đo tay bằng `bvh_to_robot.py`) mới dùng bảng bắc cầu ở `docs/dinh_nghia_phep_do.md` **§6.1**: `_process` ≤ 33,3 ms là **điều kiện đủ** để kết luận tái lập; `_process` > 33,3 ms mà `ms_per_frame` ≤ 33,3 ms thì **tái lập một phần**; không có `ms_per_frame` thì **chưa kết luận được**.
+Bảng trên định nghĩa cho `ms_per_frame` (số chính thức, lấy từ probe). **Giai đoạn 1 không có số này**, nên khi áp cho bản đo cũ thì: (a) đọc `realtime_factor` thành **`realtime_factor_process`**, và (b) dùng bảng bắc cầu `docs/dinh_nghia_phep_do.md` **§6.1** — `_process` ≤ 33,3 ms là **điều kiện đủ** để kết luận tái lập; nếu `_process` > 33,3 ms thì **chưa kết luận được** vì thiếu số Nhóm A (không được suy ra).
 
 ---
 
@@ -203,10 +214,11 @@ Bảng trên dành cho `ms_per_frame` (số chính thức, lấy từ probe). Ch
 | 7 | **Sai `fps_src`** — GMR hardcode 30 fps, không đọc header BVH | Nếu lỡ dùng file 120 Hz (ví dụ `assets/xsens_bvh_test/…120Hz…bvh`) thì `realtime_factor` sai **4 lần** | Chỉ dùng LAFAN1 (30 fps, theo README Ubisoft); đọc header `Frame Time` để đối chiếu và ghi cả hai vào CSV |
 | 8 | **OS** — README chỉ test Ubuntu 22.04/20.04; worktree này là Windows | Cài đặt có thể tắc (MuJoCo, Mink/qpsolvers) | Nếu tắc: ghi nhật ký theo AGENTS.md (tắc ở đâu, đã thử gì); dùng WSL2 và ghi rõ |
 | 9 | **Python 3.10** bắt buộc theo hướng dẫn | Lệch version → API Mink khác | Dùng đúng 3.10; lưu `requirements.txt` thực tế |
-| 10 | **Máy đo có GPU** | torch/MuJoCo có thể chọn backend khác → số không so được với "CPU" | Script tự đặt `CUDA_VISIBLE_DEVICES=""` cho cả 2 process; CSV có cột `cuda_visible` để kiểm |
+| 10 | **Máy đo có GPU** | torch/MuJoCo có thể chọn backend khác → số không so được với "CPU" | Script mới tự đặt `CUDA_VISIBLE_DEVICES=""` và ghi cột `cuda_visible`; **bản đo cũ không có cột này** → phải ghi rõ "không xác minh được" |
 | 11 | **Clip quá ngắn** | Ảnh hưởng warm-up lên trung bình | Dùng clip dài (`walk1_subject1.bvh`, 7840 frame / 261,3 s) và loại 30 frame đầu mỗi lần |
 | 12 | **Nhầm tên clip** — `walk1_subject1.bvh` (7840 frame, 261,3 s) bị gọi là "Walk 1" của Bảng I (33 s) | Bảng so sánh ghép sai đối tượng, sai số liệu | CSV ghi `bvh_file` + `n_frames_total`; trong báo cáo luôn ghi tên file thật, không dùng nhãn "Walk 1" cho clip này |
 | 13 | **Nhầm tên đại lượng** — dùng `ms_per_frame` cho số đo cả tiến trình | Kết luận áp sai ngưỡng, Review không đối chiếu được | `ms_per_frame` = **chỉ** vòng lặp retarget (Nhóm A, tên chính thức); mọi số đầu-cuối **bắt buộc** có hậu tố `_process` |
+| 14 | **Trình bày bản đo cũ như file đúng hợp đồng §5.1** — file chỉ có 13 cột, không có `ms_per_frame`, cột `realtime_factor` là của `_process` | Báo cáo tuyên bố mạnh hơn thực tế đã đo | Gọi đúng "bản đo cũ"; đổi nhãn cột khi trích số; kết luận đi qua §6.1 |
 
 ---
 
@@ -214,15 +226,16 @@ Bảng trên dành cho `ms_per_frame` (số chính thức, lấy từ probe). Ch
 
 | Đại lượng | Bài báo | Nhóm đo được |
 |---|---|---|
-| `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | *(điền sau khi Run chạy)* |
-| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** | *(điền sau)* |
-| `fps_out` (frame/s) | **không nêu** | *(điền sau)* |
-| `realtime_factor` (lần) | **không nêu** — chỉ có chữ "real time" | *(điền sau)* |
+| `ms_per_frame` (ms) — G1, LAFAN1 | **không nêu** | **không đo** — bản đo cũ không có cột này |
+| `ms_per_frame_process` (ms) — G1, LAFAN1 | **không nêu** | có trong `results/v3_runtime.csv` (**bản đo cũ**, 5 lần đo) — Writing điền sau khi Review PASS |
+| `fps_out` (frame/s) | **không nêu** | không đo (chỉ suy ra được từ `ms_per_frame`) |
+| `realtime_factor` (lần) | **không nêu** — chỉ có chữ "real time" | không đo; cột `realtime_factor` trong file cũ **là của `_process`** |
+| `realtime_factor_process` (lần) | **không nêu** | có trong file cũ (cột mang tên `realtime_factor`) |
 | Success rate "Dance 5" sim2sim (%) | 51 | không đo (ngoài phạm vi) |
 | `E_g-mpbpe` mean GMR (mm) | 104,1 | không đo (ngoài phạm vi) |
 | Xuyên sàn PHC "Dance 1" (cm) | 60 | không đo (ngoài phạm vi) |
 
-Nguyên tắc: ô "nhóm đo được" **để trống** cho tới khi có CSV. Không suy diễn, không nội suy, không chép số paper sang cột của nhóm.
+Nguyên tắc: chỉ điền số **đã Review PASS**; không suy diễn, không nội suy, không chép số paper sang cột của nhóm. Số `ms_per_frame` để **trống** — giai đoạn 1 không đo được, và **không** được thay bằng số `_process`.
 
 ---
 
@@ -239,9 +252,9 @@ Nguyên tắc: ô "nhóm đo được" **để trống** cho tới khi có CSV. 
 | Cho ai | Việc | Điều kiện xong |
 |---|---|---|
 | **Code (Vỹ)** | **Đã xong**: `scripts/measure_runtime.py` @ `5f9cdd5` (nhánh `task/code-scripts3`). CLI và cột CSV đã chốt — V1 chỉ đọc, không sửa script | `--dry-run` chạy được; xuất đúng 2 file CSV |
-| **Run (Mạnh)** | Dựng env `gmr` @ commit `25f56db7`, tải LAFAN1, chạy đúng lệnh §3.2 | `results/v3_runtime.csv` có 3 dòng `run=2,3,4`, đủ cột `ms_per_frame` và `ms_per_frame_process` |
-| **Review (Trường)** | Kiểm 5 dòng: đúng file, đúng **tên đại lượng** (`ms_per_frame` vs `_process`), có `cmd` **và** `process_cmd`, `git_head`, CV ≤ 5 % | PASS/FAIL theo mẫu 5 dòng |
-| **Writing** | Điền §5 | Không ô nào ở cột "nhóm đo được" bị chép từ paper |
+| **Run (Mạnh)** | **Không chạy lại V3/V5** bằng script mới (Planner đã chốt). Số giai đoạn 1 giữ nguyên bản đo cũ `results/v3_runtime.csv` | Không sinh thêm file runtime mới; nếu có chạy lại thì phải ghi rõ là lô khác, không trộn |
+| **Review (Trường)** | Kiểm bản đo cũ: đúng file, **không** được gọi cột `realtime_factor` là của vòng lặp retarget, đủ 13 cột, dòng `warmup` bị loại, CV ≤ 5 % | PASS/FAIL theo mẫu 5 dòng |
+| **Writing** | Điền §5, gọi file là **"bản đo cũ"** | Không ô nào ở cột "nhóm đo được" bị chép từ paper; `ms_per_frame` để trống |
 
 ---
 
@@ -267,11 +280,12 @@ Hệ quả: mọi bảng trong báo cáo phải tách hai cột. Cột "bài bá
 
 Kết luận phải viết được thành **tái lập một phần**, không phải "tái lập được" cũng không phải "không tái lập được":
 
-> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được: GMR retarget chuyển động LAFAN1 sang Unitree G1 trên CPU với `ms_per_frame` = … ms (`realtime_factor` = …, trung bình 3 lần, CV = … %), so với ngưỡng do nhóm đặt trước 33,3 ms → kết luận tái lập / không tái lập theo bảng §3.5. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
+> **Tái lập một phần.** Phần **thời gian thực** kiểm chứng được ở mức **cả tiến trình**: `ms_per_frame_process` = … ms (`realtime_factor_process` = …, … lần đo, CV = … %) theo **bản đo cũ** `results/v3_runtime.csv`; áp bảng bắc cầu §6.1 với ngưỡng 33,3 ms → … (tái lập được / chưa kết luận được). Số `ms_per_frame` (chỉ vòng lặp retarget) **không đo được** trong giai đoạn 1 vì bản đo cũ không có cột đó, và script mới chưa được dùng. Phần **bảng số của paper** (Bảng I, II, III) **không tái lập được**, vì các bảng đó đo policy đã train trong IsaacSim trên GPU — nhóm không có GPU, không có IsaacSim và không thể train 84 policy trong 10 ngày; con số 104,1 mm của Bảng II được ghi ở cột "bài báo" và **không** được đối chiếu với bất kỳ số nào nhóm tự đo.
 
 Điều kiện để câu trên đúng:
 
-1. Chỉ điền số vào chỗ `…` khi có `results/v3_runtime.csv` do Review chấm PASS.
+1. Chỉ điền số vào chỗ `…` khi có `results/v3_runtime.csv` (**bản đo cũ**) do Review chấm PASS.
 2. Không đổi ngưỡng 33,3 ms sau khi thấy số.
 3. Không dùng từ "tái lập được" cho toàn bộ bài báo — chỉ cho phần thời gian thực.
-4. Nếu vì lý do nào đó phần thời gian thực cũng không đạt, câu kết luận phải đổi thành "không tái lập được", **không** được giữ nguyên "một phần" cho đẹp.
+4. **Không** được viết "retarget đạt real-time" như thể đã đo riêng vòng lặp retarget. Chỉ được nói đúng mức đã đo: **cả tiến trình**. Nếu muốn nói chắc hơn thì phải chạy probe (script `5f9cdd5`) — việc này chưa được làm.
+5. Nếu phần thời gian thực cũng không đạt, câu kết luận phải đổi thành "không tái lập được", **không** được giữ nguyên "một phần" cho đẹp.
