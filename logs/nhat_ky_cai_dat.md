@@ -186,27 +186,31 @@ Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũ
 
 Kiểm chứng trước khi chạy: driver `v6_run.py` chạy lại bản sạch cho ra **|Δq| = 0,0000° · dr_rmse = 0,000 mm** so với pkl baseline → driver trung thực với `bvh_to_robot.py` (chỉ bỏ phần viewer).
 
-| Phép thử | Mức | dq_mean (°) | dq_max (°) | dr_rmse (mm) | pct_frames_gt5deg (%) | converges |
-|---|---|---|---|---|---|---|
-| N1 nhiễu khớp | σ = 0,5° | 0,56 | 7,56 | 1,20 | 0,51 | 1 |
-| N1 | σ = 1° | 1,10 | 14,11 | 1,56 | 5,55 | 1 |
-| N1 | σ = 2° | 2,18 | 25,80 | 2,02 | 87,74 | 1 |
-| N1 | σ = 5° | 5,41 | 63,89 | 3,52 | 100,00 | 1 |
-| N2 trễ | k = 1 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
-| N2 | k = 2 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
-| N2 | k = 3 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
-| N2 | k = 5 | 0,0010 | 36,08 | 0,03 | 0,013 | 1 |
-| N3 mất frame | p = 1 % | 0,0033 | 6,83 | 0,17 | 0,013 | 1 |
-| N3 | p = 5 % | 0,0158 | 6,09 | 0,36 | 0,077 | 1 |
-| N3 | p = 10 % | 0,0355 | 10,99 | 0,62 | 0,306 | 1 |
-| N4 lệch tỉ lệ | −20 % | 1,86 | 29,65 | 718,53 | 90,43 | 1 |
-| N4 | −10 % | 0,73 | 19,27 | 358,57 | 6,37 | 1 |
-| N4 | +10 % | 1,88 | 33,32 | 359,32 | 94,77 | 1 |
-| N4 | +20 % | 3,14 | 42,82 | 718,51 | 98,05 | 1 |
+| Phép thử | Mức | dq_mean (°) | dq_max (°) | dq_max **bỏ frame 0** (°) | dr_rmse (mm) | pct_frames_gt5deg (%) | converges |
+|---|---|---|---|---|---|---|---|
+| N1 nhiễu khớp | σ = 0,5° | 0,56 | 7,56 | 7,56 | 1,20 | 0,51 | 1 |
+| N1 | σ = 1° | 1,10 | 14,11 | 14,11 | 1,56 | 5,55 | 1 |
+| N1 | σ = 2° | 2,18 | 25,80 | 25,80 | 2,02 | 87,74 | 1 |
+| N1 | σ = 5° | 5,41 | 63,89 | 63,89 | 3,52 | 100,00 | 1 |
+| N2 trễ | k = 1 | 0,0010 | 36,08 | **0,31** | 0,03 | 0,013 | 1 |
+| N2 | k = 2 | 0,0010 | 36,08 | **0,40** | 0,03 | 0,013 | 1 |
+| N2 | k = 3 | 0,0010 | 36,08 | **0,44** | 0,03 | 0,013 | 1 |
+| N2 | k = 5 | 0,0010 | 36,08 | **0,46** | 0,03 | 0,013 | 1 |
+| N3 mất frame | p = 1 % | 0,0033 | 6,83 | 6,83 | 0,17 | 0,013 | 1 |
+| N3 | p = 5 % | 0,0158 | 6,09 | 6,09 | 0,36 | 0,077 | 1 |
+| N3 | p = 10 % | 0,0355 | 10,99 | 10,99 | 0,62 | 0,306 | 1 |
+| N4 lệch tỉ lệ | −20 % | 1,86 | 29,65 | 29,65 | 718,53 | 90,43 | 1 |
+| N4 | −10 % | 0,73 | 19,27 | **15,83** | 358,57 | 6,37 | 1 |
+| N4 | +10 % | 1,88 | 33,32 | **18,37** | 359,32 | 94,77 | 1 |
+| N4 | +20 % | 3,14 | 42,82 | **31,92** | 718,51 | 98,05 | 1 |
+
+**RV-31 — `dq_max` bị frame 0 thổi lên:** cột `dq_max` (giữ nguyên, khớp CSV) tính cả frame 0; cột mới **`dq_max_excl_frame0`** tính lại trên các frame 1…N−1. Khác biệt chỉ đáng kể ở **N2** (36,08° → 0,31–0,46°) và **N4** (−10 %: 19,27 → **15,83**; +10 %: 33,32 → **18,37**; +20 %: 42,82 → **31,92**; −20 % không đổi vì frame 0 không phải chỗ lệch lớn nhất). `dq_mean` và `dr_rmse` **không đổi** (frame 0 chỉ là 1/7.839 nên không dịch chuyển trung bình). Cả hai cột đều nằm trong `results/v6_noise_sweep.csv`; khi trích vào báo cáo phải ghi rõ đang dùng cột nào.
 
 **Đối chiếu giả thuyết (ghi đúng kết quả đo, không sửa số):**
 1. **N1:** `dq_mean` tăng **gần tuyến tính** theo σ (0,56 → 1,10 → 2,18 → 5,41 ứng với 0,5/1/2/5°) — khớp kỳ vọng. Nhưng `pct_frames_gt5deg` bùng nổ **phi tuyến** (0,5 % → 5,5 % → 87,7 % → 100 %) vì đây là chỉ số ngưỡng: khi sai số trung bình chạm ~2° thì gần như mọi frame đều có ít nhất một khớp vượt 5°.
-2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ **1 frame** (pct 0,013 % = 1/7839) lệch 36,08°, đã truy ra: đó là **frame đầu tiên ngay sau điểm dịch** — cùng một frame đầu vào (frame 0) được retarget lần thứ hai, nên IK rơi vào một nghiệm cục bộ khác (warm start từ frame trước). Bằng chứng: `out[0]` vs `base[0]` = **0,0000°**; `out[1]` vs `base[0]` = **36,08°**; `out[2]` vs `base[1]` = 0,31°; rồi 0,10° → 0,05° → 0,02° → tắt dần. **Kết luận: đúng là frame biên sau warm-start, không phải sai số tích lũy**; cũng cho thấy IK có phụ thuộc warm-start ở 1 frame biên (không hoàn toàn độc lập từng frame như giả thuyết).
+2. **N2:** so **đúng cặp frame** (dịch kết quả đi k frame) → `dq_mean` = **0,0010°**, `dr_rmse` = **0,03 mm** ≈ 0 — đúng giả thuyết "trễ chỉ làm lệch pha thời gian, không làm sai tư thế". Ngoại lệ **1 frame** (pct 0,013 % = 1/7839) lệch 36,08°, đã truy ra: đó là **frame đầu tiên ngay sau điểm dịch** — cùng một frame đầu vào (frame 0) được retarget lần thứ hai. **Lần giải đầu chưa hội tụ trong trần 10 vòng lặp; các lần giải lại sau đó hội tụ dần.** Bằng chứng: `out[0]` vs `base[0]` = **0,0000°**; `out[1]` vs `base[0]` = **36,08°**; rồi **0,307° → 0,094° → 0,044° → 0,021°** (giảm đơn điệu, không tích lũy). **Kết luận: đúng là frame biên sau warm-start, không phải sai số tích lũy**; IK có phụ thuộc warm-start ở frame biên (không hoàn toàn độc lập từng frame như giả thuyết).
+
+**Ghi chú thêm (RV-30):** **frame 0 của mỗi clip chưa hội tụ ở khâu tay** — vì thế mọi chỉ số `dq_max` đều bị frame 0 thổi lên; xem cột `dq_max_excl_frame0` ở mục RV-31 bên dưới để đọc đúng mức lệch thực của phần còn lại của clip.
 3. **N3:** ảnh hưởng **rất nhỏ** (dq_mean 0,0033 → 0,0355°; pct ≤ 0,31 %) và tăng theo p — vì frame thiếu được lấp bằng nội suy tuyến tính nên tư thế gần như giữ nguyên.
 4. **N4:** lệch lớn và **bất đối xứng** (pct 6,4 % ở −10 % nhưng 94,8 % ở +10 %). `dr_rmse` 359/719 mm **chủ yếu do quỹ đạo gốc bị scale** (người cao hơn đi xa hơn), không phải sai tư thế — cần nói rõ khi viết báo cáo.
 5. `still_converges = 1` ở **cả 15 mức** → không mức nhiễu nào làm IK phân kỳ hay sinh NaN.
