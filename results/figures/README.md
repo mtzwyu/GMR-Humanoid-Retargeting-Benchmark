@@ -33,6 +33,7 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 | `v5_ms_per_frame_robots_2026-11-20.png` | ms/frame theo robot cho V5 sim2sim, áp quy tắc §4: **mean** nếu CV ≤ 5 % (PM01 **34,97**, G1 **16,76**), **median** nếu CV > 5 % (T1 29dof **13,03**); thanh sai số = min–max — **slide "sim2sim"** | `python tools/plot_v3.py` (đọc `results/v5_sim2sim.csv`) | 2026-11-21 |
 | `v6_noise_vs_deviation.png` | V6: 3 panel — `dq_mean`, `pct_frames_gt5deg`, `n_saturated_frames` (số frame có ≥1 khớp chạm giới hạn ±0,5°, có đường baseline 1865 frame) theo 15 mức nhiễu của 4 phép thử N1–N4 — **slide "độ bền theo nhiễu"** | `python tools/v6_plot.py` (đọc `results/v6_noise_sweep.csv`) | 2026-11-21 |
 | `v6_noise_slide.png` | **Bản 16:9 riêng cho slide/video** (2000×1125): 3 panel **xếp dọc**, chữ ≥ 18 pt, nhóm N1–N4 ghi phía trên panel 1, legend 1 hàng ở đáy, có đường baseline 1865 frame — cùng số liệu với hình trên, chỉ vẽ lại cho dễ đọc trên video | `python tools/v6_plot_slide.py` (đọc `results/v6_noise_sweep.csv`) | 2026-11-21 |
+| `v6_quality.png` | **Chất lượng ánh xạ**: panel trái `foot_slide` theo robot (cột = trung bình 2 chân, chấm = trái/phải — **chỉ so sánh tương đối**), panel phải độ cao **tâm thân** thấp nhất theo robot kèm đường mặt đất z = 0; kết luận xuyên sàn đọc ở cột `pct_frames_penetration` (T1 29dof 2,13 %, G1 và PM01 0 %) — **slide "chất lượng"** | `python tools/quality_plot.py` (đọc `results/v6_quality.csv`) | 2026-11-21 |
 
 ## 4. Ảnh mở file CSV kết quả
 
