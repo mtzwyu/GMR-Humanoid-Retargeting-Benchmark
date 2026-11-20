@@ -31,7 +31,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 | 10 | Bắc cầu: được kết luận gì | 7:20 | 0:40 | Duy |
 | 11 | Sim2sim 3 robot | 8:00 | 1:00 | Trường |
 | 12 | Vì sao PM01 chậm | 9:00 | 0:30 | Trường |
-| 13 | Nhiễu vật lý không áp dụng → N1–N4 | 9:30 | 1:00 | Trường |
+| 13 | Nhiễu vật lý không áp dụng → N1–N4 | 9:30 | 1:00 | Trương Thái Vỹ + Hà Mạnh Trường |
 | 14 | Kết luận: tái lập một phần | 10:30 | 0:50 | Duy |
 | 15 | Ba bài học + việc còn mở | 11:20 | 0:40 | Duy |
 | 16 | Cầu nối Q&A | 12:00 | 1:00 | cả nhóm |
@@ -198,7 +198,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 - Kết quả headline: N2/N3 vô hại · N1 hỏng từ **2°** · N4 hỏng từ **±10 %**, giãn nặng hơn co
 - Cảnh báo trên slide: `dr_rmse` 719 mm của N4 là **scale quỹ đạo**, không phải sai tư thế
 
-**Lời:** "Nhóm không lấp bằng một bảng đẹp; nhóm thay bằng phép thử có tác dụng thật — và nói rõ chỉ số nào không được đọc sai."
+**Lời (Vỹ + Trường):** Vỹ nói vì sao phép thử ±20 % khối lượng không có tác dụng; Trường nói kết quả N1–N4. "Nhóm không lấp bằng một bảng đẹp; nhóm thay bằng phép thử có tác dụng thật — và nói rõ chỉ số nào không được đọc sai."
 
 ---
 
