@@ -120,6 +120,13 @@ RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
 
 **Ghi chú về đơn vị đo:** cột `ms_per_frame_process` (trước RV-17 tên là `ms_per_frame`) = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
 
+**Cột `realtime_factor` đọc cho đúng (RV-27):** trong CSV, `realtime_factor` là của **từng lần chạy** (`motion_duration_s / wall_clock_s` của chính lần đó), **không** phải số tổng hợp. Số tổng hợp dùng trong báo cáo phải tính bằng **33,333 ms / median_ms** (33,333 ms = ngân sách thời gian mỗi frame ở 30 fps):
+- T1 29dof: 33,333 / 13,034 = **2,56**
+- G1: 33,333 / 17,018 = **1,96**
+- PM01: 33,333 / 35,454 = **0,94**
+
+Writing **không** lấy trực tiếp cột `realtime_factor` của một dòng bất kỳ để báo cáo.
+
 ## MEDIA — video demo và ảnh trích cho slide
 
 **Yêu cầu:** 3 clip ≤ 60 s, khung 16:9; mỗi clip trích 3 khung 25/50/75 % thành PNG ≤ 1 MB; video **không commit**, PNG **có commit**.
@@ -153,19 +160,21 @@ Mục này là **căn cứ số cho Writing viết mục 7** (độ tin cậy c�
 
 Chênh lệch: **+14,36 %** nếu so mean với mean (17,349 / 15,171); **+13,85 %** nếu so median mới với mean cũ. Nguyên nhân chạy lại **không** phải vì số xấu mà vì **định dạng log hỏng** (RV-14) — nhưng đợt mới là đợt duy nhất có log đối chiếu được, nên **lấy đợt mới làm số chính thức**: median **17,272 ms/frame** (n = 5, CV 2,13 %). Số đợt cũ chỉ giữ để đối chiếu.
 
-### (b) Retarget là tất định — bằng chứng SHA256 trên 38 file pkl
+### (b) Retarget là tất định — bằng chứng SHA256 trên 40 file pkl
 
-Băm toàn bộ `results/pkl/*.pkl` (SHA256). Kết quả: **mọi lần chạy của cùng một cặp (robot, motion) cho ra file pkl giống nhau từng byte**, bất kể đợt đo, bất kể có/không `--rate_limit`:
+Băm toàn bộ `results/pkl/*.pkl` (SHA256, sau khi đã chạy thêm `run5`/`run6` cho T1 theo RV-24). Kết quả: **mọi lần chạy của cùng một cặp (robot, motion) cho ra file pkl giống nhau từng byte**, bất kể đợt đo, bất kể có/không `--rate_limit`:
 
 | Nhóm pkl | Số file | SHA256 (rút gọn) | Gồm |
 |---|---|---|---|
 | G1 + `walk1_subject1` | **20** | `E7E3B906F22D3869…` | 6 pkl V3 mới (`run1..run6`), 1 pkl console (`…_evidence`), 4 pkl V3 cũ (`…_no_rate_limit_1..4`), 4 pkl cũ có cờ (`…_rate_limit_1..4`), 4 pkl V5 G1 (`run1..4`), 1 pkl V5 G1 bản đầu |
-| T1 29dof + `walk1_subject1` | 5 | `4E7161873D508ABE…` | V5 `run1..4` + bản đầu |
+| T1 29dof + `walk1_subject1` | **7** | `4E7161873D508ABE…` | V5 `run1..4` + bản đầu + `run5`/`run6` (đo bổ sung theo RV-24) |
 | PM01 + `walk1_subject1` | 5 | `57B693A8AAC72FE8…` | V5 `run1..4` + bản đầu |
 | G1 + `walk4_subject1` | 5 | `37F0ACD2DD0EFF3C…` | warmup + `no_rate_limit_1..4` |
 | G1 + `dance1_subject2` | 1 | `7A8FFEBE9C2BAE6F…` | KI-01 |
 | G1 + `walk3_subject1` | 1 | `C9488E53DD93B7C8…` | KI-01 |
 | T1 29dof + `walk4_subject1` | 1 | `2C6498E50CDBE0EF…` | KI-01 |
+
+Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũng cho đúng `4E716187…` — chạy thêm không phá tính tất định.
 
 Đọc bảng: **hash chỉ trùng trong cùng cặp (robot, motion)**; khác robot thì khác hash vì số dof khác nhau (G1 29 · T1 29dof 27 · PM01 24), khác motion cũng khác hash. (Lưu ý: không phải "15 pkl đều `E7E3B906…`" — con số đúng là **20 pkl** thuộc nhóm G1 + `walk1_subject1`.)
 
