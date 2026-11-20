@@ -189,5 +189,5 @@ Driver `v6_run.py` **không sửa `scripts/`**: nó lặp lại đúng vòng ret
 
 ## Ghi chú tái lập
 
-- `third_party/_run/*.ps1|*.py` là script phụ trợ của Run (đo, vẽ, render, ghi video). Nằm trong `third_party/` nên **không commit**; nội dung đã chép trong log này và trong `logs/nhat_ky_cai_dat.md`.
+- `tools/*.ps1|*.py` là script phụ trợ của Run (đo, vẽ, render, ghi video). Nằm trong `third_party/` nên **không commit**; nội dung đã chép trong log này và trong `logs/nhat_ky_cai_dat.md`.
 - `results/pkl/*.pkl` và `results/logs/*.log`: pkl bị `.gitignore` chặn (dung lượng), log thì commit.

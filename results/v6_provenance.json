@@ -1,0 +1,276 @@
+{
+  "experiment": "V6 â€” 4 phĂ©p thá»­ nhiá»…u (DEC-02, docs/v6_noise_spec.md)",
+  "generated_at": "2026-11-21T01:21:13+07:00",
+  "gmr": {
+    "repo": "https://github.com/YanjieZe/GMR",
+    "git_head": "25f56db",
+    "license": "MIT"
+  },
+  "input": {
+    "bvh": "third_party/data/lafan1/walk1_subject1.bvh",
+    "frames": 7840,
+    "fps": 30,
+    "robot": "unitree_g1",
+    "baseline_pkl": "results/pkl/g1_walk1_subject1_run1.pkl (SHA256 E7E3B906â€¦)"
+  },
+  "env": {
+    "python": "3.10.21",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "numpy": "2.2.6",
+    "mujoco": "3.17.0",
+    "mink": "1.3.0",
+    "torch": "2.14.1+cpu",
+    "general_motion_retargeting": "0.2.0",
+    "solver": "daqp",
+    "damping": 0.5,
+    "max_iter": 10
+  },
+  "driver": "tools/v6_run.py (láº·p láº¡i vĂ²ng retarget cá»§a scripts/bvh_to_robot.py, khĂ´ng má»Ÿ viewer)",
+  "metrics": "tools/v6_metrics.py (so vá»›i baseline; N2 so Ä‘Ăºng cáº·p frame)",
+  "conditions": [
+    {
+      "mode": "n1",
+      "level": 0.5,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n1 --level 0.5 --seed 0 --out results/pkl/v6_n1_0.5.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.5616",
+        "dq_max": "7.5578",
+        "dr_rmse_mm": "1.2023",
+        "pct_frames_gt5deg": "0.51",
+        "still_converges": "1",
+        "n_saturated_frames": "1875",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n1",
+      "level": 1.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n1 --level 1 --seed 0 --out results/pkl/v6_n1_1.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "1.0995",
+        "dq_max": "14.1089",
+        "dr_rmse_mm": "1.5559",
+        "pct_frames_gt5deg": "5.549",
+        "still_converges": "1",
+        "n_saturated_frames": "1910",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n1",
+      "level": 2.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n1 --level 2 --seed 0 --out results/pkl/v6_n1_2.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "2.176",
+        "dq_max": "25.8043",
+        "dr_rmse_mm": "2.0188",
+        "pct_frames_gt5deg": "87.741",
+        "still_converges": "1",
+        "n_saturated_frames": "2122",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n1",
+      "level": 5.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n1 --level 5 --seed 0 --out results/pkl/v6_n1_5.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "5.4134",
+        "dq_max": "63.8881",
+        "dr_rmse_mm": "3.523",
+        "pct_frames_gt5deg": "100.0",
+        "still_converges": "1",
+        "n_saturated_frames": "3550",
+        "n_frames_hit_limit_max": "5"
+      }
+    },
+    {
+      "mode": "n2",
+      "level": 1.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n2 --level 1 --seed 0 --out results/pkl/v6_n2_1.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.001",
+        "dq_max": "36.0828",
+        "dr_rmse_mm": "0.0303",
+        "pct_frames_gt5deg": "0.013",
+        "still_converges": "1",
+        "n_saturated_frames": "1865",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n2",
+      "level": 2.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n2 --level 2 --seed 0 --out results/pkl/v6_n2_2.pkl",
+      "n_frames": 7838,
+      "result": {
+        "dq_mean": "0.001",
+        "dq_max": "36.0808",
+        "dr_rmse_mm": "0.031",
+        "pct_frames_gt5deg": "0.013",
+        "still_converges": "1",
+        "n_saturated_frames": "1865",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n2",
+      "level": 3.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n2 --level 3 --seed 0 --out results/pkl/v6_n2_3.pkl",
+      "n_frames": 7837,
+      "result": {
+        "dq_mean": "0.001",
+        "dq_max": "36.0784",
+        "dr_rmse_mm": "0.031",
+        "pct_frames_gt5deg": "0.013",
+        "still_converges": "1",
+        "n_saturated_frames": "1865",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n2",
+      "level": 5.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n2 --level 5 --seed 0 --out results/pkl/v6_n2_5.pkl",
+      "n_frames": 7835,
+      "result": {
+        "dq_mean": "0.001",
+        "dq_max": "36.0771",
+        "dr_rmse_mm": "0.031",
+        "pct_frames_gt5deg": "0.013",
+        "still_converges": "1",
+        "n_saturated_frames": "1865",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n3",
+      "level": 1.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n3 --level 1 --seed 0 --out results/pkl/v6_n3_1.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.0033",
+        "dq_max": "6.8301",
+        "dr_rmse_mm": "0.1742",
+        "pct_frames_gt5deg": "0.013",
+        "still_converges": "1",
+        "n_saturated_frames": "1862",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n3",
+      "level": 5.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n3 --level 5 --seed 0 --out results/pkl/v6_n3_5.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.0158",
+        "dq_max": "6.0853",
+        "dr_rmse_mm": "0.3572",
+        "pct_frames_gt5deg": "0.077",
+        "still_converges": "1",
+        "n_saturated_frames": "1865",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n3",
+      "level": 10.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n3 --level 10 --seed 0 --out results/pkl/v6_n3_10.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.0355",
+        "dq_max": "10.9857",
+        "dr_rmse_mm": "0.6209",
+        "pct_frames_gt5deg": "0.306",
+        "still_converges": "1",
+        "n_saturated_frames": "1859",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n4",
+      "level": -20.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n4 --level -20 --seed 0 --out results/pkl/v6_n4_-20.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "1.8575",
+        "dq_max": "29.6478",
+        "dr_rmse_mm": "718.5319",
+        "pct_frames_gt5deg": "90.432",
+        "still_converges": "1",
+        "n_saturated_frames": "1819",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n4",
+      "level": -10.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n4 --level -10 --seed 0 --out results/pkl/v6_n4_-10.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "0.7342",
+        "dq_max": "19.271",
+        "dr_rmse_mm": "358.5713",
+        "pct_frames_gt5deg": "6.366",
+        "still_converges": "1",
+        "n_saturated_frames": "1793",
+        "n_frames_hit_limit_max": "2"
+      }
+    },
+    {
+      "mode": "n4",
+      "level": 10.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n4 --level 10 --seed 0 --out results/pkl/v6_n4_10.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "1.8769",
+        "dq_max": "33.3158",
+        "dr_rmse_mm": "359.3181",
+        "pct_frames_gt5deg": "94.77",
+        "still_converges": "1",
+        "n_saturated_frames": "2002",
+        "n_frames_hit_limit_max": "3"
+      }
+    },
+    {
+      "mode": "n4",
+      "level": 20.0,
+      "seed": 0,
+      "cmd": "python tools/v6_run.py --mode n4 --level 20 --seed 0 --out results/pkl/v6_n4_20.pkl",
+      "n_frames": 7839,
+      "result": {
+        "dq_mean": "3.135",
+        "dq_max": "42.8173",
+        "dr_rmse_mm": "718.5087",
+        "pct_frames_gt5deg": "98.048",
+        "still_converges": "1",
+        "n_saturated_frames": "2166",
+        "n_frames_hit_limit_max": "3"
+      }
+    }
+  ],
+  "notes": [
+    "Má»—i má»©c cháº¡y 1 láº§n: phĂ©p thá»­ Ä‘o Ä‘á»™ lá»‡ch cĂ³ há»‡ thá»‘ng, khĂ´ng Ä‘o thá»i gian.",
+    "pkl cá»§a tá»«ng má»©c khĂ´ng commit (gitignore); hash pkl xem results/pkl_sha256.txt."
+  ]
+}

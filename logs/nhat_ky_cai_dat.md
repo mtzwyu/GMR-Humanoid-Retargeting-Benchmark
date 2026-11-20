@@ -59,9 +59,9 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 | Mục | Kết quả |
 |---|---|
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
-| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,71 %**); lô 5 lần đo: mean **17,35**, median **17,27**, CV **2,13 %** |
+| V3 không `--rate_limit` (1 warm-up bị loại + 5 lần đo) | **Số chốt: mean 17,349 ms/frame** (n = 5, CV **2,13 % ≤ 5 %** → báo mean); trung vị 17,272 chỉ là số của **một** lần chạy (measure_5) dùng làm bằng chứng |
 | V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13: cờ không được truyền vào lệnh thật) |
-| V5 sim2sim (cùng motion, 3 robot) | **trung vị** (số chính thức): PM01 **35,45** · T1 29dof **13,03** (n=5) · G1 **17,02** ms/frame |
+| V5 sim2sim (cùng motion, 3 robot) | PM01 **34,975** (mean, CV 3,01 %) · G1 **16,758** (mean, CV 4,59 %) · T1 29dof **13,034** (median, CV 11,32 %) ms/frame |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
 
 **RV-14 — wall time phải nằm trong log (Review chặn merge, đã sửa):** trước đây `wall_clock_s` chỉ in ra console nên không đối chiếu ngược được. Nay mỗi lần chạy, script ghi thêm **một dòng cuối vào chính file log của lần đó**:
@@ -74,14 +74,16 @@ Lần ghi đầu bị lỗi font (`Out-File -Encoding utf8` chèn UTF-8 vào fil
 
 *Lưu ý:* lần đo đơn trong cửa sổ console (13,117 ms/frame) không thuộc lô 3 lần đo nên **không** đưa vào CSV; ảnh chụp console vẫn giữ làm bằng chứng quy trình.
 
-**RV-16 — độ tản mát giữa các lần đo (Review yêu cầu, đã xử lý):** lô cũ có CV = 7,60 % (> 5 %). Sau khi sửa RV-14 và chạy lại, **CV của 3 lần đo = 1,71 %**. Vẫn chạy thêm 2 lần (measure_4, measure_5) theo yêu cầu để có n = 5:
+**RV-16 — độ tản mát giữa các lần đo (Review yêu cầu, đã xử lý):** lô cũ có CV = 7,60 % (> 5 %). Sau khi sửa RV-14 và chạy lại, **CV của 3 lần đo = 1,73 %**. Vẫn chạy thêm 2 lần (measure_4, measure_5) theo yêu cầu để có n = 5:
 
 | Lô | n | mean (ms/frame) | median | sd | CV |
 |---|---|---|---|---|---|
-| 3 lần đo | 3 | 17,540 | 17,522 | 0,306 | **1,71 %** |
+| 3 lần đo | 3 | 17,540 | 17,522 | 0,303 | **1,73 %** |
 | 5 lần đo (báo cáo) | 5 | **17,349** | **17,272** | 0,369 | **2,13 %** |
 
-Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nhất, dùng **trung vị 17,272 ms/frame** (n = 5). Biên độ thô: 16,853–17,852 ms/frame.
+Cả hai lô đều ≤ 5 %, nên **số chốt là mean 17,349 ms/frame** (n = 5, CV 2,13 %); trung vị 17,272 chỉ là số của **một** lần chạy (measure_5) dùng làm bằng chứng. Biên độ thô: 16,853–17,852 ms/frame.
+
+**Quy tắc chọn số chốt (docs/dinh_nghia_phep_do.md §4, áp dụng không có ngoại lệ):** CV ≤ 5 % → báo **mean** kèm sd; CV > 5 % → chạy thêm 2 lần rồi báo **trung vị** và ghi rõ máy không ổn định. Vì thế V3 (CV 2,13 %) dùng mean 17,349; V5 PM01 (3,01 %) và G1 (4,59 %) dùng mean 34,975 / 16,758; riêng T1 29dof (11,32 %) dùng trung vị 13,034. Đồ thị V5 (`tools/plot_v3.py`) và phụ đề video đã cập nhật theo đúng quy tắc này.
 
 **RV-17 — tên cột (Review yêu cầu, đã sửa):** đổi `ms_per_frame` → **`ms_per_frame_process`** trong `results/v3_runtime.csv` và `results/v5_sim2sim.csv`, vì tử số là wall-clock của **toàn tiến trình** (nạp model + dựng IK + retarget từng frame + render viewer + ghi pkl), **không** phải riêng hàm `retarget()`. Số giữ nguyên, không tính lại. Đồ thị V3 cũng được vẽ lại theo đúng 5 lần đo (bỏ panel `--rate_limit` đã rút).
 
@@ -106,9 +108,9 @@ Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nh�
 | `engineai_pm01` | 3 | 33,77 · 35,45 · 35,70 | 34,98 | **35,45** | 1,05 | 3,01 % | đạt |
 | `unitree_g1` | 3 | 17,36 · 17,02 · 15,89 | 16,76 | **17,02** | 0,77 | 4,59 % | đạt |
 
-→ **Số chính thức của V5 là trung vị**: PM01 **35,45** · T1 29dof **13,03** · G1 **17,02** ms/frame. Đồ thị `results/figures/v5_ms_per_frame_robots_2026-11-20.png` đã vẽ lại theo **trung vị + thanh sai số min–max**, không còn vẽ mean. T1 không đạt ngưỡng CV 5 % — ghi rõ là hạn chế của phép đo trên máy này, không phải của thuật toán (pkl tất định, xem RV-23).
+→ **Số chốt của V5 theo quy tắc §4**: PM01 **34,975** (mean, CV 3,01 %) · G1 **16,758** (mean, CV 4,59 %) · T1 29dof **13,034** (median, CV 11,32 %). Đồ thị `results/figures/v5_ms_per_frame_robots_2026-11-20.png` đã vẽ lại đúng quy tắc (mean cho PM01/G1, median cho T1) + thanh sai số min–max. T1 không đạt ngưỡng CV 5 % — ghi rõ là hạn chế của phép đo trên máy này, không phải của thuật toán (pkl tất định, xem RV-23).
 
-**RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
+**RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `tools/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
 
 Đo riêng thư viện để hiểu bản chất cờ này (tự đo, 300 lần gọi `sleep()`):
 
@@ -134,7 +136,7 @@ Writing **không** lấy trực tiếp cột `realtime_factor` của một dòng
 **Rào cản gặp phải và cách xử lý (ghi ngay khi gặp):**
 
 1. `scripts/vis_robot_motion.py` chạy `while True`, reset `frame_idx` về 0 khi hết motion → **không bao giờ gọi `env.close()`** nên writer MP4 không được đóng (file hỏng) và không có cách dừng sạch. Script cũng không có tham số kích thước (mặc định **640×480 = 4:3**) và không giới hạn số frame.
-   → Viết `third_party/_run/record_clip.py`: **chỉ gọi đúng lớp `RobotMotionViewer` của repo**, thêm `video_width=1280, video_height=720`, số frame và frame bắt đầu. **Không sửa một dòng nào trong `scripts/`.**
+   → Viết `tools/record_clip.py`: **chỉ gọi đúng lớp `RobotMotionViewer` của repo**, thêm `video_width=1280, video_height=720`, số frame và frame bắt đầu. **Không sửa một dòng nào trong `scripts/`.**
 2. `ffmpeg` của `imageio-ffmpeg` (bản 9.0.2) từ chối `-vsync 0` và yêu cầu `-update 1` khi xuất 1 ảnh từ video → sửa `extract_frames.py` dùng `-frames:v 1 -update 1`, sau đó trích được đủ 9 ảnh (143–217 KB/ảnh).
 
 **Kết quả đo bằng ffmpeg (thật):** cả 3 clip `Duration: 00:01:00.00`, `1280x720`, `30 fps`, h264.
