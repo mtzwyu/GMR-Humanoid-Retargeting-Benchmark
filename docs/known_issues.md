@@ -77,4 +77,4 @@ Bằng chứng phụ: `waist_pitch` của walk4 gần như hằng số (std 1,7�
 
 **Ảnh hưởng tới báo cáo:** ghi rõ trong `results/v3_runtime.csv` là input đã đổi từ `walk4_subject1` sang `walk1_subject1`. Đây là nội dung tốt cho mục 3 (nhật ký) và mục 7 (vì sao chênh).
 
-> Ghi ch�: con s? **7.839** xu?t hi?n trong ph�p so s�nh V6 l� do vh_to_robot.py c?a repo c� off-by-one (break tr�?c khi append) n�n baseline m?t frame cu?i; �? d�i clip l� **7.840 frame** nh� trong esults/v3_runtime.csv.
+> Ghi chú: con số **7.839** xuất hiện trong phép so sánh V6 là do `bvh_to_robot.py` của repo có off-by-one (break trước khi append) nên baseline mất frame cuối; độ dài clip là **7.840 frame** như trong `results/v3_runtime.csv`.
