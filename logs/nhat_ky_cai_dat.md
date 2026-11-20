@@ -61,7 +61,7 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
 | V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,71 %**); lô 5 lần đo: mean **17,35**, median **17,27**, CV **2,13 %** |
 | V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13: cờ không được truyền vào lệnh thật) |
-| V5 sim2sim (cùng motion, 3 robot) | G1 **16,76** ms/frame · T1 29dof **13,17** · PM01 **34,98** (trung bình 3 lần đo/robot) |
+| V5 sim2sim (cùng motion, 3 robot) | **trung vị** (số chính thức): PM01 **35,45** · T1 29dof **13,03** (n=5) · G1 **17,02** ms/frame |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
 
 **RV-14 — wall time phải nằm trong log (Review chặn merge, đã sửa):** trước đây `wall_clock_s` chỉ in ra console nên không đối chiếu ngược được. Nay mỗi lần chạy, script ghi thêm **một dòng cuối vào chính file log của lần đó**:
@@ -97,6 +97,16 @@ Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nh�
 - **T1 29dof có CV = 10,15 % > 5 %** (một lần 91,19 s lệch khỏi hai lần ~109 s). Không giấu: máy không ổn định ở robot này; nếu cần một số đại diện duy nhất, dùng **trung vị 13,82 ms/frame**. PM01 (3,01 %) và G1 (4,59 %) đều ≤ 5 %.
 - Số cũ (G1 17,34 · T1 13,44 · PM01 34,99, mỗi robot 1 lần) **đã bị thay thế** bởi bảng trên.
 - Kết luận H1 bị chặn **giữ nguyên** (Review đã PASS mục này).
+
+**RV-24 — T1 29dof vẫn tản mát, chạy bổ sung và chuyển sang trung vị (Review yêu cầu):** thêm 2 lần đo cho T1 (`run5 = 84,13 s → 10,73 ms/frame`, `run6 = 102,19 s → 13,03 ms/frame`), nay **n = 5**:
+
+| Robot | n | Giá trị (ms/frame) | mean | **median** | sd | CV | Kết luận |
+|---|---|---|---|---|---|---|---|
+| `booster_t1_29dof` | 5 | 11,63 · 14,06 · 13,82 · **10,73** · **13,03** | 12,65 | **13,03** | 1,43 | **11,32 %** | vẫn > 5 % → **máy không ổn định ở robot này, dùng trung vị** |
+| `engineai_pm01` | 3 | 33,77 · 35,45 · 35,70 | 34,98 | **35,45** | 1,05 | 3,01 % | đạt |
+| `unitree_g1` | 3 | 17,36 · 17,02 · 15,89 | 16,76 | **17,02** | 0,77 | 4,59 % | đạt |
+
+→ **Số chính thức của V5 là trung vị**: PM01 **35,45** · T1 29dof **13,03** · G1 **17,02** ms/frame. Đồ thị `results/figures/v5_ms_per_frame_robots_2026-11-20.png` đã vẽ lại theo **trung vị + thanh sai số min–max**, không còn vẽ mean. T1 không đạt ngưỡng CV 5 % — ghi rõ là hạn chế của phép đo trên máy này, không phải của thuật toán (pkl tất định, xem RV-23).
 
 **RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
 
