@@ -6,15 +6,84 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 
 | Mục | Giá trị |
 |---|---|
-| Máy | (điền) |
-| OS | (điền) |
-| CPU / RAM | (điền) |
-| GPU | (điền, dự án chạy CPU) |
-| Conda | (điền) |
-| Python | 3.10 (theo README) |
+| Máy | LENOVO 83GS (laptop), Windows 11 Home Single Language 10.0.26300 |
+| CPU / RAM | Intel Core i5-12450HX, 8 nhân / 12 luồng · 16.873.545.728 byte (~15,7 GiB) |
+| GPU | NVIDIA GeForce RTX 4050 Laptop GPU, 6144 MiB, driver 621.14 (dự án chạy CPU, GPU không dùng) |
+| Conda | conda 26.7.1 (Miniconda3, `C:\Users\xpaga\miniconda3`) |
+| Python | 3.10.21 (env `gmr`, tạo từ `python=3.10`) |
+| Repo GMR | `third_party/GMR` · remote https://github.com/YanjieZe/GMR |
+| GMR commit | `25f56db` (`25f56db79ac411258b377b6d4ccba0c8ff3372ac`, 2026-10-23, "Fix import order flagged by ruff after merging #182") |
+| Giấy phép GMR | MIT — "Copyright 2025 YanjieZe", bản quyền + điều khoản chuẩn MIT, cho phép copy/sửa/phân phối kèm giữ notice |
 
 ## Nhật ký
 
 | # | Thời điểm | Bước | Lệnh | Kết quả / Lỗi | Cách xử lý |
 |---|---|---|---|---|---|
-| 1 | | | | | |
+| 1 | 2026-11-20 21:21 | Clone repo | `git clone https://github.com/YanjieZe/GMR third_party/GMR` | Thành công, 1938 file. PowerShell trả `Exit code: 1` nhưng đó là do git ghi tiến trình ra stderr; `git rev-parse` + `git status` sau đó sạch, không lỗi | Kiểm tra lại bằng `git rev-parse --short HEAD` → `25f56db`. Không cần xử lý |
+| 2 | 2026-11-20 21:22 | Đọc LICENSE + pyproject | `Get-Content LICENSE`, `Get-Content pyproject.toml` | LICENSE = MIT (Copyright 2025 YanjieZe). `requires-python = ">=3.10,<3.14"`; dependency có `smplx @ git+https://github.com/vchoutas/smplx`, `mujoco`, `mink`, `qpsolvers[proxqp]`, `torch`… | Dùng đúng Python 3.10 theo README. Ghi nhận: repo test trên Ubuntu 22.04/20.04, máy nhóm là Windows 11 → rủi ro tương thích, theo dõi ở các bước sau |
+| 3 | 2026-11-20 21:22:43 → 21:23:11 | Tạo conda env | `conda create -n gmr python=3.10 -y` | Thành công (exit 0), env `C:\Users\xpaga\miniconda3\envs\gmr`, python 3.10.21. Có 2 cảnh báo không chặn: (a) conda 26.7.1 cũ hơn 26.7.2; (b) Anaconda ngừng build package Python 3.10 mới sau 2026-10-31 | Không xử lý — cảnh báo, không ảnh hưởng cài đặt |
+| 4 | 2026-11-20 21:24 → 21:31 | Cài GMR | `python -m pip install -e .` (python = `C:\Users\xpaga\miniconda3\envs\gmr\python.exe`) | **THẤT BẠI (exit 1)** ở bước chuẩn bị metadata của `proxsuite>=0.2.9` (dependency của `qpsolvers[proxqp]`). Pip không tìm được wheel Windows nên tải source `proxsuite-0.8.2.tar.gz` (54,7 MB) và build bằng CMake → `CMake Error at CMakeLists.txt:5 (project): Running 'nmake' '-?' failed with: no such file or directory` + `CMAKE_C_COMPILER not set` + `CMAKE_CXX_COMPILER not set` → `error: metadata-generation-failed`. Nguyên nhân: máy không có Visual Studio / MSVC (`where cl` rỗng), proxsuite không phát hành wheel cho win-64. Các gói khác đều resolve được (mujoco 3.17.0, mink 1.3.0, torch 2.14.1, daqp 0.11.2, smplx @ 1265df7…) | Đang thử: (1) tìm wheel proxsuite cho Windows; (2) nếu không có, cài `pip install -e . --no-deps` + cài từng dependency trừ `proxsuite` — chấp nhận được vì GMR/mink dùng solver mặc định **daqp**, `proxqp` chỉ là backend dự phòng |
+| 5 | 2026-11-20 21:26 | Xử lý lỗi 4 (1) — tìm wheel proxsuite | `pip download --no-deps --only-binary=:all: proxsuite` · `conda search -c conda-forge proxsuite` | Kết quả: bản `proxsuite 0.8.2` **không có wheel win-64** (chỉ sdist). Nhưng **bản `0.7.2.post1` có wheel** `proxsuite-0.7.2.post1-0-cp310-cp310-win_amd64.whl` (4,3 MB). conda-forge chỉ build proxsuite cho linux/osx, không có win-64 | Chọn hướng ghim bản có wheel |
+| 6 | 2026-11-20 21:26 → 21:29 | Cài lại GMR | `pip install "proxsuite==0.7.2.post1"` rồi `pip install -e .` | **THÀNH CÔNG (exit 0)**. Lần 1 cài proxsuite 0.7.2.post1 (kèm numpy 2.2.6, scipy 1.15.3). Lần 2 `pip install -e .` cài đủ: mujoco 3.17.0, mink 1.3.0, torch 2.14.1, smplx 0.1.28 (từ git `vchoutas/smplx`), daqp 0.11.2, qpsolvers 4.13.0, opencv-python 5.1.0.95, imageio 2.38.0… **Không sửa một dòng nào trong `pyproject.toml`** — chỉ ghim phiên bản dependency từ bên ngoài | Giữ nguyên. Đây là điểm khác README: README dùng `uv sync` (có lock `uv.lock`, chắc chắn chọn bản build được); đi đường conda+pip thì phải tự ghim proxsuite |
+| 7 | 2026-11-20 21:29 | Bước 3 theo README | `conda install -n gmr -c conda-forge libstdcxx-ng -y` | **THẤT BẠI (exit 1)** — `PackagesNotFoundInChannelsError: The following packages are not available from current channels: - libstdcxx-ng`. Nguyên nhân: `libstdcxx-ng` là gói **chỉ có cho linux-64** (thư viện C++ của GCC); win-64 không có và cũng không cần. Bước này trong README nhằm sửa lỗi render trên Ubuntu | Bỏ qua có ghi chép. Đã kiểm chứng bù bằng việc chạy `--help` (mục 8) và chạy thật có mở cửa sổ MuJoCo (mục V3) — nếu render lỗi sẽ thấy ngay |
+| 8 | 2026-11-20 21:30 | Cổng G1 | `conda run -n gmr python scripts/smplx_to_robot.py --help` (thực tế gọi trực tiếp `C:\Users\xpaga\miniconda3\envs\gmr\python.exe scripts/smplx_to_robot.py --help`) | **ĐẠT**: in đủ usage + danh sách 17 robot cho `--robot` (gồm `unitree_g1`, `unitree_h1`, `unitree_h1_2`, `booster_t1`, `booster_t1_29dof`), exit 0. Chỉ có 2 cảnh báo không chặn: `FutureWarning: torch.jit.script is deprecated` và `xrobotoolkit_sdk not found, skip for now` | Không xử lý — cả hai là cảnh báo, không phải lỗi |
+| 9 | 2026-11-20 21:30 | Thử đường SMPL-X (ngày 2) | `python scripts/smplx_to_robot.py --smplx_file assets/body_models/none.npz --robot unitree_g1` | **KHÔNG DÙNG ĐƯỢC ĐƯỜNG SMPL-X.** Bằng chứng: (a) `assets/body_models/` **không tồn tại** — repo không kèm body model; (b) `general_motion_retargeting/utils/smpl.py:16-23` gọi `smplx.create(<assets/body_models>, "smplx", …)` nên bắt buộc phải có `SMPLX_NEUTRAL/FEMALE/MALE.pkl`; (c) chạy thử → `FileNotFoundError: [Errno 2] No such file or directory: 'assets/body_models/none.npz'`. Cả **body model SMPL-X** và **dữ liệu AMASS/OMOMO** đều phải đăng ký tài khoản + ký license tại smpl-x.is.tue.mpg.de / amass.is.tue.mpg.de, không có đường tải công khai; nhóm không có tài khoản license này | **QUYẾT ĐỊNH (ngày 2): chuyển sang `scripts/bvh_to_robot.py` với dữ liệu BVH LAFAN1.** Lý do: LAFAN1 tải công khai (không cần license điền đơn), repo có sẵn config IK `bvh_lafan1_to_{g1,t1_29dof,n1,pm01,toddy,h2}.json`, và đây là đường mà chính README hướng dẫn cho BVH. Hệ quả phải ghi rõ trong báo cáo: **V3 và V5 đo trên đường BVH, không phải đường SMPL-X như bài báo** |
+| 10 | 2026-11-20 21:31 | Tải dữ liệu BVH LAFAN1 | `curl.exe -L -o third_party\data\lafan1.zip https://media.githubusercontent.com/media/ubisoft/ubisoft-laforge-animation-dataset/master/lafan1/lafan1.zip` | Thành công: 144.051.503 byte (khớp `size` trong git-lfs pointer). Lưu ý: link `raw.githubusercontent.com` chỉ trả về pointer LFS 134 byte → phải dùng host `media.githubusercontent.com`. Giải nén được **77 file .bvh**, mỗi file có `Frame Time: 0.033333` (30 fps) | **Giấy phép dữ liệu: CC BY-NC-ND 4.0** (`license.txt` của repo ubisoft-laforge-animation-dataset) — chỉ dùng phi thương mại, không phân phối lại biến thể. Nhóm dùng cho học thuật, **không commit dữ liệu** (`third_party/` đã gitignore) |
+| 11 | 2026-11-20 21:33 | Chốt môi trường | `python -m pip freeze > requirements.txt` (python của env `gmr`) | 45 dòng, gồm `torch==2.14.1`, `mujoco==3.17.0`, `mink==1.3.0`, `proxsuite==0.7.2.post1` (bản ghim), `smplx @ git+…@1265df7`, `-e git+https://github.com/YanjieZe/GMR@25f56db79…` | Giữ nguyên văn output của pip freeze. Đây là requirements của **đường conda+pip trên Windows**, không phải `uv.lock` của repo |
+| 12 | 2026-11-20 21:39 | Chẩn đoán KI-01 (robot cúi gập) — bước 1 | `analyze_pose.py results/pkl/g1_walk4_no_rate_limit_1.pkl assets/unitree_g1/g1_mocap_29dof.xml` | Tái lập đúng số Planner đo: `waist_pitch` **29,52° ± 1,70**, `hip_pitch` **−56,3 / −56,1°**, `knee` **+37,5 / +39,3°**, `root_z` 0,584–0,819 m (TB 0,766), `quat |dot| min 0,9981` → dữ liệu mượt, sai tư thế **có hệ thống** | Render offscreen frame 2000 xác nhận robot gập người về trước: `results/figures/fix_walk4_frame2000_g1_2026-11-20.png` |
+| 13 | 2026-11-20 21:41 | Chẩn đoán KI-01 — bước 2 (scale người→robot) | Đọc `general_motion_retargeting/utils/lafan1.py:45`, `motion_retarget.py:66-75`, `ik_configs/bvh_lafan1_to_g1.json` | `actual_human_height` **hardcode = 1,75 m**, `human_height_assumption` = **1,8 m** → tỉ lệ scale = **0,972**. Chiều cao G1 ≈ 1,27 m. Tỉ lệ 0,972 **không** phải nguyên nhân gập người | Không sửa — loại trừ giả thuyết scale |
+| 14 | 2026-11-20 21:42 | Chẩn đoán KI-01 — bước 3 (đổi motion) | Chạy `bvh_to_robot.py` với `dance1_subject2.bvh` (repo đánh dấu `[x]`) và `walk3_subject1.bvh` | dance1: waist **18,6° ± 8,7**, hip −23,1/−20,0°, knee 49,3/47,9°, root_z TB 0,754. walk3_subject1: waist **25,2° ± 4,3**, hip −11,8/−11,4°, knee 33,3/34,9°, root_z TB 0,729. → walk4 lệch hẳn (29,5° với std 1,7° = tư thế khom **cố định** của chính clip) | Ảnh: `fix_dance1_frame2000_g1_2026-11-20.png`, `fix_walk3_frame2000_g1_2026-11-20.png` |
+| 15 | 2026-11-20 21:44 | Chẩn đoán KI-01 — bước 4 (XML của viewer) | Đọc `robot_motion_viewer.py:68-69` và `motion_retarget.py:27,30` | Cả hai lấy `ROBOT_XML_DICT[robot_type]` từ `params.py` → **cùng một file** `assets/unitree_g1/g1_mocap_29dof.xml`, cùng thứ tự 29 dof theo `qposadr`. Loại trừ giả thuyết viewer dùng XML khác | Không sửa |
+
+## FIX — KI-01: robot cúi gập người
+
+**Hiện tượng.** Khi phát lại `results/pkl/g1_walk4_no_rate_limit_1.pkl` trong MuJoCo, robot gập người về trước, chân khuỵu, trông như bò.
+
+**Đo trên chính máy này (G1, 3 motion khác nhau, cùng pipeline HEAD `25f56db`):**
+
+| Motion | waist_pitch TB ± std | hip_pitch L/R | knee L/R | root_z TB |
+|---|---|---|---|---|
+| `walk4_subject1` | **+29,52° ± 1,70** | −56,3 / −56,1° | +37,5 / +39,3° | 0,766 m |
+| `walk3_subject1` | +25,19° ± 4,27 | −11,8 / −11,4° | +33,3 / +34,9° | 0,729 m |
+| `dance1_subject2` (repo đánh dấu OK) | +18,62° ± 8,70 | −23,1 / −20,0° | +49,3 / +47,9° | 0,754 m |
+
+**Kết luận (khớp kết luận Planner ghi ở `docs/known_issues.md` KI-01, commit `4eb082a`):** `walk4_subject1.bvh` là clip **đi bộ khom lưng** của LAFAN1; retarget tái hiện trung thực nên robot trông như cúi gập. Không phải lỗi pipeline: (a) scale người→robot = 1,75/1,8 = 0,972 — bình thường; (b) viewer và retarget dùng **cùng** `g1_mocap_29dof.xml`; (c) đổi clip thì tư thế đổi theo clip.
+
+**Quyết định:**
+1. **Đổi motion chính thức của V3/V5 sang `walk1_subject1.bvh`** (7.840 frame, 30 fps, 261,3 s) — clip đi bộ tư thế bình thường. V3 chạy lại 1 warm-up + 3 lần đo cho mỗi chế độ; `results/v3_runtime.csv` ghi rõ cột `input` đã đổi từ `walk4_subject1` sang `walk1_subject1`.
+2. **Giữ `walk4_subject1` như ví dụ motion khó** — không dùng để đo.
+3. Ảnh render lại bằng `vis_robot_motion.py` trên pkl mới, cùng frame index 2000 với ảnh cũ.
+
+## Đo V3 và V5 (số đo thật, máy `LAPTOP-KQVVNV12`)
+
+| Mục | Kết quả |
+|---|---|
+| Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
+| V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | 14,03 · 15,14 · 16,34 ms/frame (thêm lần đo thứ 4 trong cửa sổ console: 13,12 ms/frame) |
+| V3 có `--rate_limit` (1 warm-up + 3 lần đo) | 15,85 · 17,40 · 17,17 ms/frame |
+| V5 sim2sim (cùng motion, 3 robot) | G1 **17,34** ms/frame · T1 29dof **13,44** · PM01 **34,99** |
+| H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
+
+**Bất thường đo được cần ghi lại (không phán đúng sai):** nhóm `--rate_limit` chạy **124–136 s** cho motion 261,3 s, tức nhanh hơn thời gian thực (~1,9–2,1×) chứ không bị ép về đúng 30 fps. Nguyên nhân khả dĩ: `loop_rate_limiters.RateLimiter(frequency=30)` dựa trên `sleep` của Windows có độ phân giải timer thô. Vì vậy `realtime_factor` của nhóm có `--rate_limit` **không** xấp xỉ 1,00. Ghi số nguyên trạng, không hiệu chỉnh.
+
+**Ghi chú về đơn vị đo:** cột `ms_per_frame` = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
+
+## MEDIA — video demo và ảnh trích cho slide
+
+**Yêu cầu:** 3 clip ≤ 60 s, khung 16:9; mỗi clip trích 3 khung 25/50/75 % thành PNG ≤ 1 MB; video **không commit**, PNG **có commit**.
+
+**Rào cản gặp phải và cách xử lý (ghi ngay khi gặp):**
+
+1. `scripts/vis_robot_motion.py` chạy `while True`, reset `frame_idx` về 0 khi hết motion → **không bao giờ gọi `env.close()`** nên writer MP4 không được đóng (file hỏng) và không có cách dừng sạch. Script cũng không có tham số kích thước (mặc định **640×480 = 4:3**) và không giới hạn số frame.
+   → Viết `third_party/_run/record_clip.py`: **chỉ gọi đúng lớp `RobotMotionViewer` của repo**, thêm `video_width=1280, video_height=720`, số frame và frame bắt đầu. **Không sửa một dòng nào trong `scripts/`.**
+2. `ffmpeg` của `imageio-ffmpeg` (bản 9.0.2) từ chối `-vsync 0` và yêu cầu `-update 1` khi xuất 1 ảnh từ video → sửa `extract_frames.py` dùng `-frames:v 1 -update 1`, sau đó trích được đủ 9 ảnh (143–217 KB/ảnh).
+
+**Kết quả đo bằng ffmpeg (thật):** cả 3 clip `Duration: 00:01:00.00`, `1280x720`, `30 fps`, h264.
+
+| Clip | Nguồn | Dung lượng | Khung đã trích |
+|---|---|---|---|
+| `results/media/v3_walk1_g1.mp4` | pkl G1 `walk1_subject1` (V3) | 7.437.270 byte | 450 / 900 / 1350 |
+| `results/media/v3_walk4_g1.mp4` | pkl G1 `walk4_subject1` (minh hoạ KI-01) | 5.704.724 byte | 450 / 900 / 1350 |
+| `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 3 pkl V5, mỗi robot 600 frame | 7.431.439 byte | 450 (G1) / 900 (T1) / 1350 (PM01) |
+
+Ảnh: `results/figures/slide_*.png`; caption + vị trí chèn slide ghi ở `results/figures/README.md`; bảng nguồn/lệnh/thời lượng ở `results/media/README.md`.
