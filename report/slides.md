@@ -142,6 +142,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 - Số lớn: **17,349 ms** (trung bình, n = 5) · CV **2,13 %** · 1,92× · **57,6 FPS**
 - Mốc repo (Speed Benchmark): 35–45 FPS (i9-13900K) · 60–70 FPS (Threadripper) — README không nêu điều kiện
+- Tính toán CPU, render GPU: headless **2,36 ms**; **17,349 ms là cả tiến trình có viewer**
 - Đồ thị: `v3_ms_per_frame_g1_2026-11-20.png` (đường 33,33 ms)
 - Bảng nhỏ 5 điểm: 17,522 · 17,246 · 17,852 · 16,853 · 17,272
 - Ghi chú: bỏ warm-up; cả 5 giá trị đều < 20 ms
@@ -188,12 +189,13 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 ---
 
-## 13. Nhiễu: vì sao không dùng ±20 % khối lượng — 1:00
+## 13. Nhiễu: tham số vật lý gần như không vào vòng tính — 1:00
 
-**Thông điệp:** đổi khối lượng không đổi một byte pkl, nên phép thử đó sẽ là bảng giả.
+**Thông điệp:** ma sát ×1,5 trùng hash tuyệt đối; khối lượng ±20 % chỉ lệch 1,5e-9 rad — bảng "tụt theo mức" vẫn là bảng giả.
 
-- GMR = tối ưu động học, không có physics trong vòng tính
-- SHA256: 40 file pkl — 37 thuộc 4 cặp trùng hash tuyệt đối, 3 file lẻ
+- GMR = tối ưu động học, mass/friction gần như không vào vòng tính
+- V7: ma sát ×1,5 (72 geom) → SHA256 trùng, `max|dq| = 0`
+- V7: khối lượng ±20 % (31 body) → SHA256 khác, `max|dq| = 1,5e-9 rad`
 - Thay bằng N1–N4: nhiễu khớp · trễ · mất frame · lệch tỉ lệ người (15 mức × 1 lần)
 - Kết quả headline: N2/N3 vô hại · N1 hỏng từ **2°** · N4 hỏng từ **±10 %**, giãn nặng hơn co
 - Cảnh báo trên slide: `dr_rmse` 719 mm của N4 là **scale quỹ đạo**, không phải sai tư thế
@@ -243,7 +245,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 | 1 | Sao không đo `ms_per_frame`? | Bản đo cũ chỉ có `_process` (13 cột); script mới có probe nhưng Planner chốt không chạy lại. `process ≤ 33,33` là điều kiện **đủ**, nên kết luận vẫn đứng. |
 | 2 | Sao không train 3 seed? | GMR không huấn luyện — không có trọng số/seed. Policy BeyondMimic cần IsaacSim + GPU + 84 policy. Nhóm thay bằng 3 cấu hình (số V5) và ghi rõ. |
 | 3 | PM01 chậm vì ít khớp? | Ngược lại: 34,975 ms (mean) vs 13,034 ms (median); so cùng mean thì chậm 2,8× T1 27 DoF. Số khớp không giải thích; ba giả thuyết IK/solver/model, chưa tách. |
-| 4 | Sim2sim không đúng "nhiễu vật lý"? | Khối lượng không vào vòng tính; 40 file pkl có 37 file thuộc 4 cặp trùng SHA256, 3 file lẻ. Làm bảng ±20 % sẽ là bảng giả; nhóm thay bằng N1–N4. |
+| 4 | Sim2sim không đúng "nhiễu vật lý"? | Ma sát ×1,5 trùng SHA256 tuyệt đối (`max\|dq\| = 0`); khối lượng ±20 % đổi hash nhưng `max\|dq\| = 1,5e-9 rad` — chuyển động không đổi. Bảng ±20 % vẫn là bảng giả; nhóm thay bằng N1–N4. |
 | 5 | Hai đợt lệch 14 %, số nào tin? | pkl giống nhau từng byte → chênh do trạng thái máy. Chọn đợt chậm hơn (bảo thủ), báo 17,3 ms kèm sai số giữa phiên. |
 | 6 | So với paper thế nào? | Paper không công bố ms/FPS/hardware; chỉ so được với ngưỡng nhóm đặt. Không có tỉ lệ "nhanh hơn paper". |
 | 7 | Nhiễu trễ có 36° ở frame 0 — có phải lỗi tích lũy? | Không. Đó là **1 frame biên**: IK khởi tạo từ nghiệm frame trước nên phụ thuộc warm start; lệch tắt dần 0,31 → 0,10 → 0,05 → 0,02°. `dq_mean` toàn clip = 0,001°. |
