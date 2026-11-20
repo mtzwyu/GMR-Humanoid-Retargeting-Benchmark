@@ -118,7 +118,7 @@ RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
 
 → Trên Windows, `RateLimiter(30)` chỉ đạt **21,42 Hz (46,68 ms/lần)** vì `sleep` của Windows có độ phân giải timer thô. **Kết luận: cờ `--rate_limit` không dùng để đo throughput** — nó là công cụ phát lại cho mắt người xem, không phải bộ đo. Mọi số V3/V5 báo cáo đều ở chế độ **không** `--rate_limit`.
 
-**Ghi chú về đơn vị đo:** cột `ms_per_frame` = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
+**Ghi chú về đơn vị đo:** cột `ms_per_frame_process` (trước RV-17 tên là `ms_per_frame`) = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
 
 ## MEDIA — video demo và ảnh trích cho slide
 
