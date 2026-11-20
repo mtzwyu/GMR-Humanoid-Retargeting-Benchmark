@@ -32,6 +32,38 @@ Tuyên bố "real-time" vì thế lấy từ **README của repo**, không phả
 
 ---
 
+## DEC-03 · Ngưỡng chất lượng: giữ một, rút một (công bố hậu kiểm)
+
+**Ngày:** 2026-11-21 · **Người quyết:** Nhóm trưởng (Duy) · **Bối cảnh:** audit công thức phát hiện mâu thuẫn
+
+**Vấn đề.** `docs/dinh_nghia_phep_do.md` §1.2 đã đặt **hai ngưỡng trước khi đo** (ngày 2026-11-20, trước mọi lần chạy chất lượng):
+
+- `min_body_height` ∈ **[−5, +5] mm**
+- `foot_slide` ≤ **50 mm/s**
+
+Báo cáo lại viết *"nhóm không đặt ngưỡng tuyệt đối cho bốn chỉ số này trước khi đo"* — **sai sự thật**. Không được sửa bằng cách xoá ngưỡng khỏi tài liệu, vì như vậy là sửa định nghĩa sau khi thấy số.
+
+**Kết quả khi áp ngưỡng đã đăng ký:**
+
+| Chỉ số | Ngưỡng đã đặt | G1 | T1-29dof | PM01 |
+|---|---|---|---|---|
+| `foot_slide` | ≤ 50 mm/s | **49,0 ✅ sát** | 83,1 ❌ | 118,4 ❌ |
+| `min_body_height` | ∈ [−5, +5] mm | +9,9 ❌ | −7,6 ❌ | +43,8 ❌ |
+
+**Quyết định.**
+
+1. **GIỮ và ÁP** ngưỡng `foot_slide ≤ 50 mm/s`. Đây là ngưỡng hợp lý, đo cùng đại lượng với code, và kết quả phân biệt rõ 3 robot.
+2. **RÚT** ngưỡng `min_body_height ± 5 mm`, **công bố là quyết định hậu kiểm**. Lý do: đại lượng này đo **gốc của body thấp nhất**, mà mỗi model có độ cao gốc body ở tư thế nghỉ khác nhau (G1 +16,1 · T1 +36,7 · PM01 +45,0 mm). Ngưỡng ±5 mm được viết trước khi nhóm biết điều đó, nên nó không đo "có xuyên sàn hay không" mà đo "model nghỉ cao bao nhiêu".
+3. **Thay bằng hai đại lượng có định nghĩa rõ**, cả hai báo cáo **hậu kiểm**, không gắn nhãn "đạt/không đạt":
+   - `Δ so với vị trí nghỉ` = `min_body_height − rest_offset`: G1 **−6,25** · T1 **−44,29** · PM01 **−1,10** mm
+   - `pct_frames_penetration` (ít nhất một body dưới −1 mm): G1 **0%** · T1 **2,13%** · PM01 **0%**
+4. Báo cáo phải ghi đúng: *"một ngưỡng đã đăng ký được áp dụng (`foot_slide ≤ 50 mm/s`); một ngưỡng bị rút sau khi đo với lý do kỹ thuật, và phần thay thế là hậu kiểm."*
+
+**Hệ quả cho kết luận.** Kết luận "tái lập một phần" **không đổi**, nhưng lý do phải viết lại: không phải "vì nhóm không đặt ngưỡng", mà vì **chỉ 1/3 robot đạt ngưỡng `foot_slide`**, và T1 xuyên sàn ở 2,13% frame.
+
+
+---
+
 ## DEC-02 · Sim2sim: chọn phương án C (mức 3 + phép thử nhiễu)
 
 **Ngày:** 2026-11-21 · **Người quyết:** Nhóm trưởng (Duy) · **Bối cảnh:** mục 6.1 báo cáo
