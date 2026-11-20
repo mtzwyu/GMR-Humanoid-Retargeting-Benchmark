@@ -2,6 +2,7 @@
 
 **Vai:** Review + Writing mục 6
 **Worktree:** `gmr-review` (chính) · `gmr-writing` (mục 6)
+**Branch:** `task/review-qa` (mỗi nhiệm vụ một branch, một PR)
 **Quyền riêng:** chỉ được ghi `report/review_notes.md`. Đọc mọi thứ, sửa không gì.
 
 ## Việc theo ngày

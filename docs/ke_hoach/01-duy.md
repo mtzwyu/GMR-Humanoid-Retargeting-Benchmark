@@ -2,6 +2,7 @@
 
 **Vai:** Planner + Research + Writing mục 1, 2, 7
 **Worktree:** `main` (merge) · `gmr-research` (V1) · `gmr-writing` (báo cáo)
+**Branch:** `task/v1-tuyen-bo` → `task/v6-bao-cao` (mỗi nhiệm vụ một branch, một PR)
 **Nguyên tắc:** Planner không code. Duy tự sửa code thì mất người phản biện độc lập.
 
 ## Việc theo ngày
