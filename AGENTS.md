@@ -110,3 +110,7 @@ logs/                      # nhật ký cài đặt, routing-log.jsonl
 - `docs/.mat_khau_tai_lieu.local.md` và mọi file `*.local.md` chứa mật khẩu/khoá.
 - Slide bài giảng dung lượng lớn (`*.ppsx`, PDF > 50 MB) — giữ local, đã nằm trong `.gitignore`.
 - Checkpoint, dataset, video demo nặng: để ngoài repo hoặc dùng link ngoài.
+
+### Ghi tệp tiếng Việt trên Windows
+
+Không dùng `Get-Content -Raw | Set-Content -Encoding utf8` của **PowerShell 5.1** cho file có tiếng Việt: nó đọc UTF-8 theo cp1258 rồi ghi lại, làm hỏng chuỗi trong **mã nguồn** (từng làm hỏng `tools/make_v6_provenance.py` và `docs/known_issues.md`). Dùng công cụ ghi UTF-8 thật (Python `open(..., encoding='utf-8', newline='\n')`) và kiểm lại bằng `grep` sau khi ghi.
