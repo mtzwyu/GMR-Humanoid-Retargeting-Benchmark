@@ -10,31 +10,23 @@
 **Lớp:** 15DHTH07 · Học kỳ 1 · Năm học 2026–2027
 **Nhóm:** 01 · Đề tài HR04
 **Ngày nộp:** 21/11/2026
+**Mã nguồn:** GMR @ `25f56db` (MIT) · **Bài báo:** arXiv:2510.02252v1
 
 # MỤC LỤC
 
 | # | Nội dung | Trang |
 |---|---|---|
-| 1 | Giới thiệu bài toán và tóm tắt bài báo | 3 |
-| 2 | Tuyên bố cần kiểm chứng | 4 |
-| 3 | Nhật ký cài đặt | 6 |
-| 4 | Kết quả chạy mô hình có sẵn, đối chiếu với bài báo | 8 |
-| 5 | Kết quả tự huấn luyện (3 hạt giống) | 9 |
-| 6 | Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu, chất lượng ánh xạ và đồ thị | 10 |
-| 7 | Kết luận | 15 |
-| 8 | Phân công công việc và tự thuật từng thành viên | 16 |
-|  | Tài liệu tham khảo | 18 |
-|  | Phụ lục A — Nhật ký phản biện | 18 |
+| 1 | Giới thiệu bài toán và tóm tắt bài báo | 2 |
+| 2 | Tuyên bố cần kiểm chứng | 3 |
+| 3 | Nhật ký cài đặt | 5 |
+| 4 | Kết quả chạy mô hình có sẵn, đối chiếu với bài báo | 6 |
+| 5 | Kết quả tự huấn luyện (3 hạt giống) | 7 |
+| 6 | Sim2sim: bảng tụt hiệu năng, độ bền theo nhiễu, chất lượng ánh xạ và đồ thị | 8 |
+| 7 | Kết luận | 13 |
+| 8 | Phân công công việc và tự thuật từng thành viên | 14 |
+|  | Tài liệu tham khảo | 15 |
 
-# THÔNG TIN CHUNG
-
-| Hạng mục | Giá trị |
-|---|---|
-| Repo / commit | `YanjieZe/GMR` @ `25f56db` (2026-10-22 UTC / 2026-10-23 giờ VN) · LICENSE MIT |
-| Bài báo | *Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking*, arXiv:2510.02252v1, 9 trang, CC BY 4.0 |
-| Dữ liệu đo | LAFAN1 (Ubisoft), BVH 30 fps, CC BY-NC-ND 4.0 — học thuật, không phân phối lại |
-| Máy đo | LENOVO 83GS · i5-12450HX (8 nhân/12 luồng) · ~15,7 GiB RAM · Windows 11 · **CPU** |
-| Phạm vi | Chạy retargeting có sẵn, đo tốc độ, sim2sim 3 robot + 4 phép thử nhiễu; **không** train RL, **không** robot thật |
+**Phạm vi:** chạy retargeting có sẵn, đo tốc độ, sim2sim 3 robot + 4 phép thử nhiễu; **không** train RL, **không** robot thật. **Máy đo:** LENOVO 83GS · i5-12450HX · ~15,7 GiB · Windows 11 · **CPU**. **Dữ liệu:** LAFAN1 (Ubisoft), BVH 30 fps, CC BY-NC-ND 4.0.
 
 > **Quy ước.** Mọi số của nhóm nằm ở cột "nhóm đo được", mọi số của paper nằm ở cột "bài báo". Hai cột không trộn, không suy diễn. Số không tự đo thì ghi **"không đo"** kèm lý do.
 
@@ -135,9 +127,7 @@ Hai lưu ý: cột `realtime_factor` **trong CSV** là của từng lần chạy
 
 ### 2.6 Ba điều không được tuyên bố
 
-1. Không nói "GMR nhanh hơn PHC/ProtoMotions" — paper và nhóm đều không đo tốc độ các phương pháp kia.
-2. Không nói "tái lập Bảng I/II" — cần train RL.
-3. Không nói "paper tuyên bố real-time" — tuyên bố ở README/mô tả repo.
+Ba điều **không** được tuyên bố: GMR nhanh hơn PHC/ProtoMotions (không ai đo tốc độ các phương pháp kia); tái lập Bảng I/II (cần train RL); paper tuyên bố real-time (tuyên bố nằm ở README).
 
 ## 3. Nhật ký cài đặt
 
@@ -156,31 +146,17 @@ Nhật ký đầy đủ: `logs/nhat_ky_cai_dat.md` (15 mục + 4 FIX + MEDIA + R
 
 ### 3.2 Bảy sự cố
 
-**(1) `proxsuite` không có wheel Windows.** Lần cài đầu chết ở metadata `proxsuite>=0.2.9` (dependency của `qpsolvers[proxqp]`): pip tải source 54,7 MB, CMake báo `CMAKE_C_COMPILER not set` vì máy không có MSVC. Bản 0.8.2 chỉ có sdist; conda-forge chỉ build linux/osx. **Xử lý:** ghim `proxsuite==0.7.2.post1` — bản duy nhất có wheel `cp310-win_amd64` (4,3 MB) — cài lại exit 0. Không sửa `pyproject.toml`; chấp nhận được vì solver mặc định là **daqp**.
+| # | Sự cố | Bằng chứng và cách xử lý |
+|---|---|---|
+| 1 | `proxsuite` không có wheel Windows | Pip build source 54,7 MB, `CMAKE_C_COMPILER not set` vì thiếu MSVC; bản 0.8.2 chỉ có sdist. Ghim `proxsuite==0.7.2.post1` (wheel `cp310-win_amd64`, 4,3 MB), cài lại exit 0; không sửa `pyproject.toml` vì solver mặc định là **daqp** |
+| 2 | `libstdcxx-ng` chỉ có cho Linux | `PackagesNotFoundInChannelsError`; bỏ qua có ghi chép, kiểm chứng bù bằng việc chạy thật có mở cửa sổ MuJoCo |
+| 3 | SMPL-X bị chặn bởi license | Repo không kèm body model; SMPL-X và AMASS/OMOMO phải ký license tại Max Planck. Chuyển sang `bvh_to_robot.py` + LAFAN1 (6 config `bvh_lafan1_*`); **V3/V5 đo trên đường BVH, không phải SMPL-X như paper** |
+| 4 | KI-01: robot cúi gập | `walk4` có `waist_pitch` **+29,52° ± 1,70**, so với walk3 **+25,19° ± 4,27** và dance1 **+18,62° ± 8,70**; scale 1,75/1,8 = 0,972 và hai khâu dùng cùng `g1_mocap_29dof.xml`. Kết luận: `walk4` là clip **đi khom lưng**, pipeline tái hiện trung thực; đổi motion chính thức sang `walk1_subject1` |
+| 5 | KI-02: cột `cmd` ghi cờ chưa truyền | `measure_v3.ps1` chỉ ghép `--rate_limit` vào chuỗi CSV (dòng 20, 23), lệnh thật (dòng 26) không có cờ; log ghi 64–136 fps; `RateLimiter(30)` × 300 = 14,004 s = **21,42 Hz**. Xoá 4 dòng, rút kết luận về `--rate_limit` |
+| 6 | RV-14: log không chứa số đo | Thêm dòng `END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 …` vào từng log; lần đầu `-Encoding utf8` làm vỡ UTF-16LE → đổi `-Encoding Unicode`, chạy lại toàn bộ; **20/20 log đo** có `END` |
+| 7 | Hai đợt V3 lệch 14,4 % | 15,171 → 17,349 ms (mean); **40 pkl** trùng SHA256 theo cặp (G1+walk1 ×20 `E7E3B906…`, T1 ×7 `4E716187…`, PM01 ×5 `57B693A8…`, G1+walk4 ×5 `37F0ACD2…`) ⇒ chênh do trạng thái máy, không do thuật toán; chọn đợt mới vì log đối chiếu được |
 
-**(2) `libstdcxx-ng` trong README chỉ có cho Linux.** `conda install -c conda-forge libstdcxx-ng` trả `PackagesNotFoundInChannelsError`. Bỏ qua có ghi chép; kiểm chứng bù bằng việc chạy thật có mở cửa sổ MuJoCo.
-
-**(3) SMPL-X bị chặn bởi license → đổi đường dữ liệu.** Repo không kèm body model nhưng `utils/smpl.py` bắt buộc gọi `smplx.create(...)`. SMPL-X và AMASS/OMOMO đều phải đăng ký + ký license tại Max Planck, không có đường tải công khai. **Quyết định:** dùng `bvh_to_robot.py` + LAFAN1 BVH (công khai, repo có 6 config `bvh_lafan1_*`). **Hệ quả: V3/V5 đo trên đường BVH, không phải SMPL-X như paper.**
-
-**(4) KI-01 — robot cúi gập khi phát lại.** Render `g1_walk4_no_rate_limit_1.pkl` thấy robot gập về trước, chân khuỵu. Đã loại trừ bằng số đo:
-
-| Motion | frames | `waist_pitch` TB ± std | `hip_pitch` | `knee` | `root z` |
-|---|---|---|---|---|---|
-| `walk4_subject1` | 4.917 | **+29,52° ± 1,70** | −56,3 / −56,1° | +37,5 / +39,3° | 0,766 m |
-| `walk3_subject1` | — | +25,19° ± 4,27 | −11,8 / −11,4° | +33,3 / +34,9° | 0,729 m |
-| `dance1_subject2` | 3.944 | +18,62° ± 8,70 | −23,1 / −20,0° | +49,3 / +47,9° | 0,754 m |
-
-Scale người→robot 1,75/1,8 = 0,972 (bình thường); viewer và retarget dùng **cùng** `g1_mocap_29dof.xml`; đổi clip thì tư thế đổi theo. **Nguyên nhân:** `walk4` là clip **đi bộ khom lưng** của LAFAN1 — retarget tái hiện trung thực, pipeline không lỗi (std `waist_pitch` 1,70° so với 4,27° và 8,70°, tức tư thế cố định suốt clip). **Xử lý:** chuyển motion chính thức sang `walk1_subject1`, chạy lại V3; giữ walk4 làm ví dụ motion khó.
-
-**(5) KI-02/RV-13 — cột `cmd` ghi cờ chưa từng truyền.** `measure_v3.ps1` chỉ ghép `--rate_limit` vào **chuỗi in ra CSV** (dòng 20, 23), lệnh thật (dòng 26) không có cờ. Ba nguồn xác nhận: mã script; log các lần đó ghi 64–136 fps (bộ giới hạn 30 Hz không thể); đo lại `RateLimiter(30)` × 300 = 14,004 s = **21,42 Hz (46,68 ms)** — thư viện chậm hơn 30 Hz. **Xử lý:** xoá 4 dòng, rút kết luận về `--rate_limit`; cờ này chỉ để phát lại cho mắt người, không dùng đo throughput.
-
-**(6) RV-14 — log không chứa số đo.** Ban đầu `wall_clock_s` chỉ in ra console. Đã thêm dòng cuối vào từng log: `END wall_s=137.37 ms_per_frame=17.522 rtf=1.902 frames=7840 exit=0 …`. Lần đầu dùng `-Encoding utf8` làm vỡ file UTF-16LE → đổi `-Encoding Unicode`, **chạy lại toàn bộ**; 20/20 log đo có dòng `END`.
-
-**(7) Hai đợt V3 lệch 14,4 % — và retarget tất định.** Đợt cũ (`c62e74f`, n = 3): 14,034/15,139/16,339 → mean **15,171**. Đợt mới (`f467075`, n = 5): mean **17,349**, median **17,272**. Chạy lại vì log hỏng (sự cố 6), không vì số xấu. Băm SHA256 **40 pkl**: mọi lần chạy cùng cặp (robot, motion) **giống nhau từng byte** — G1+walk1 ×20 `E7E3B906…`, T1+walk1 ×7 `4E716187…`, PM01+walk1 ×5 `57B693A8…`, G1+walk4 ×5 `37F0ACD2…`. ⇒ chênh do **trạng thái máy**, không do thuật toán; chọn đợt mới (chậm hơn, bảo thủ).
-
-### 3.3 Bài học
-
-Review độc lập có giá trị bằng một người làm — sự cố (5) do Review phát hiện; và số đo phải tự truy vết: mỗi số trong CSV lần ngược được tới dòng `END` của chính lần chạy.
+**Bài học:** Review độc lập có giá trị bằng một người làm — sự cố (5) do Review phát hiện; và mỗi số trong CSV phải lần ngược được tới dòng `END` của chính lần chạy.
 
 ## 4. Kết quả chạy mô hình có sẵn, đối chiếu với bài báo
 
@@ -210,13 +186,7 @@ n = 5: mean **17,349** (số dùng để kết luận), median 17,272, sd 0,369,
 
 ### 4.3 Bằng chứng hình ảnh
 
-| Ảnh | Nội dung |
-|---|---|
-| `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame 5 lần đo + đường ngưỡng 33,33 ms |
-| `v3_terminal_start_g1_2026-11-20.png` | cửa sổ lệnh đo đang chạy |
-| `v3_terminal_result_g1_2026-11-20.png` | kết quả một lần chạy (thời gian, ms, rtf) |
-| `v3_render_mujoco_g1_2026-11-20.png` | MuJoCo đang phát G1 |
-| `slide_v3_walk1_g1_f450/f900/f1350.png` | 3 khung 25/50/75 % của clip chính thức |
+Ngoài **Hình 1** (đồ thị ms/frame) và **Hình 2** (render G1 ở §5), `results/figures/` còn giữ ảnh terminal của lần đo, ảnh mở CSV và 3 khung 25/50/75 % của clip chính thức — caption và lệnh sinh ghi trong `results/figures/README.md`.
 
 ### 4.4 Đối chiếu với bài báo
 
@@ -227,8 +197,7 @@ Paper không có mốc tốc độ (`docs/paper_notes.md` §12), nên chỉ so �
 1. Chỉ có số **cả tiến trình**, là cận trên; không phải thời gian riêng `retarget()`.
 2. Không xác minh `CUDA_VISIBLE_DEVICES` — "chạy CPU" là suy luận từ mã, không phải bằng chứng cấu hình.
 3. Một máy Windows 11, trong khi README chỉ test Ubuntu 22.04/20.04.
-4. Đồng hồ Windows thô (hạt `sleep` ~15,6 ms) — ảnh hưởng nhỏ với wall-clock nhưng không bằng 0.
-5. T1 trong V5 có CV 11,32 % > 5 % ⇒ báo trung vị, không báo mean.
+4. Đồng hồ Windows thô (hạt `sleep` ~15,6 ms) ảnh hưởng nhỏ với wall-clock; T1 trong V5 có CV 11,32 % > 5 % nên báo trung vị.
 
 ## 5. Kết quả tự huấn luyện (3 hạt giống)
 
@@ -385,19 +354,11 @@ Nguồn: `results/v6_quality.csv` (nhánh `task/quality`, commit `0605847`), cù
 
 **Không phải kiểm chứng chéo:** tỷ lệ frame khớp sát giới hạn của G1 (**23,791 %**) trùng với baseline nhiễu V6 (**1.865/7.839 = 23,79 %**) vì `quality_metrics.py` và `v6_metrics.py` dùng **cùng logic, cùng ngưỡng 0,5°** trên **cùng một pkl** — đây là **cùng một phép đo**, không phải hai công cụ độc lập. Việc trùng khớp chỉ xác nhận hai script nhất quán với nhau.
 
-### 6.8 Đồ thị
+### 6.8 Đồ thị và video
 
-| Ảnh | Nội dung |
-|---|---|
-| `v5_ms_per_frame_robots_2026-11-20.png` | trung vị ms/frame 3 robot, thanh min–max, ngưỡng 33,33 ms |
-| `v5_sim2sim_{g1,t1,pm01}_frame2000_2026-11-20.png` | 3 robot tại cùng frame 2000 |
-| `slide_v5_sim2sim_f450/f900/f1350.png` | 3 khung từ clip ghép 3 robot |
-| `v6_noise_slide.png` | `dq_mean` + `pct_gt5°` theo 15 mức N1–N4 (Hình 3) |
-| `v6_quality.png` | `foot_slide` và `min_body_height` của 3 robot (Hình 5) |
+Năm hình đã chèn trong báo cáo: **H1** `v3_ms_per_frame_g1` (§4.2), **H2** render G1 `slide_v3_walk1_g1_f900` (§5), **H3** `v6_noise_slide` (§6.4), **H4** `v5_ms_per_frame_robots` (§6.5), **H5** `v6_quality` (§6.7); nguồn và nội dung ghi ngay dưới mỗi hình.
 
-Video `results/media/v5_sim2sim_g1_t1_pm01.mp4` — 60 s, 1280×720, 30 fps; **không commit**, nộp kèm link.
-
-**Video demo tổng hợp: 67 giây, 720p, không audio** (`results/media/demo/demo_v6_720p.mp4`, không commit — nộp kèm link).
+Video: `results/media/v5_sim2sim_g1_t1_pm01.mp4` (60 s, 1280×720, 30 fps) và **video demo tổng hợp 67 giây, 720p, không audio** (`results/media/demo/demo_v6_720p.mp4`); cả hai **không commit**, nộp kèm link.
 
 ## 7. Kết luận
 
@@ -463,31 +424,12 @@ Tôi viết hai công cụ của nhóm: `measure_runtime.py` và `build_demo.py`
 
 Tôi phụ trách phản biện, và nguyên tắc của tôi là chỉ đọc cái đã nằm trong nhánh, không nghe mô tả. Việc đáng kể nhất là bốn dòng CSV ghi lệnh có `--rate_limit` trong khi lệnh thật không hề truyền cờ đó; tôi xác nhận bằng ba nguồn độc lập — đọc mã PowerShell, đối chiếu log ghi 64 FPS (một bộ giới hạn 30 Hz không thể ra 64), và chạy lại thư viện trong env được 21,4 Hz — rồi yêu cầu rút kết luận đó khỏi báo cáo. Tôi cũng bắt được báo cáo dùng trung vị trong khi định nghĩa đã chốt là dùng mean khi CV dưới 5%, và phải nêu lại ba lần vì lỗi lặp ở ba tài liệu khác nhau. Bài học của tôi là review không phải đọc lại cho kỹ, mà là chủ động tìm cách bác bỏ con số của chính nhóm mình. Tôi tự đánh giá 20%.
 
-### 8.3 Cam kết
-
 Mọi số lần ngược được tới `results/` và dòng `END`; mọi số paper nằm ở cột "bài báo"; video/pkl/LAFAN1 không commit.
 
 # TÀI LIỆU THAM KHẢO
 
 1. J. P. Araújo, Y. Ze, P. Xu, J. Wu, C. K. Liu. *Retargeting Matters: General Motion Retargeting for Humanoid Motion Tracking*. arXiv:2510.02252v1, 2025. https://arxiv.org/abs/2510.02252
-2. YanjieZe. *GMR: General Motion Retargeting* (mã nguồn). GitHub, commit `25f56db`, 2026-10-22 UTC, giấy phép MIT. https://github.com/YanjieZe/GMR
-3. Ubisoft La Forge. *LAFAN1 Animation Dataset*. GitHub, giấy phép CC BY-NC-ND 4.0. https://github.com/ubisoft/ubisoft-laforge-animation-dataset
-4. E. Todorov, T. Erez, Y. Tassa. *MuJoCo: A physics engine for model-based control*. IROS 2012; bản dùng: `mujoco 3.17.0`.
-5. K. Zakka. *Mink: differential inverse kinematics* (thư viện IK dùng trong GMR); bản dùng: `mink 1.3.0`. https://github.com/kevinzakka/mink
-6. Hybrid Robotics. *BeyondMimic* (phương pháp huấn luyện policy được paper sử dụng; nhóm không chạy). https://github.com/HybridRobotics/BeyondMimic
-7. QPSolvers và các backend `daqp`, `proxsuite`; bản dùng: `qpsolvers 4.13.0`, `daqp 0.11.2`, `proxsuite 0.7.2.post1`. https://github.com/qpsolvers/qpsolvers
-8. Tài liệu nội bộ của nhóm: `docs/v1_tuyen_bo.md` (tuyên bố và phép đo), `docs/dinh_nghia_phep_do.md` (định nghĩa phép đo, bảng bắc cầu §6.1), `docs/paper_notes.md` (ghi chú paper), `docs/quyet_dinh.md` (DEC-01, DEC-02), `docs/v6_noise_spec.md` (đặc tả phép thử nhiễu), `logs/nhat_ky_cai_dat.md` (nhật ký cài đặt).
-
-# PHỤ LỤC A — Nhật ký phản biện (rút gọn)
-
-Bản đầy đủ: `report/review_notes.md` (nhánh `task/review-qa`).
-
-| Ticket | Phát hiện | Xử lý |
-|---|---|---|
-| RV-13 | 4 dòng `rate_limit` ghi cờ chưa từng truyền | Xoá 4 dòng, rút kết luận |
-| RV-14 | `wall_clock_s` không có trong log | Thêm dòng `END`, 20/20 log |
-| RV-15/16 | V5 1 lần/robot; CV 7,6 % | Chạy lại n=3/5; CV 2,13 % ⇒ dùng trung bình 17,349 |
-| RV-17 | Tên cột `ms_per_frame` trần | Đổi `_process` |
-| RV-18 | Thiếu bảng 2 cột | §2.4 của báo cáo |
-| RV-23 | Hai đợt lệch 14,4 % | Mục 3 (7) + §7.3 |
-| RV-26 | rtf trong mô tả PR tính sai | Báo cáo tính lại từ mean/median theo CV |
+2. YanjieZe. *GMR: General Motion Retargeting*, commit `25f56db`, 2026-10-22 UTC, giấy phép MIT. https://github.com/YanjieZe/GMR
+3. Ubisoft La Forge. *LAFAN1 Animation Dataset*, CC BY-NC-ND 4.0. https://github.com/ubisoft/ubisoft-laforge-animation-dataset
+4. Thư viện dùng trong pipeline: MuJoCo 3.17 (Todorov et al., IROS 2012), Mink 1.3 (https://github.com/kevinzakka/mink), BeyondMimic (https://github.com/HybridRobotics/BeyondMimic), QPSolvers 4.13 với `daqp` 0.11.2 và `proxsuite` 0.7.2.post1.
+5. Tài liệu nội bộ: `docs/v1_tuyen_bo.md`, `docs/dinh_nghia_phep_do.md`, `docs/paper_notes.md`, `docs/quyet_dinh.md`, `docs/v6_noise_spec.md`, `logs/nhat_ky_cai_dat.md`.
