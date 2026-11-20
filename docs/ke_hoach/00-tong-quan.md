@@ -17,14 +17,36 @@ Chia theo **chức năng**, mỗi vai trò = 1 worktree = 1 branch = 1 tab agent
 2. **Không ai chờ merge để làm việc.** Merge chỉ để nộp bài, không phải điều kiện thi hành.
 3. **Không chia sẻ tài nguyên có thể tắc:** env, script, số liệu. Mỗi thứ có đúng một chủ.
 
-| Worktree | Branch | Vai trò | Base | Chủ sở hữu |
+### Worktree = chỗ ngồi, branch = nhiệm vụ
+
+Git chỉ cho **một worktree check out một branch tại một thời điểm**. Vì vậy:
+
+- **Worktree** cố định theo vai trò (chỗ ngồi, không đổi).
+- **Branch** đặt theo **nhiệm vụ**, mỗi nhiệm vụ = 1 branch = 1 PR.
+- Xong nhiệm vụ → mở PR → chuyển sang branch nhiệm vụ kế tiếp (`git switch -c task/... main`).
+- Không đặt tên branch theo người hay theo agent.
+
+| Worktree (cố định) | Vai trò | Chủ | Branch hiện tại |
+|---|---|---|---|
+| *(main worktree)* | Planner / merge | Duy | `main` |
+| `gmr-research` | Research | Duy | `task/v1-tuyen-bo` |
+| `gmr-code` | Code | Vỹ | `task/code-scripts` |
+| `gmr-run` | Run | Mạnh | `task/v2-cai-dat` |
+| `gmr-review` | Review | Trường | `task/review-qa` |
+| `gmr-writing` | Writing (mở ngày 7) | cả nhóm | `task/v6-bao-cao` |
+
+### Danh sách nhiệm vụ → branch
+
+| Nhiệm vụ | Branch | Worktree | Người | PR vào `main` khi |
 |---|---|---|---|---|
-| *(main worktree)* | `main` | Planner / merge | — | Duy |
-| `gmr-research` | `gmr-research` | Research (V1) | `main` | Duy |
-| `gmr-code` | `gmr-code` | Code (script, patch) | `main` | Vỹ |
-| `gmr-run` | `gmr-run` | Run (env, đo, sim2sim) | `main` | Mạnh |
-| `gmr-review` | `gmr-review` | Review (phản biện) | `main` | Trường |
-| `gmr-writing` | `gmr-writing` | Writing (báo cáo, slide) | `main` | cả nhóm, mở ngày 7 |
+| V1 chốt tuyên bố + định nghĩa phép đo | `task/v1-tuyen-bo` | `gmr-research` | Duy | V1 xong |
+| Mã nhóm: script đo + test | `task/code-scripts` | `gmr-code` | Vỹ | `--dry-run` + pytest pass |
+| V2 cài đặt + nhật ký | `task/v2-cai-dat` | `gmr-run` | Mạnh | env chạy `--help` không lỗi |
+| V3 đo thời gian xử lý | `task/v3-runtime` | `gmr-run` | Mạnh | có CSV ≥ 3 dòng |
+| V5 sim2sim 3 robot | `task/v5-sim2sim` | `gmr-run` | Mạnh | có CSV ≥ 3 robot |
+| V4 vì sao không huấn luyện | `task/v4-phan-tich` | `gmr-code` | Vỹ | có kết luận |
+| Review + checklist | `task/review-qa` | `gmr-review` | Trường | liên tục |
+| V6 báo cáo + slide | `task/v6-bao-cao` | `gmr-writing` | cả nhóm | đủ 8 mục |
 
 ## Ma trận phụ thuộc: rỗng
 

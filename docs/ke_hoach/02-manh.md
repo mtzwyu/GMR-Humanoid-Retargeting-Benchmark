@@ -2,6 +2,7 @@
 
 **Vai:** Run + Writing mục 3
 **Worktree:** `gmr-run` (chính) · `gmr-writing` (mục 3)
+**Branch:** `task/v2-cai-dat` → `task/v3-runtime` → `task/v5-sim2sim` (mỗi nhiệm vụ một branch, một PR)
 **Quyền riêng:** chỉ Mạnh được tạo/sửa conda env `gmr`. Không ai khác cần env.
 
 ## Việc theo ngày
