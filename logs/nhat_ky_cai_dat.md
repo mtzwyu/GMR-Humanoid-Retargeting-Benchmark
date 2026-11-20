@@ -61,7 +61,7 @@ Ghi **ngay khi gặp lỗi**, không viết lại sau. Mỗi mục: thời đi�
 | Input | `walk1_subject1.bvh` — 7.840 frame, 30 fps, 261,333 s |
 | V3 không `--rate_limit` (1 warm-up bị loại + 3 lần đo) | **17,52 · 17,25 · 17,85** ms/frame (mean 17,54; CV **1,71 %**); lô 5 lần đo: mean **17,35**, median **17,27**, CV **2,13 %** |
 | V3 có `--rate_limit` | **ĐÃ RÚT — không có dòng nào trong CSV** (xem mục RV-13: cờ không được truyền vào lệnh thật) |
-| V5 sim2sim (cùng motion, 3 robot) | G1 **17,34** ms/frame · T1 29dof **13,44** · PM01 **34,99** |
+| V5 sim2sim (cùng motion, 3 robot) | **trung vị** (số chính thức): PM01 **35,45** · T1 29dof **13,03** (n=5) · G1 **17,02** ms/frame |
 | H1 | **không chạy được trên đường BVH** — `bvh_to_robot.py` từ chối `--robot unitree_h1` (exit 2); README ghi cột BVH của H1 = TBD |
 
 **RV-14 — wall time phải nằm trong log (Review chặn merge, đã sửa):** trước đây `wall_clock_s` chỉ in ra console nên không đối chiếu ngược được. Nay mỗi lần chạy, script ghi thêm **một dòng cuối vào chính file log của lần đó**:
@@ -85,6 +85,29 @@ Cả hai lô đều ≤ 5 %. Nếu Review cần một số đại diện duy nh�
 
 **RV-17 — tên cột (Review yêu cầu, đã sửa):** đổi `ms_per_frame` → **`ms_per_frame_process`** trong `results/v3_runtime.csv` và `results/v5_sim2sim.csv`, vì tử số là wall-clock của **toàn tiến trình** (nạp model + dựng IK + retarget từng frame + render viewer + ghi pkl), **không** phải riêng hàm `retarget()`. Số giữ nguyên, không tính lại. Đồ thị V3 cũng được vẽ lại theo đúng 5 lần đo (bỏ panel `--rate_limit` đã rút).
 
+**RV-15 — V5 phải đủ 1 warm-up + 3 lần đo mỗi robot (Review chặn merge, đã chạy lại):** trước đây mỗi robot chỉ 1 lần. Nay chạy **PM01 trước tiên** (loại trừ ảnh hưởng nhiệt), rồi T1 29dof, rồi G1; mỗi robot 4 lần (1 warm-up + 3 đo), mỗi lần ghi dòng `END` (wall, ms/frame, rtf, nhiệt độ) vào chính file log.
+
+| Robot | Thứ tự chạy | wall (s) 4 lần | 3 lần đo (ms/frame) | mean | median | CV | Nhiệt GPU |
+|---|---|---|---|---|---|---|---|
+| `engineai_pm01` | 1 | 274,08 · 264,74 · 277,96 · 279,91 | 33,77 · 35,45 · 35,70 | **34,98** | 35,45 | 3,01 % | 51,0 → 57,4 °C |
+| `booster_t1_29dof` | 2 | 109,40 · 91,19 · 110,22 · 108,31 | 11,63 · 14,06 · 13,82 | **13,17** | 13,82 | **10,15 %** | 55,0 → 54,7 °C |
+| `unitree_g1` | 3 | 134,94 · 136,13 · 133,42 · 124,60 | 17,36 · 17,02 · 15,89 | **16,76** | 17,02 | 4,59 % | 54,7 → 54,7 °C |
+
+- Nhiệt độ CPU **không đọc được** (`MSAcpi_ThermalZoneTemperature` bị từ chối) — chỉ có nhiệt GPU qua `nvidia-smi`.
+- **T1 29dof có CV = 10,15 % > 5 %** (một lần 91,19 s lệch khỏi hai lần ~109 s). Không giấu: máy không ổn định ở robot này; nếu cần một số đại diện duy nhất, dùng **trung vị 13,82 ms/frame**. PM01 (3,01 %) và G1 (4,59 %) đều ≤ 5 %.
+- Số cũ (G1 17,34 · T1 13,44 · PM01 34,99, mỗi robot 1 lần) **đã bị thay thế** bởi bảng trên.
+- Kết luận H1 bị chặn **giữ nguyên** (Review đã PASS mục này).
+
+**RV-24 — T1 29dof vẫn tản mát, chạy bổ sung và chuyển sang trung vị (Review yêu cầu):** thêm 2 lần đo cho T1 (`run5 = 84,13 s → 10,73 ms/frame`, `run6 = 102,19 s → 13,03 ms/frame`), nay **n = 5**:
+
+| Robot | n | Giá trị (ms/frame) | mean | **median** | sd | CV | Kết luận |
+|---|---|---|---|---|---|---|---|
+| `booster_t1_29dof` | 5 | 11,63 · 14,06 · 13,82 · **10,73** · **13,03** | 12,65 | **13,03** | 1,43 | **11,32 %** | vẫn > 5 % → **máy không ổn định ở robot này, dùng trung vị** |
+| `engineai_pm01` | 3 | 33,77 · 35,45 · 35,70 | 34,98 | **35,45** | 1,05 | 3,01 % | đạt |
+| `unitree_g1` | 3 | 17,36 · 17,02 · 15,89 | 16,76 | **17,02** | 0,77 | 4,59 % | đạt |
+
+→ **Số chính thức của V5 là trung vị**: PM01 **35,45** · T1 29dof **13,03** · G1 **17,02** ms/frame. Đồ thị `results/figures/v5_ms_per_frame_robots_2026-11-20.png` đã vẽ lại theo **trung vị + thanh sai số min–max**, không còn vẽ mean. T1 không đạt ngưỡng CV 5 % — ghi rõ là hạn chế của phép đo trên máy này, không phải của thuật toán (pkl tất định, xem RV-23).
+
 **RV-13 — sai sót của chính nhóm khi đo (Review chặn merge, đã sửa):** trong `third_party/_run/measure_v3.ps1`, cờ `--rate_limit` chỉ được ghép vào **chuỗi `cmd` in ra CSV**, còn lệnh thật thiếu cờ. Vì vậy 4 dòng `mode=rate_limit` trong `results/v3_runtime.csv` thực chất là lần chạy **không** giới hạn tốc độ; bằng chứng phụ: log của chúng ghi `Actual rendering FPS` 64–136, không thể là băng 30 Hz. **Đã xoá 4 dòng đó khỏi CSV và rút toàn bộ kết luận về `--rate_limit`.**
 
 Đo riêng thư viện để hiểu bản chất cờ này (tự đo, 300 lần gọi `sleep()`):
@@ -96,6 +119,13 @@ RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
 → Trên Windows, `RateLimiter(30)` chỉ đạt **21,42 Hz (46,68 ms/lần)** vì `sleep` của Windows có độ phân giải timer thô. **Kết luận: cờ `--rate_limit` không dùng để đo throughput** — nó là công cụ phát lại cho mắt người xem, không phải bộ đo. Mọi số V3/V5 báo cáo đều ở chế độ **không** `--rate_limit`.
 
 **Ghi chú về đơn vị đo:** cột `ms_per_frame_process` (trước RV-17 tên là `ms_per_frame`) = wall-clock của cả tiến trình (Measure-Command) chia số frame, nên bao gồm cả khởi tạo model, IK và render — không phải riêng thời gian IK. Con số `Actual rendering FPS` mà script in ra là FPS render, **không** dùng làm kết quả (theo bàn giao V1).
+
+**Cột `realtime_factor` đọc cho đúng (RV-27):** trong CSV, `realtime_factor` là của **từng lần chạy** (`motion_duration_s / wall_clock_s` của chính lần đó), **không** phải số tổng hợp. Số tổng hợp dùng trong báo cáo phải tính bằng **33,333 ms / median_ms** (33,333 ms = ngân sách thời gian mỗi frame ở 30 fps):
+- T1 29dof: 33,333 / 13,034 = **2,56**
+- G1: 33,333 / 17,018 = **1,96**
+- PM01: 33,333 / 35,454 = **0,94**
+
+Writing **không** lấy trực tiếp cột `realtime_factor` của một dòng bất kỳ để báo cáo.
 
 ## MEDIA — video demo và ảnh trích cho slide
 
@@ -116,3 +146,36 @@ RateLimiter(frequency=30): n=300 total=14.004s -> 21.42 Hz, 46.68 ms/lan
 | `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 3 pkl V5, mỗi robot 600 frame | 7.431.439 byte | 450 (G1) / 900 (T1) / 1350 (PM01) |
 
 Ảnh: `results/figures/slide_*.png`; caption + vị trí chèn slide ghi ở `results/figures/README.md`; bảng nguồn/lệnh/thời lượng ở `results/media/README.md`.
+
+## RV-23 — Hai đợt đo V3 và tính tất định của retarget
+
+Mục này là **căn cứ số cho Writing viết mục 7** (độ tin cậy của phép đo).
+
+### (a) So sánh hai đợt đo V3 (cùng input `walk1_subject1.bvh`, cùng G1, đều **không** `--rate_limit`)
+
+| Đợt | Commit | n | Giá trị đo (ms/frame) | Đại diện | Vì sao phải chạy lại |
+|---|---|---|---|---|---|
+| Đợt cũ | `c62e74f` | 3 | 14,034 · 15,139 · 16,339 | mean **15,171** | log thiếu dòng `END` (wall time chỉ in ra console) → Review chặn merge ở RV-14 |
+| Đợt mới | `f467075` | 5 | 17,522 · 17,246 · 17,852 · 16,853 · 17,272 | **median 17,272** (mean 17,349) | sau khi sửa định dạng dòng `END` (UTF-8 → UTF-16) và chạy lại toàn bộ |
+
+Chênh lệch: **+14,36 %** nếu so mean với mean (17,349 / 15,171); **+13,85 %** nếu so median mới với mean cũ. Nguyên nhân chạy lại **không** phải vì số xấu mà vì **định dạng log hỏng** (RV-14) — nhưng đợt mới là đợt duy nhất có log đối chiếu được, nên **lấy đợt mới làm số chính thức**: median **17,272 ms/frame** (n = 5, CV 2,13 %). Số đợt cũ chỉ giữ để đối chiếu.
+
+### (b) Retarget là tất định — bằng chứng SHA256 trên 40 file pkl
+
+Băm toàn bộ `results/pkl/*.pkl` (SHA256, sau khi đã chạy thêm `run5`/`run6` cho T1 theo RV-24). Kết quả: **mọi lần chạy của cùng một cặp (robot, motion) cho ra file pkl giống nhau từng byte**, bất kể đợt đo, bất kể có/không `--rate_limit`:
+
+| Nhóm pkl | Số file | SHA256 (rút gọn) | Gồm |
+|---|---|---|---|
+| G1 + `walk1_subject1` | **20** | `E7E3B906F22D3869…` | 6 pkl V3 mới (`run1..run6`), 1 pkl console (`…_evidence`), 4 pkl V3 cũ (`…_no_rate_limit_1..4`), 4 pkl cũ có cờ (`…_rate_limit_1..4`), 4 pkl V5 G1 (`run1..4`), 1 pkl V5 G1 bản đầu |
+| T1 29dof + `walk1_subject1` | **7** | `4E7161873D508ABE…` | V5 `run1..4` + bản đầu + `run5`/`run6` (đo bổ sung theo RV-24) |
+| PM01 + `walk1_subject1` | 5 | `57B693A8AAC72FE8…` | V5 `run1..4` + bản đầu |
+| G1 + `walk4_subject1` | 5 | `37F0ACD2DD0EFF3C…` | warmup + `no_rate_limit_1..4` |
+| G1 + `dance1_subject2` | 1 | `7A8FFEBE9C2BAE6F…` | KI-01 |
+| G1 + `walk3_subject1` | 1 | `C9488E53DD93B7C8…` | KI-01 |
+| T1 29dof + `walk4_subject1` | 1 | `2C6498E50CDBE0EF…` | KI-01 |
+
+Tổng: 20 + 7 + 5 + 5 + 1 + 1 + 1 = **40 file**, và `run5`/`run6` của T1 cũng cho đúng `4E716187…` — chạy thêm không phá tính tất định.
+
+Đọc bảng: **hash chỉ trùng trong cùng cặp (robot, motion)**; khác robot thì khác hash vì số dof khác nhau (G1 29 · T1 29dof 27 · PM01 24), khác motion cũng khác hash. (Lưu ý: không phải "15 pkl đều `E7E3B906…`" — con số đúng là **20 pkl** thuộc nhóm G1 + `walk1_subject1`.)
+
+**Kết luận:** chênh lệch 14,4 % giữa hai đợt đo **không** đến từ thuật toán (đầu ra giống nhau từng byte) mà từ **trạng thái máy** (tải nền, nhiệt độ, dao động lập lịch CPU) — đúng bản chất của phép đo wall-clock toàn tiến trình.

@@ -20,16 +20,16 @@ Người chụp/thực hiện: **Đặng Duy Mạnh (Run)**.
 | `fix_walk4_frame0_g1_2026-11-20.png` | KI-01: G1 tại frame 0 của cùng pkl (tư thế đầu clip) | như trên, frame 0 | 2026-11-20 |
 | `fix_walk3_frame2000_g1_2026-11-20.png` | Đối chứng: G1 tại frame 2000 của `walk3_subject1` (waist 25,2°) | `python third_party/_run/analyze_pose.py results/pkl/fix_walk3_subject1_unitree_g1.pkl ... 2000` | 2026-11-20 |
 | `fix_dance1_frame2000_g1_2026-11-20.png` | Đối chứng: G1 tại frame 2000 của `dance1_subject2` (clip repo đánh dấu `[x]`) | `python third_party/_run/analyze_pose.py results/pkl/fix_dance1_g1.pkl ... 2000` | 2026-11-20 |
-| `v5_sim2sim_g1_frame2000_2026-11-20.png` | V5: Unitree G1, frame 2000 của `walk1_subject1` — **slide "sim2sim"** | `python third_party/_run/analyze_pose.py results/pkl/v5_unitree_g1_walk1_subject1.pkl <xml G1> <ảnh> 2000` | 2026-11-20 |
-| `v5_sim2sim_t1_frame2000_2026-11-20.png` | V5: Booster T1 29dof, cùng frame 2000 | `... v5_booster_t1_29dof_walk1_subject1.pkl <xml T1> ...` | 2026-11-20 |
-| `v5_sim2sim_pm01_frame2000_2026-11-20.png` | V5: ENGINEAI PM01, cùng frame 2000 | `... v5_engineai_pm01_walk1_subject1.pkl <xml PM01> ...` | 2026-11-20 |
+| `v5_sim2sim_g1_frame2000_2026-11-20.png` | V5: Unitree G1, frame 2000 của `walk1_subject1` — **slide "sim2sim"**. Sinh từ pkl **bản đầu** `results/pkl/v5_unitree_g1_walk1_subject1.pkl` (ảnh tạo 23:03, trước khi đo lại RV-15 lúc 23:18); pkl này có SHA256 **trùng** với `…_run1.pkl` nên nội dung ảnh y hệt | `python third_party/_run/analyze_pose.py results/pkl/v5_unitree_g1_walk1_subject1.pkl <xml G1> <ảnh> 2000` | 2026-11-20 |
+| `v5_sim2sim_t1_frame2000_2026-11-20.png` | V5: Booster T1 29dof, cùng frame 2000. Sinh từ pkl **bản đầu** `v5_booster_t1_29dof_walk1_subject1.pkl`, SHA256 trùng `…_run1.pkl` (`4E7161873D508ABE…`) | `... v5_booster_t1_29dof_walk1_subject1.pkl <xml T1> ...` | 2026-11-20 |
+| `v5_sim2sim_pm01_frame2000_2026-11-20.png` | V5: ENGINEAI PM01, cùng frame 2000. Sinh từ pkl **bản đầu** `v5_engineai_pm01_walk1_subject1.pkl`, SHA256 trùng `…_run1.pkl` (`57B693A8AAC72FE8…`) | `... v5_engineai_pm01_walk1_subject1.pkl <xml PM01> ...` | 2026-11-20 |
 
 ## 3. Đồ thị
 
 | Ảnh | Nội dung | Lệnh / công cụ sinh ra | Ngày |
 |---|---|---|---|
 | `v3_ms_per_frame_g1_2026-11-20.png` | ms/frame theo từng lần đo (5 lần, **không** `--rate_limit`), đường ngưỡng 33,33 ms — **slide "kết quả V3"** | `python third_party/_run/plot_v3.py` (đọc `results/v3_runtime.csv`) | 2026-11-20 |
-| `v5_ms_per_frame_robots_2026-11-20.png` | ms/frame theo robot cho V5 sim2sim (G1 17,34 · T1 29dof 13,44 · PM01 34,99) — **slide "sim2sim"** | `python third_party/_run/plot_v3.py` (đọc `results/v5_sim2sim.csv`) | 2026-11-20 |
+| `v5_ms_per_frame_robots_2026-11-20.png` | **Trung vị** ms/frame (thanh sai số = min–max) cho V5 sim2sim: PM01 35,45 (n=3) · T1 29dof 13,03 (n=5) · G1 17,02 (n=3) — **slide "sim2sim"** | `python third_party/_run/plot_v3.py` (đọc `results/v5_sim2sim.csv`) | 2026-11-21 (vẽ lại sau RV-24; tệp giữ tên theo ngày tạo ban đầu) |
 
 ## 4. Ảnh mở file CSV kết quả
 
