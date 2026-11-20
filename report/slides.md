@@ -140,7 +140,8 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 **Thông điệp:** 5 lần đo, tất cả dưới ngưỡng, độ tản mát thấp.
 
-- Số lớn: **17,272 ms** (trung vị, n = 5) · CV **2,13 %** · 1,93×
+- Số lớn: **17,349 ms** (trung bình, n = 5) · CV **2,13 %** · 1,92× · **57,6 FPS**
+- Mốc repo (Speed Benchmark): 35–45 FPS (i9-13900K) · 60–70 FPS (Threadripper) — README không nêu điều kiện
 - Đồ thị: `v3_ms_per_frame_g1_2026-11-20.png` (đường 33,3 ms)
 - Bảng nhỏ 5 điểm: 17,522 · 17,246 · 17,852 · 16,853 · 17,272
 - Ghi chú: bỏ warm-up; cả 5 giá trị đều < 20 ms
@@ -153,7 +154,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 **Thông điệp:** `process ≤ 33,3` là điều kiện **đủ**, không phải suy diễn.
 
-- Bất đẳng thức: `retarget ≤ process = 17,272 ≤ 33,3`
+- Bất đẳng thức: `retarget ≤ process = 17,349 ≤ 33,3`
 - Kết luận: tái lập được **ở mức cả tiến trình**
 - Không được nói: "vòng lặp retarget đạt real-time" (không đo)
 - Sai số giữa hai phiên ≈ 14 % → báo 17,3 ms, không 17,35
@@ -167,7 +168,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 **Thông điệp:** cùng motion, đổi robot, không huấn luyện lại — 2/3 robot vẫn dưới ngưỡng.
 
 - 3 ảnh cùng frame 2000: G1 · T1 · PM01 (`v5_sim2sim_*_frame2000`)
-- Bảng 3 dòng: 17,018 (1,96) · 13,034 (2,56) · **35,454 (0,94)**
+- Bảng 3 dòng: 16,758 (1,99) · 13,034 (2,56) · **34,975 (0,95)**
 - H1: bị chặn — exit 2 `invalid choice`, không có config BVH, README TBD
 - Đồ thị: `v5_ms_per_frame_robots_2026-11-20.png`
 
@@ -179,7 +180,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 **Thông điệp:** ít khớp nhất mà chậm nhất → số DoF không giải thích được.
 
-- 24 DoF / 35,454 ms vs 27 DoF / 13,034 ms (chậm 2,7×)
+- 24 DoF / 34,975 ms vs 27 DoF / 13,034 ms (chậm 2,7×)
 - Ba giả thuyết: cấu hình IK · số vòng lặp solver · mô hình nặng
 - Nhãn đỏ: "**giả thuyết**, chưa tách nguyên nhân"
 
@@ -205,7 +206,7 @@ Khung trình bày theo `slides` skill (chiến lược *Case Study* + nhịp Dua
 
 **Thông điệp:** **tái lập một phần** — phần tốc độ được, phần bảng số của paper không.
 
-- Cột trái "được": 17,272 ms · 1,93× · 2/3 robot dưới ngưỡng
+- Cột trái "được": 17,349 ms · 1,92× · 2/3 robot dưới ngưỡng
 - Cột phải "không": Bảng I/II/III — 84 policy, IsaacSim, ROS, không có cấu hình trong paper
 - Một câu: "Đạt ngưỡng nhóm đặt, không phải tái lập bảng của paper."
 
