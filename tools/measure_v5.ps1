@@ -1,12 +1,12 @@
-﻿# Đo V5 sim2sim — 1 warm-up + 3 lần đo cho MỖI robot, PM01 chạy ĐẦU TIÊN để loại trừ thermal (RV-15)
-# RV-14: mỗi lần chạy ghi thêm dòng END wall_s=... ms_per_frame_process=... rtf=... vào chính file log
-# RV-17: cột thời gian đặt tên ms_per_frame_process (đo cả tiến trình, không phải riêng retarget())
-# RV-24: hỗ trợ chạy bổ sung (Warmup 0, StartIndex > 1) cho robot có CV > 5%
-# Dùng: powershell -File measure_v5.ps1 -RobotList "engineai_pm01,booster_t1_29dof,unitree_g1" -Measured 3
+# Do V5 sim2sim — 1 warm-up + 3 lan do cho MOI robot, PM01 chay DAU TIEN de loai tru thermal (RV-15)
+# RV-14: moi lan chay ghi them dong END wall_s=... ms_per_frame_process=... rtf=... vao chinh file log
+# RV-17: cot thoi gian dat ten ms_per_frame_process (do ca tien trinh, khong phai rieng retarget())
+# RV-24: ho tro chay bo sung (Warmup 0, StartIndex > 1) cho robot co CV > 5%
+# Dung: powershell -File measure_v5.ps1 -RobotList "engineai_pm01,booster_t1_29dof,unitree_g1" -Measured 3
 param([string]$RobotList = 'engineai_pm01,booster_t1_29dof,unitree_g1', [int]$Measured = 3, [int]$Warmup = 1, [int]$StartIndex = 1, [switch]$Append)
 $ErrorActionPreference = 'Continue'
-$py   = "C:\Users\xpaga\miniconda3\envs\gmr\python.exe"
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$py = if ($env:GMR_PYTHON) { $env:GMR_PYTHON } else { Join-Path $env:USERPROFILE "miniconda3\envs\gmr\python.exe" }
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $gmr  = Join-Path $root "third_party\GMR"
 $motion = 'walk1_subject1'
 $bvh  = "..\data\lafan1\$motion.bvh"

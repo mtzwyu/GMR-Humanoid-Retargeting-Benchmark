@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = r"C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+ROOT = r"."
 csv_path = os.path.join(ROOT, "results", "v6_noise_sweep.csv")
 
 with open(csv_path, newline="", encoding="utf-8-sig") as f:

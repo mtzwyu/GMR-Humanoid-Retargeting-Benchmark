@@ -1,4 +1,4 @@
-﻿# Vẽ đồ thị từ results/v3_runtime.csv và (nếu có) results/v5_sim2sim.csv
+# Vẽ đồ thị từ results/v3_runtime.csv và (nếu có) results/v5_sim2sim.csv
 # Chạy bằng python BASE (3.12) vì env gmr không cài matplotlib:
 #   python third_party\_run\plot_v3.py
 # RV-13: chỉ còn chế độ KHÔNG --rate_limit -> đồ thị V3 chỉ 1 panel.

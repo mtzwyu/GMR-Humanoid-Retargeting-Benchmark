@@ -1,4 +1,4 @@
-﻿# V7 â€” chay retarget (headless) va luu pkl DUNG dinh dang cua scripts/bvh_to_robot.py
+# V7 — chay retarget (headless) va luu pkl DUNG dinh dang cua scripts/bvh_to_robot.py
 # de so sha256 voi baseline da co. Dung: python tools\v7_run.py --out results\pkl\v7_x.pkl
 import argparse, hashlib, os, pickle, time
 

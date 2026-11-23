@@ -1,4 +1,4 @@
-﻿# Tao results/v6_provenance.json — ghi lai moi thu can de truy vet 15 phep thu nhiem V6.
+# Tao results/v6_provenance.json — ghi lai moi thu can de truy vet 15 phep thu nhiem V6.
 # Dung: python tools\make_v6_provenance.py [duong_dan_csv]
 import csv, json, os, platform, subprocess, sys
 from datetime import datetime
