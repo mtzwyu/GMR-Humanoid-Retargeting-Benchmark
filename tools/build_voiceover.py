@@ -86,6 +86,8 @@ def media_duration(ffmpeg, path):
 def parse_kich_ban(path):
     """Đọc lời thuyết minh theo cảnh từ bảng của report/kich_ban.md."""
     text = Path(path).read_text(encoding="utf-8")
+    if "Lời thuyết minh" not in text:
+        raise SystemExit("kich_ban.md thieu cot 'Loi thuyet minh'")
     scenes = []
     for line in text.splitlines():
         if not line.lstrip().startswith("|"):

@@ -283,6 +283,10 @@ def parse_kich_ban(path):
     """Đọc bảng cảnh của report/kich_ban.md: thời gian, phụ đề, lời thuyết minh."""
     scenes = {}
     text = Path(path).read_text(encoding="utf-8")
+    if "Phụ đề" not in text or "Lời thuyết minh" not in text:
+        raise SystemExit(
+            "kich_ban.md thieu cot 'Phu de' hoac 'Loi thuyet minh'"
+        )
     for line in text.splitlines():
         if not line.lstrip().startswith("|"):
             continue
@@ -331,6 +335,13 @@ def build_settings(args):
                 subtitles[f"{name.lower()}_sub"] = scene["subtitle"]
         settings.update(subtitles)
         log(f"phu de: {kich_ban} (cot 'Phu de', nguon duy nhat)")
+        for key, text in subtitles.items():
+            for index, line in enumerate(text.split("\n"), start=1):
+                if len(line) > 60:
+                    log(
+                        f"CANH BAO: phu de {key} dong {index} dai "
+                        f"{len(line)} ky tu > 60 (bao Writing, khong tu cat)"
+                    )
     else:
         log("CANH BAO: dang dung narration tam, se thay bang kich_ban.md")
         script_doc = Path(args.script_doc).resolve()
@@ -984,7 +995,7 @@ def main(argv=None):
         log(f"khong thay manifest {manifest} -> dung placeholder cho S1-S4")
 
     # Thời lượng đã được build_settings chốt: shot trong manifest, trừ khi --set.
-    labels = ["S0", "S1", "S2", "S3", "S4", "S5", "V6T", "S6"]
+    labels = ["S0", "S1", "S2", "S3", "S4", "S5", "V7T", "S6"]
     visible = [num(settings, f"duration_s{i}") for i in range(6)]
     visible.append(num(settings, "duration_v6_table"))
     visible.append(num(settings, "duration_s6"))
