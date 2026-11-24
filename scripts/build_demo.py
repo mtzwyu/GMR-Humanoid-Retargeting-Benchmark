@@ -675,7 +675,9 @@ def make_v7_table_card(csv_path, out_path, settings):
         ("mass", "0.8"): "khối lượng ×0,8",
         ("friction", "1.5"): "ma sát ×1,5",
     }
-    rows = [("Điều kiện", "SHA256", "Giống baseline", "ms/frame", "max|dq|")]
+    rows = [
+        ("Điều kiện", "SHA256", "Giống baseline", "ms/frame (tham khảo)", "max|dq|")
+    ]
     for row in data:
         mode = row["dieu_kien"]
         factor = f"{float(row['he_so']):g}"
@@ -703,9 +705,9 @@ def make_v7_table_card(csv_path, out_path, settings):
     draw.text((88, 80), settings["v7_table_title"],
               font=load_font(FONT_SLIDE_TITLE, 46), fill=dark)
 
-    x0, y0, table_w = 76, 176, 1128
-    header_h, row_h = 52, 88
-    widths = [300, 200, 200, 180, table_w - 300 - 200 - 200 - 180]
+    x0, y0, table_w = 76, 150, 1128
+    header_h, row_h = 52, 80
+    widths = [300, 190, 190, 220, table_w - 300 - 190 - 190 - 220]
     edges = [x0]
     for width in widths:
         edges.append(edges[-1] + width)
@@ -735,6 +737,23 @@ def make_v7_table_card(csv_path, out_path, settings):
                   fill=(0xD5, 0xE6, 0xE8), width=1)
     draw.rectangle([(x0, y0), (x0 + table_w, y0 + header_h + 4 * row_h)],
                    outline=(0x9F, 0xC9, 0xCE), width=2)
+
+    note = (
+        "ms/frame đo ở các phiên khác nhau (máy tải khác nhau) — KHÔNG dùng "
+        "để so sánh tốc độ; kết luận chỉ dựa trên SHA256 và max|dq|"
+    )
+    note_font_path = (
+        Path("C:/Windows/Fonts/calibrii.ttf")
+        if Path("C:/Windows/Fonts/calibrii.ttf").exists()
+        else FONT_SLIDE_BODY
+    )
+    note_font = fit_text(draw, note, note_font_path, 16, table_w)
+    draw.text(
+        (x0, y0 + header_h + 4 * row_h + 10),
+        note,
+        font=note_font,
+        fill=muted,
+    )
     image.save(out_path)
 
 
