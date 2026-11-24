@@ -134,3 +134,26 @@ TÁI LẬP MỘT PHẦN
 | Trễ 1–5 frame vô hại | N2 k = 1…5 | `dq_mean` 0,001° |
 
 **Không được đổi số trên phụ đề/card nếu chưa đối chiếu lại bảng này.**
+
+---
+
+## Lời thuyết minh (bản có tiếng, video 77 s)
+
+Đọc theo đúng 8 cửa sổ thời gian của `results/media/demo/demo_v6_720p.mp4`.
+Mỗi dòng là một cảnh; `tools/build_voiceover.py` đọc khối CSV này để sinh TTS.
+
+```csv
+scene,start_s,end_s,text
+S0,0,5,"GMR, ánh xạ chuyển động người sang robot hình người theo thời gian thực."
+S1,5,15,"Đầu vào là một clip chuyển động người, bảy nghìn tám trăm bốn mươi frame, dài hai trăm sáu mươi mốt phẩy ba giây."
+S2,15,25,"Retarget sang Unitree G1. Mỗi frame mất mười bảy phẩy ba mili giây, nhanh hơn thời gian thực gần hai lần."
+S3,25,35,"Cùng một pipeline: bên trái là clip gốc đi khom lưng, bên phải là clip đi bộ chuẩn."
+S4,35,45,"Đổi sang ba robot: T1 mười ba mili giây, G1 mười bảy, PM01 ba mươi lăm."
+S5,45,59,"Bốn phép thử nhiễu. Nhiễu khớp nửa độ vẫn an toàn, hai độ đã hỏng tám mươi tám phần trăm frame. Trễ một đến năm frame gần như vô hại."
+S5b,59,69,"Đổi khối lượng hay ma sát không làm đổi kết quả, vì GMR tối ưu động học. Nhiễu không tích lũy; ngưỡng hỏng nằm giữa một và hai độ."
+S6,69,77,"Kết luận: tuyên bố thời gian thực tái lập được. Chất lượng ánh xạ tái lập một phần."
+```
+
+Lưu ý: không đưa số không đo được vào lời nói (ví dụ hằng số lệch khối lượng);
+phần "khối lượng/ma sát không đổi kết quả" là kết luận định tính từ việc GMR
+không có physics trong vòng tối ưu, đã ghi trong `docs/quyet_dinh.md` DEC-02.
