@@ -85,7 +85,20 @@ DEFAULTS = {
         "2 độ đã hỏng 88 phần trăm frame\n"
         "Trễ 1–5 frame vô hại"
     ),
+    "s5b_sub": (
+        "Khối lượng ±20 %: lệch 1,5e-9 rad\n"
+        "Ma sát ×1,5: không đổi một byte"
+    ),
+    "s6_sub": (
+        "Tốc độ: tái lập được (17,3 ms · 1,92×)\n"
+        "Chất lượng ánh xạ: một phần"
+    ),
     "v6_table_csv": "results/v6_noise_sweep.csv",
+    "v7_table_csv": "results/v7_physics_perturb.csv",
+    "v7_table_title": "V7 — tham số vật lý",
+    "v7_table_kicker": (
+        "V7 · THAM SỐ VẬT LÝ · đọc từ results/v7_physics_perturb.csv"
+    ),
     "v6_table_title": "V6 — bảng đối chiếu nhiễu",
     "v6_table_kicker": "V6 · ĐỘ BỀN THEO NHIỄU · đọc trực tiếp từ results/v6_noise_sweep.csv",
     "v6_table_conclusion": "Nhiễu không tích lũy theo thời gian; ngưỡng hỏng nằm giữa σ 1° và 2°",
@@ -98,14 +111,14 @@ DEFAULTS = {
     "s5_slide_image": "v6_noise_slide.png",
     # S6
     "s6_kicker": "KẾT LUẬN",
-    "s6_title": "TÁI LẬP MỘT PHẦN",
+    "s6_title": "TỐC ĐỘ: TÁI LẬP ĐƯỢC",
     "s6_m1_value": "17,3 ms",
-    "s6_m1_label": "ms/frame · cả tiến trình (cận trên)",
-    "s6_m2_value": "2×",
-    "s6_m2_label": "thời gian thực (cận trên)",
-    "s6_m3_value": "3 robot",
-    "s6_m3_label": "sim2sim · G1 · T1 · PM01",
-    "s6_footer": "Phần thời gian thực tái lập được · số của paper thì không",
+    "s6_m1_label": "ms/frame · cả tiến trình",
+    "s6_m2_value": "1,92×",
+    "s6_m2_label": "nhanh hơn thời gian thực",
+    "s6_m3_value": "1/3",
+    "s6_m3_label": "robot đạt foot_slide ≤ 50 mm/s",
+    "s6_footer": "Chất lượng ánh xạ: một phần · không dùng một nhãn cho cả hai vế",
 }
 
 SIZE_LIMITS_MB = {"720p": 25.0}
@@ -263,29 +276,89 @@ def parse_script_doc(path):
     return subtitles
 
 
+KICH_BAN_SCENES = ("S0", "S1", "S2", "S3", "S4", "S5", "S5b", "S6")
+
+
+def parse_kich_ban(path):
+    """Đọc bảng cảnh của report/kich_ban.md: thời gian, phụ đề, lời thuyết minh."""
+    scenes = {}
+    text = Path(path).read_text(encoding="utf-8")
+    if "Phụ đề" not in text or "Lời thuyết minh" not in text:
+        raise SystemExit(
+            "kich_ban.md thieu cot 'Phu de' hoac 'Loi thuyet minh'"
+        )
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            continue
+        name = cells[0].replace("*", "").strip()
+        if not re.fullmatch(r"S\d+b?", name):
+            continue
+
+        def seconds(value):
+            match = re.fullmatch(r"(\d+):(\d+)", value.replace(" ", ""))
+            if not match:
+                raise SystemExit(f"kich_ban.md: timecode la '{value}' o {name}")
+            return int(match.group(1)) * 60 + int(match.group(2))
+
+        subtitle = cells[6].replace("<br>", "\n").strip()
+        if "không phụ đề" in subtitle:
+            subtitle = ""
+        scenes[name] = {
+            "start": seconds(cells[2]),
+            "end": seconds(cells[3]),
+            "subtitle": subtitle,
+            "narration": cells[7].strip(),
+        }
+
+    missing = [name for name in KICH_BAN_SCENES if name not in scenes]
+    if missing:
+        raise SystemExit(
+            f"kich_ban.md thieu canh {', '.join(missing)}"
+        )
+    return scenes
+
+
 def build_settings(args):
     settings = dict(DEFAULTS)
     manifest_values, shots = parse_manifest(Path(args.manifest).resolve())
     settings.update(manifest_values)
 
-    script_doc = Path(args.script_doc).resolve()
-    subtitles = parse_script_doc(script_doc)
-    if subtitles:
+    kich_ban = Path(args.kich_ban).resolve()
+    subtitles = {}
+    if kich_ban.exists():
+        scenes = parse_kich_ban(kich_ban)
+        for name, scene in scenes.items():
+            if scene["subtitle"]:
+                subtitles[f"{name.lower()}_sub"] = scene["subtitle"]
         settings.update(subtitles)
-        log(f"phu de: {script_doc}")
-        # video_script.md có thể ghi "17,3 ms/frame" cho số process; định nghĩa
-        # §1.1 cấm gọi tên trần như vậy. Thay bằng bản đã ghi rõ "cả tiến trình".
-        for key in ("s2_sub", "s4_sub"):
-            text = settings.get(key, "")
-            if "ms/frame" in text and "cả tiến trình" not in text:
-                log(
-                    f"CANH BAO: {key} trong {script_doc.name} ghi 'ms/frame' "
-                    "nhung so la process -> dung ban da sua "
-                    "(can Writing sua video_script.md)"
-                )
-                settings[key] = DEFAULTS[key]
-    elif not script_doc.exists():
-        log(f"khong thay {script_doc} -> dung phu de mac dinh")
+        log(f"phu de: {kich_ban} (cot 'Phu de', nguon duy nhat)")
+        for key, text in subtitles.items():
+            for index, line in enumerate(text.split("\n"), start=1):
+                if len(line) > 60:
+                    log(
+                        f"CANH BAO: phu de {key} dong {index} dai "
+                        f"{len(line)} ky tu > 60 (bao Writing, khong tu cat)"
+                    )
+    else:
+        log("CANH BAO: dang dung narration tam, se thay bang kich_ban.md")
+        script_doc = Path(args.script_doc).resolve()
+        subtitles = parse_script_doc(script_doc)
+        if subtitles:
+            settings.update(subtitles)
+            log(f"phu de tam: {script_doc}")
+            for key in ("s2_sub", "s4_sub"):
+                text = settings.get(key, "")
+                if "ms/frame" in text and "cả tiến trình" not in text:
+                    log(
+                        f"CANH BAO: {key} trong {script_doc.name} ghi "
+                        "'ms/frame' nhung so la process -> dung ban da sua"
+                    )
+                    settings[key] = DEFAULTS[key]
+        elif not script_doc.exists():
+            log(f"khong thay {script_doc} -> dung phu de mac dinh")
 
     # --set phải thắng mọi nguồn phía trên, kể cả duration lấy từ shot trong manifest.
     for pair in args.set:
@@ -591,6 +664,80 @@ def make_v6_table_card(csv_path, out_path, settings):
     image.save(out_path)
 
 
+def make_v7_table_card(csv_path, out_path, settings):
+    """Card bảng V7 (tham số vật lý); số đọc từ results/v7_physics_perturb.csv."""
+    with open(csv_path, encoding="utf-8-sig") as handle:
+        data = list(csv.DictReader(handle))
+
+    label = {
+        ("baseline", "1"): "baseline",
+        ("mass", "1.2"): "khối lượng ×1,2",
+        ("mass", "0.8"): "khối lượng ×0,8",
+        ("friction", "1.5"): "ma sát ×1,5",
+    }
+    rows = [("Điều kiện", "SHA256", "Giống baseline", "ms/frame", "max|dq|")]
+    for row in data:
+        mode = row["dieu_kien"]
+        factor = f"{float(row['he_so']):g}"
+        name = label.get((mode, factor), f"{mode} ×{row['he_so']}")
+        same = "có" if row["giong_baseline"] == "1" else "không"
+        ms = vn_fixed(float(row["ms_per_frame_process"]), 2)
+        if mode == "baseline":
+            dq = "—"
+        elif mode == "friction":
+            dq = "0"
+        else:
+            match = re.search(r"max\|dq\| = ([0-9.,e+-]+)", row["ghi_chu"])
+            dq = match.group(1) if match else "?"
+        rows.append((name, row["sha256_pkl"][:8], same, ms, dq))
+
+    image = Image.new("RGB", (1280, 720), (0xF7, 0xFA, 0xFB))
+    draw = ImageDraw.Draw(image)
+    teal = (0x02, 0x80, 0x90)
+    dark = (0x06, 0x34, 0x3C)
+    text = (0x12, 0x34, 0x3B)
+    muted = (0x4E, 0x6A, 0x70)
+    draw.rectangle([(56, 48), (66, 672)], fill=teal)
+    draw.text((88, 44), settings["v7_table_kicker"],
+              font=load_font(FONT_SLIDE_BODY, 18), fill=muted)
+    draw.text((88, 80), settings["v7_table_title"],
+              font=load_font(FONT_SLIDE_TITLE, 46), fill=dark)
+
+    x0, y0, table_w = 76, 176, 1128
+    header_h, row_h = 52, 88
+    widths = [300, 200, 200, 180, table_w - 300 - 200 - 200 - 180]
+    edges = [x0]
+    for width in widths:
+        edges.append(edges[-1] + width)
+
+    draw.rectangle([(x0, y0), (x0 + table_w, y0 + header_h)], fill=teal)
+    for index, cell in enumerate(rows[0]):
+        font = fit_text(draw, cell, FONT_SLIDE_BODY_BOLD, 20,
+                        widths[index] - 24)
+        draw.text((edges[index] + 12, y0 + header_h / 2), cell,
+                  font=font, fill=(0xFF, 0xFF, 0xFF), anchor="lm")
+
+    for row_index, row in enumerate(rows[1:]):
+        top = y0 + header_h + row_index * row_h
+        fill = (0xFF, 0xFF, 0xFF) if row_index % 2 == 0 else (0xED, 0xF6, 0xF7)
+        draw.rectangle([(x0, top), (x0 + table_w, top + row_h)], fill=fill)
+        for col_index, cell in enumerate(row):
+            bold = col_index == 0
+            path = FONT_SLIDE_BODY_BOLD if bold else FONT_SLIDE_BODY
+            font = fit_text(draw, cell, path, 20, widths[col_index] - 24)
+            draw.text((edges[col_index] + 12, top + row_h / 2), cell,
+                      font=font, fill=text, anchor="lm")
+        draw.line([(x0, top + row_h), (x0 + table_w, top + row_h)],
+                  fill=(0xD5, 0xE6, 0xE8), width=1)
+
+    for edge in edges[1:-1]:
+        draw.line([(edge, y0 + header_h), (edge, y0 + header_h + 4 * row_h)],
+                  fill=(0xD5, 0xE6, 0xE8), width=1)
+    draw.rectangle([(x0, y0), (x0 + table_w, y0 + header_h + 4 * row_h)],
+                   outline=(0x9F, 0xC9, 0xCE), width=2)
+    image.save(out_path)
+
+
 class Builder:
     def __init__(self, ffmpeg, workdir, settings):
         self.ffmpeg = ffmpeg
@@ -615,7 +762,9 @@ class Builder:
             filters = []
             for index, line in enumerate(lines):
                 name = f"{key}_{index}.txt"
-                (self.workdir / name).write_text(line, encoding="utf-8")
+                (self.workdir / name).write_text(
+                    line.replace("%", r"\%"), encoding="utf-8"
+                )
                 start, end = index * step, (index + 1) * step
                 filters.append(
                     f"{common}:textfile={name}:y={y_single}"
@@ -624,19 +773,25 @@ class Builder:
             return ",".join(filters)
         if len(lines) == 1:
             name = f"{key}.txt"
-            (self.workdir / name).write_text(lines[0], encoding="utf-8")
+            (self.workdir / name).write_text(
+                lines[0].replace("%", r"\%"), encoding="utf-8"
+            )
             return f"{common}:textfile={name}:y={y_single}"
         # Nhiều dòng: mỗi dòng một drawtext, xếp từ dưới lên để không tràn khung.
         filters = []
         for index, line in enumerate(lines):
             name = f"{key}_{index}.txt"
-            (self.workdir / name).write_text(line, encoding="utf-8")
+            (self.workdir / name).write_text(
+                line.replace("%", r"\%"), encoding="utf-8"
+            )
             offset = (len(lines) - index) * line_height + bottom
             filters.append(f"{common}:textfile={name}:y=h-{offset}")
         return ",".join(filters)
 
     def label(self, text, name, x="10", y="12", size="24"):
-        (self.workdir / name).write_text(text, encoding="utf-8")
+        (self.workdir / name).write_text(
+            text.replace("%", r"\%"), encoding="utf-8"
+        )
         return (
             f"drawtext=fontfile=segoeui.ttf:textfile={name}"
             f":fontcolor=white:fontsize={size}:box=1:boxcolor=black@0.6"
@@ -811,7 +966,12 @@ def main(argv=None):
     parser.add_argument(
         "--script-doc",
         default=str(REPO_ROOT / "report/video_script.md"),
-        help="Phu de cua Writing; doc khoi code dau tien sau moi '## S<n>'.",
+        help="Phu de du phong khi chua co kich_ban.md.",
+    )
+    parser.add_argument(
+        "--kich-ban",
+        default=str(REPO_ROOT / "report/kich_ban.md"),
+        help="Nguon duy nhat: bang canh co cot 'Phu de' va 'Loi thuyet minh'.",
     )
     parser.add_argument(
         "--set", action="append", default=[], metavar="KEY=VALUE",
@@ -835,7 +995,7 @@ def main(argv=None):
         log(f"khong thay manifest {manifest} -> dung placeholder cho S1-S4")
 
     # Thời lượng đã được build_settings chốt: shot trong manifest, trừ khi --set.
-    labels = ["S0", "S1", "S2", "S3", "S4", "S5", "V6T", "S6"]
+    labels = ["S0", "S1", "S2", "S3", "S4", "S5", "V7T", "S6"]
     visible = [num(settings, f"duration_s{i}") for i in range(6)]
     visible.append(num(settings, "duration_v6_table"))
     visible.append(num(settings, "duration_s6"))
@@ -849,11 +1009,11 @@ def main(argv=None):
     cards_dir.mkdir(parents=True, exist_ok=True)
     card_s0 = cards_dir / "S0.png"
     card_s6 = cards_dir / "S6.png"
-    card_table = cards_dir / "S5_table.png"
+    card_table = cards_dir / "S5b.png"
     make_title_card(settings, card_s0)
     make_conclusion_card(settings, card_s6)
-    make_v6_table_card(
-        REPO_ROOT / settings["v6_table_csv"], card_table, settings
+    make_v7_table_card(
+        REPO_ROOT / settings["v7_table_csv"], card_table, settings
     )
     log(f"card: {card_s0} | {card_table} | {card_s6}")
 
@@ -925,7 +1085,7 @@ def main(argv=None):
         make_placeholder("Đang chờ đồ thị độ bền V6", s5_image)
         log("thieu anh S5 -> dung placeholder")
     builder.fit_scene(s5_image, "s5.mp4", encoded[5], "s5_sub", sequential=True)
-    builder.still_scene(card_table, "s5b.mp4", encoded[6])
+    builder.still_scene(card_table, "s5b.mp4", encoded[6], "s5b_sub")
     builder.still_scene(card_s6, "s6.mp4", encoded[7])
 
     if len(builder.scenes) != 8:

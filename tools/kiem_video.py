@@ -30,6 +30,7 @@ FFMPEG = Path(
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_VIDEO = ROOT / "results/media/demo/demo_v6_720p.mp4"
 DEFAULT_SCRIPT = ROOT / "report/video_script.md"
+DEFAULT_KICH_BAN = ROOT / "report/kich_ban.md"
 RMS_MIN = -40.0
 PEAK_MAX = -1.0
 GAP = 0.3
@@ -53,6 +54,40 @@ def find_ffmpeg():
     if found:
         return Path(found)
     raise SystemExit("khong tim thay ffmpeg (dat bien FFMPEG)")
+
+
+def parse_kich_ban(path):
+    text = Path(path).read_text(encoding="utf-8")
+    scenes = []
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            continue
+        name = cells[0].replace("*", "").strip()
+        if not re.fullmatch(r"S\d+b?", name):
+            continue
+        start = re.fullmatch(r"(\d+):(\d+)", cells[2].replace(" ", ""))
+        end = re.fullmatch(r"(\d+):(\d+)", cells[3].replace(" ", ""))
+        if not start or not end:
+            raise SystemExit(f"kich_ban.md: timecode sai o {name}")
+        scenes.append(
+            (
+                name,
+                int(start.group(1)) * 60 + int(start.group(2)),
+                int(end.group(1)) * 60 + int(end.group(2)),
+                cells[7].strip(),
+            )
+        )
+    missing = [
+        name
+        for name in ("S0", "S1", "S2", "S3", "S4", "S5", "S5b", "S6")
+        if name not in {scene[0] for scene in scenes}
+    ]
+    if missing:
+        raise SystemExit(f"kich_ban.md thieu canh {', '.join(missing)}")
+    return scenes
 
 
 def parse_scenes(path):
@@ -129,13 +164,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--video", default=str(DEFAULT_VIDEO))
     parser.add_argument("--script-doc", default=str(DEFAULT_SCRIPT))
+    parser.add_argument("--kich-ban", default=str(DEFAULT_KICH_BAN))
     args = parser.parse_args(argv)
 
     ffmpeg = find_ffmpeg()
     video = Path(args.video)
     if not video.exists():
         raise SystemExit(f"khong thay video: {video}")
-    scenes = parse_scenes(Path(args.script_doc))
+    scenes = (
+        parse_kich_ban(Path(args.kich_ban))
+        if Path(args.kich_ban).exists()
+        else parse_scenes(Path(args.script_doc))
+    )
     info = ffmpeg_info(ffmpeg, video)
     peak_mean, peak_max = volume(ffmpeg, video)
 
