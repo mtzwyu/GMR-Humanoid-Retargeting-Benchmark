@@ -7,7 +7,7 @@ $csv  = Join-Path $root "results\v3_runtime.csv"
 Write-Host "=========== GMR V3 - bang chung lan chay run6 ===========" -ForegroundColor Cyan
 Write-Host ("May      : " + $env:COMPUTERNAME + " | Windows 11 | Intel i5-12450HX | CPU-only")
 Write-Host ("Xem luc  : " + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))
-Write-Host ("Env      : conda gmr | C:\Users\xpaga\miniconda3\envs\gmr\python.exe")
+Write-Host ("Env      : conda gmr | " + $py)
 Write-Host ""
 
 $row = Import-Csv $csv | Where-Object { $_.phase -eq 'measure_5' }

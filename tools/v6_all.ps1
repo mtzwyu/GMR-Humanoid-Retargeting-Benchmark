@@ -1,7 +1,7 @@
 # Chay 15 dieu kien V6 (N1..N4), moi dieu kien 1 lan. Khong mo viewer.
 $ErrorActionPreference = 'Continue'
-$py   = "C:\Users\xpaga\miniconda3\envs\gmr\python.exe"
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$py = if ($env:GMR_PYTHON) { $env:GMR_PYTHON } else { Join-Path $env:USERPROFILE "miniconda3\envs\gmr\python.exe" }
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $script = Join-Path $root "tools\v6_run.py"
 $logdir = Join-Path $root "results\logs"
 Set-Location (Join-Path $root "third_party\GMR")

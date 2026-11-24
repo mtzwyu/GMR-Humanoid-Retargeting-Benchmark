@@ -1,8 +1,8 @@
-# Chạy MỘT lần đo V3 trong cửa sổ console hiển thị (để chụp ảnh bằng chứng)
-# Khởi động: Start-Process powershell -ArgumentList '-NoExit','-ExecutionPolicy','Bypass','-File','<đường dẫn>\v3_evidence_run.ps1'
+# Chay MOT lan do V3 trong cua so console hien thi (de chup anh bang chung)
+# Khoi dong: Start-Process powershell -ArgumentList '-NoExit','-ExecutionPolicy','Bypass','-File','<duong dan>\v3_evidence_run.ps1'
 $ErrorActionPreference = 'Continue'
-$py   = "C:\Users\xpaga\miniconda3\envs\gmr\python.exe"
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$py = if ($env:GMR_PYTHON) { $env:GMR_PYTHON } else { Join-Path $env:USERPROFILE "miniconda3\envs\gmr\python.exe" }
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $gmr  = Join-Path $root "third_party\GMR"
 $pkl  = Join-Path $root "results\pkl\g1_walk1_subject1_evidence.pkl"
 $log  = Join-Path $root "results\logs\v3_walk1_subject1_evidence.log"

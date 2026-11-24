@@ -51,3 +51,5 @@ Thumbs.db
 .idea/
 .vscode/
 node_modules/
+# Goi nop bai
+*.zip

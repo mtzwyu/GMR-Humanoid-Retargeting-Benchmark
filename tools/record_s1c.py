@@ -1,4 +1,4 @@
-﻿# S1 â€” clip 10 s "chuyen dong NGUOI dau vao" (diem khop + xuong nguoi) cho video demo.
+# S1 - clip 10 s "chuyen dong NGUOI dau vao" (diem khop + xuong nguoi) cho video demo.
 #
 # Vi sao khong dung thang RobotMotionViewer.record_video: trong robot_motion_viewer.py cac diem
 # khop nguoi duoc ve vao `self.viewer.user_scn` (scene cua CUA SO), con video ghi bang mot

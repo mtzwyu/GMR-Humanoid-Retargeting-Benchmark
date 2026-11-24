@@ -1,4 +1,4 @@
-﻿# V6 — ban do thi rieng cho slide/video: 2000x1125 (16:9), 3 panel XEP DOC, font >= 18 pt.
+# V6 — ban do thi rieng cho slide/video: 2000x1125 (16:9), 3 panel XEP DOC, font >= 18 pt.
 # So lieu giu nguyen (doc tu results/v6_noise_sweep.csv). Hinh cu v6_noise_vs_deviation.png giu nguyen.
 # Dung python BASE 3.12 (co matplotlib):
 #   python third_party\_run\v6_plot_slide.py
@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = r"C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+ROOT = r"."
 with open(os.path.join(ROOT, "results", "v6_noise_sweep.csv"), newline="", encoding="utf-8-sig") as f:
     rows = [r for r in csv.DictReader(f) if r["mode"] != "baseline"]
 

@@ -1,6 +1,6 @@
-# Dựng results/v3_runtime.csv từ results/v3_raw.csv (cột ms_per_frame_process - RV-17)
+# Dung results/v3_runtime.csv tu results/v3_raw.csv (cot ms_per_frame_process - RV-17)
 $ErrorActionPreference = 'Stop'
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $src  = Import-Csv (Join-Path $root "results\v3_raw.csv")
 $note = 'input doi tu walk4_subject1 (clip khom lung, KI-01) sang walk1_subject1; khong dung --rate_limit'
 $rows = foreach ($r in $src) {

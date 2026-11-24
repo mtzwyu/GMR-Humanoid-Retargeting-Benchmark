@@ -1,10 +1,10 @@
-﻿# Äo runtime V3 cho GMR â€” CHá»ˆ cháº¿ Ä‘á»™ khĂ´ng --rate_limit (xem RV-13: cá» --rate_limit khĂ´ng Ä‘o Ä‘Æ°á»£c throughput)
-# RV-14: má»—i láº§n cháº¡y ghi thĂªm dĂ²ng END wall_s=... ms_per_frame=... rtf=... vĂ o CHĂNH file log cá»§a láº§n Ä‘Ă³
-# DĂ¹ng: powershell -File measure_v3.ps1 [-Warmup 1] [-Measured 3] [-StartIndex 1]
+# Do runtime V3 cho GMR - CHa»ˆ chaº¿ da»™ khA´ng --rate_limit (xem RV-13: ca» --rate_limit khA´ng do dÆ°a»£c throughput)
+# RV-14: ma»—i laº§n chaº¡y ghi thAªm dA²ng END wall_s=... ms_per_frame=... rtf=... vA o CHANH file log ca»§a laº§n dA³
+# DA¹ng: powershell -File measure_v3.ps1 [-Warmup 1] [-Measured 3] [-StartIndex 1]
 param([int]$Warmup = 1, [int]$Measured = 3, [int]$StartIndex = 1)
 $ErrorActionPreference = 'Continue'
-$py   = "C:\Users\xpaga\miniconda3\envs\gmr\python.exe"
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$py = if ($env:GMR_PYTHON) { $env:GMR_PYTHON } else { Join-Path $env:USERPROFILE "miniconda3\envs\gmr\python.exe" }
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $gmr  = Join-Path $root "third_party\GMR"
 $motion = 'walk1_subject1'
 $bvh  = "..\data\lafan1\$motion.bvh"

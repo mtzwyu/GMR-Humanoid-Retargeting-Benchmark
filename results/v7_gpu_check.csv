@@ -1,0 +1,5 @@
+che_do,cuda_visible,viewer,gl_vendor,gl_renderer,ms_per_frame_process,ghi_chu
+headless - env mac dinh,(khong dat),khong,n/a (khong tao OpenGL context),n/a (khong tao OpenGL context),2.359,"torch 2.14.1+cpu; torch.cuda.is_available()=False; device_count=0; v7_run.py khong mo viewer nen khong co GL"
+headless - CUDA_VISIBLE_DEVICES rong,rong (bien bi xoa),khong,n/a (khong tao OpenGL context),n/a (khong tao OpenGL context),2.377,"van cuda.is_available()=False; sha pkl trung baseline; lech 0,018 ms (0,8%) so lan tren"
+V3 5 lan do (co viewer),(khong dat),co,NVIDIA Corporation,NVIDIA GeForce RTX 4050 Laptop GPU/PCIe/SSE2,17.349,"GL_VERSION 4.6.0 NVIDIA 621.14 (do bang mujoco.GLContext); RENDER dung GPU roi; chenh ~15 ms/frame so headless la chi phi render tren GPU, KHONG phai GPU tinh toan"
+Video offscreen (record_clip / record_s1c),(khong dat),khong (offscreen),NVIDIA Corporation,NVIDIA GeForce RTX 4050 Laptop GPU/PCIe/SSE2,,"mj.Renderer dung cung backend GL (mujoco.GLContext) -> khung hinh video cung duoc render tren GPU roi"

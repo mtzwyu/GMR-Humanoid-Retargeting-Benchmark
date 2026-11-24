@@ -1,7 +1,7 @@
-# Dựng results/v5_sim2sim.csv từ results/v5_raw.csv (12 dòng: 3 robot × [warmup + 3 lần đo])
-# + 1 dòng H1 blocked. Cột thời gian: ms_per_frame_process (RV-17). Số dof lấy từ chính pkl.
+# Dung results/v5_sim2sim.csv tu results/v5_raw.csv (12 dong: 3 robot × [warmup + 3 lan do])
+# + 1 dong H1 blocked. Cot thoi gian: ms_per_frame_process (RV-17). So dof lay tu chinh pkl.
 $ErrorActionPreference = 'Stop'
-$root = "C:\Users\xpaga\orca\workspaces\GMR-Humanoid-Retargeting-Benchmark\gmr-run"
+$root = Split-Path -Parent $PSScriptRoot   # tools/ nam trong <repo>/tools
 $src  = Import-Csv (Join-Path $root "results\v5_raw.csv")
 $dof  = @{ 'unitree_g1' = 29; 'booster_t1_29dof' = 27; 'engineai_pm01' = 24 }   # đo từ dof_pos của pkl
 
