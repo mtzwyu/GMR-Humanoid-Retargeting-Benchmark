@@ -1,6 +1,6 @@
-# Demo manifest — video 77 s (V6)
+# Demo manifest — video 77 s (V7)
 
-Dựng theo `docs/ke_hoach/video_demo.md` (commit `05cd5da`). Run cung cấp **clip + timecode**; Code cắt/ghép bằng ffmpeg theo bảng dưới.
+Dựng theo `report/kich_ban.md` — **nguồn duy nhất** cho cả phụ đề burn-in và lời thuyết minh.
 Mọi clip gốc: **1280×720, 30 fps, H.264**. `.mp4` **không commit** (đã gitignore) — chỉ nằm trên máy Run ở `results/media/`.
 **Video đã có lời thuyết minh tiếng Việt** (gTTS 2.5.4, audio AAC 128 kbps); sinh bằng `tools/build_voiceover.py`, nghiệm thu bằng `tools/kiem_video.py`.
 
@@ -8,17 +8,18 @@ Mọi clip gốc: **1280×720, 30 fps, H.264**. `.mp4` **không commit** (đã g
 
 | Cảnh | Video (s) | File nguồn (start_s; duration_s) | Nội dung | Narration (lời thuyết minh) |
 |---|---|---|---|---|
-| **S0** | 0–5 | card `results/figures/demo_cards/S0.png` | Card tiêu đề | "GMR, ánh xạ chuyển động người sang robot hình người theo thời gian thực." |
-| **S1** | 5–15 | `results/media/s1_human_input.mp4` (0,0; 10,0) | **Chuyển động người đầu vào**: bộ xương người + trục khớp, đi bộ | "Đầu vào là một clip chuyển động người, bảy nghìn tám trăm bốn mươi frame, dài hai trăm sáu mươi mốt phẩy ba giây." |
-| **S2** | 15–25 | `results/media/v3_walk1_g1.mp4` (18,0; 10,0) | Retarget → Unitree G1, đi bộ nhìn thẳng | "Retarget sang Unitree G1. Mỗi frame mất mười bảy phẩy ba mili giây, nhanh hơn thời gian thực gần hai lần." |
-| **S3** | 25–35 | trái `v3_walk4_g1.mp4` (10,0; 10,0) · phải `v3_walk1_g1.mp4` (18,0; 10,0) | **hstack 640×720**: KI-01 khom lưng (trái) / walk1 chuẩn (phải) | "Cùng một pipeline: bên trái là clip gốc đi khom lưng, bên phải là clip đi bộ chuẩn." |
-| **S4** | 35–45 | `v5_sim2sim_g1_t1_pm01.mp4` (5,0 / 25,0 / 45,0; 10,0 mỗi đoạn) | **3-up**: G1 · T1 29dof · PM01 | "Đổi sang ba robot: T1 mười ba mili giây, G1 mười bảy, PM01 ba mươi lăm." |
-| **S5** | 45–59 | `results/figures/v6_noise_slide.png` | Đồ thị nhiễu N1–N4 (3 panel) | "Bốn phép thử nhiễu. Nhiễu khớp nửa độ vẫn an toàn, hai độ đã hỏng tám mươi tám phần trăm frame. Trễ một đến năm frame gần như vô hại." |
-| **S5b** | 59–69 | card sinh từ `results/v6_noise_sweep.csv` (`S5_table.png`) | **Bảng đối chiếu V6**: N1 nhiễu khớp · N2 trễ · N3 mất frame · N4 lệch tỉ lệ người | "Đổi khối lượng hay ma sát không làm đổi kết quả, vì GMR tối ưu động học. Nhiễu không tích lũy; ngưỡng hỏng nằm giữa một và hai độ." |
-| **S6** | 69–77 | card `results/figures/demo_cards/S6.png` | Card kết luận: tái lập một phần | "Kết luận: tuyên bố thời gian thực tái lập được. Chất lượng ánh xạ tái lập một phần." |
+| **S0** | 0–5 | card `results/figures/demo_cards/S0.png` | Card tiêu đề | "GMR: ánh xạ chuyển động người sang robot hình người." |
+| **S1** | 5–15 | `results/media/s1_human_input.mp4` (0,0; 10,0) | **Chuyển động người đầu vào**: bộ xương người + trục khớp, đi bộ | "Một clip đi bộ của LAFAN1: 7.840 frame, 261,3 giây. Đây là đầu vào duy nhất cho mọi phép đo." |
+| **S2** | 15–25 | `results/media/v3_walk1_g1.mp4` (18,0; 10,0) | Retarget → Unitree G1, đi bộ nhìn thẳng | "Retarget sang Unitree G1 mất 17,3 mili-giây mỗi frame, nhanh hơn thời gian thực 1,92 lần. Con số là cả tiến trình, đã gồm render." |
+| **S3** | 25–35 | trái `v3_walk4_g1.mp4` (10,0; 10,0) · phải `v3_walk1_g1.mp4` (18,0; 10,0) | **hstack 640×720**: KI-01 khom lưng (trái) / walk1 chuẩn (phải) | "Bên trái là walk4, clip gốc đi khom lưng của LAFAN1 — không phải lỗi retarget. Bên phải là walk1 chuẩn." |
+| **S4** | 35–45 | `v5_sim2sim_g1_t1_pm01.mp4` (5,0 / 25,0 / 45,0; 10,0 mỗi đoạn) | **3-up**: G1 · T1 29dof · PM01 | "Cùng một chuyển động, ba robot: T1 13,0; G1 16,8; PM01 35,0 mili-giây mỗi frame — tính cả tiến trình." |
+| **S5** | 45–59 | `results/figures/v6_noise_slide.png` | Đồ thị nhiễu N1–N4 (3 panel) | "Nhiễu khớp 0,5 độ vẫn an toàn. Tăng lên 2 độ, 87,7 phần trăm frame đã lệch quá 5 độ. Trễ 1 đến 5 frame thì vô hại." |
+| **S5b** | 59–69 | card `results/figures/demo_cards/S5b.png`, đọc `results/v7_physics_perturb.csv` | **Bảng V7 — tham số vật lý**: baseline · khối lượng ×1,2/×0,8 · ma sát ×1,5, kèm SHA256 và `max|dq|` | "Đổi khối lượng ±20 phần trăm chỉ lệch 1,5 nhân 10 mũ trừ 9 radian. Đổi ma sát thì kết quả không đổi một byte." |
+| **S6** | 69–77 | card `results/figures/demo_cards/S6.png` | Card kết luận: tốc độ tái lập được · chất lượng một phần | "Tốc độ tái lập được với 17,3 mili-giây, nhanh hơn 1,92 lần; chất lượng ánh xạ chỉ một phần." |
 
-Narration từng cảnh nằm trong khối CSV của mục "## Lời thuyết minh" ở `report/video_script.md`;
-`tools/build_voiceover.py` đọc đúng khối đó, không hardcode lời nói.
+Phụ đề burn-in và lời thuyết minh đều đọc từ bảng trong `report/kich_ban.md`
+(cột "Phụ đề trên màn hình" và "Lời thuyết minh"); không hardcode trong script.
+`tools/build_voiceover.py` dùng cột lời thuyết minh; `scripts/build_demo.py` dùng cột phụ đề.
 
 ## Bản máy đọc (Code parse khối này)
 
@@ -31,7 +32,7 @@ S3b,results/media/v3_walk1_g1.mp4,18.0,10.0,upright reference,right half
 S4a,results/media/v5_sim2sim_g1_t1_pm01.mp4,5.0,10.0,sim2sim Unitree G1,segment 0-20s
 S4b,results/media/v5_sim2sim_g1_t1_pm01.mp4,25.0,10.0,sim2sim Booster T1 29dof,segment 20-40s
 S4c,results/media/v5_sim2sim_g1_t1_pm01.mp4,45.0,10.0,sim2sim ENGINEAI PM01,segment 40-60s
-S5b,results/v6_noise_sweep.csv,59.0,10.0,V6 comparison table,card generated by scripts/build_demo.py from csv
+S5b,results/v7_physics_perturb.csv,59.0,10.0,V7 physics table,card generated by scripts/build_demo.py from v7 csv
 ```
 
 ## Gợi ý dựng

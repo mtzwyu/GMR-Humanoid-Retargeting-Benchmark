@@ -31,9 +31,10 @@ FFMPEG = Path(
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_VIDEO = ROOT / "results/media/demo/demo_v6_720p.mp4"
 DEFAULT_SCRIPT = ROOT / "report/video_script.md"
+DEFAULT_KICH_BAN = ROOT / "report/kich_ban.md"
 DEFAULT_WAV = ROOT / "results/media/demo/narration.wav"
 SAMPLE_RATE = 48000
-MAX_TEMPO = 1.3
+MAX_TEMPO = 1.4  # kich_ban dài hơn ước lượng 2,6 từ/giây; 1,4x vẫn rõ, tránh cắt chữ
 GAP_BEFORE_NEXT = 0.4  # giữ im lặng trước cảnh kế để kiem_video kiểm được
 GAIN_DB = -4.0
 
@@ -82,6 +83,41 @@ def media_duration(ffmpeg, path):
     return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
 
 
+def parse_kich_ban(path):
+    """Đọc lời thuyết minh theo cảnh từ bảng của report/kich_ban.md."""
+    text = Path(path).read_text(encoding="utf-8")
+    scenes = []
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            continue
+        name = cells[0].replace("*", "").strip()
+        if not re.fullmatch(r"S\d+b?", name):
+            continue
+        match_start = re.fullmatch(r"(\d+):(\d+)", cells[2].replace(" ", ""))
+        match_end = re.fullmatch(r"(\d+):(\d+)", cells[3].replace(" ", ""))
+        if not match_start or not match_end:
+            raise SystemExit(f"kich_ban.md: timecode sai o {name}")
+        scenes.append(
+            {
+                "scene": name,
+                "start": int(match_start.group(1)) * 60 + int(match_start.group(2)),
+                "end": int(match_end.group(1)) * 60 + int(match_end.group(2)),
+                "text": cells[7].strip(),
+            }
+        )
+    missing = [
+        name
+        for name in ("S0", "S1", "S2", "S3", "S4", "S5", "S5b", "S6")
+        if name not in {scene["scene"] for scene in scenes}
+    ]
+    if missing:
+        raise SystemExit(f"kich_ban.md thieu canh {', '.join(missing)}")
+    return scenes
+
+
 def parse_narration(path):
     text = Path(path).read_text(encoding="utf-8")
     heading = text.find("## Lời thuyết minh")
@@ -125,6 +161,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--video", default=str(DEFAULT_VIDEO))
     parser.add_argument("--script-doc", default=str(DEFAULT_SCRIPT))
+    parser.add_argument("--kich-ban", default=str(DEFAULT_KICH_BAN))
     parser.add_argument("--wav", default=str(DEFAULT_WAV))
     parser.add_argument("--work-dir", default=None)
     parser.add_argument("--no-mux", action="store_true")
@@ -136,7 +173,13 @@ def main(argv=None):
     if not video.exists():
         raise SystemExit(f"khong thay video: {video}")
     total = media_duration(ffmpeg, video)
-    scenes = parse_narration(Path(args.script_doc).resolve())
+    kich_ban = Path(args.kich_ban).resolve()
+    if kich_ban.exists():
+        scenes = parse_kich_ban(kich_ban)
+        log(f"loi thuyet minh: {kich_ban} (cot 'Loi thuyet minh')")
+    else:
+        log("CANH BAO: dang dung narration tam, se thay bang kich_ban.md")
+        scenes = parse_narration(Path(args.script_doc).resolve())
     validate(scenes, total)
     log(f"video {total:.2f}s, {len(scenes)} canh")
 
