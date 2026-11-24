@@ -1,20 +1,24 @@
 # Demo manifest — video 77 s (V6)
 
 Dựng theo `docs/ke_hoach/video_demo.md` (commit `05cd5da`). Run cung cấp **clip + timecode**; Code cắt/ghép bằng ffmpeg theo bảng dưới.
-Mọi clip gốc: **1280×720, 30 fps, H.264, không audio**. `.mp4` **không commit** (đã gitignore) — chỉ nằm trên máy Run ở `results/media/`.
+Mọi clip gốc: **1280×720, 30 fps, H.264**. `.mp4` **không commit** (đã gitignore) — chỉ nằm trên máy Run ở `results/media/`.
+**Video đã có lời thuyết minh tiếng Việt** (gTTS 2.5.4, audio AAC 128 kbps); sinh bằng `tools/build_voiceover.py`, nghiệm thu bằng `tools/kiem_video.py`.
 
 ## Bảng cảnh
 
-| Cảnh | File nguồn | start_s | duration_s | Nội dung | Ghi chú |
-|---|---|---|---|---|---|
-| **S1** | `results/media/s1_human_input.mp4` | 0,0 | 10,0 | **Chuyển động người đầu vào**: bộ xương người + trục khớp (đỏ/xanh lá/xanh dương), đi bộ | Clip **quay mới** bằng dữ liệu người của GMR (`scaled_human_data`, trục khớp dài 0,1 m), lấy frame 300–599 của `walk1_subject1.bvh` |
-| **S2** | `results/media/v3_walk1_g1.mp4` | 18,0 | 10,0 | Retarget → Unitree G1, đi bộ nhìn thẳng, thấy rõ sải chân | **Tránh 0–3 s** (còn tư thế T-pose đầu clip) |
-| **S3a** | `results/media/v3_walk4_g1.mp4` | 10,0 | 10,0 | KI-01: robot **khom lưng** (clip gốc `walk4_subject1`) | Dùng cho nửa **TRÁI** của cảnh ghép |
-| **S3b** | `results/media/v3_walk1_g1.mp4` | 18,0 | 10,0 | Đối chứng: tư thế **chuẩn** (`walk1_subject1`) | Nửa **PHẢI**; cùng độ dài 10 s với S3a |
-| **S4a** | `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 5,0 | 10,0 | Sim2sim — **Unitree G1** | Đoạn G1 nằm trong 0–20 s của clip |
-| **S4b** | `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 25,0 | 10,0 | Sim2sim — **Booster T1 29dof** | Đoạn T1 nằm trong 20–40 s |
-| **S4c** | `results/media/v5_sim2sim_g1_t1_pm01.mp4` | 45,0 | 10,0 | Sim2sim — **ENGINEAI PM01** | Đoạn PM01 nằm trong 40–60 s |
-| **S5b** | card sinh từ `results/v6_noise_sweep.csv` | 59,0 | 10,0 | **Bảng đối chiếu V6**: N1 nhiễu khớp · N2 trễ · N3 mất frame · N4 lệch tỉ lệ người | Sinh bằng PIL trong `scripts/build_demo.py`, đọc số trực tiếp từ CSV; chen ngay sau cảnh đồ thị nhiễu |
+| Cảnh | Video (s) | File nguồn (start_s; duration_s) | Nội dung | Narration (lời thuyết minh) |
+|---|---|---|---|---|
+| **S0** | 0–5 | card `results/figures/demo_cards/S0.png` | Card tiêu đề | "GMR, ánh xạ chuyển động người sang robot hình người theo thời gian thực." |
+| **S1** | 5–15 | `results/media/s1_human_input.mp4` (0,0; 10,0) | **Chuyển động người đầu vào**: bộ xương người + trục khớp, đi bộ | "Đầu vào là một clip chuyển động người, bảy nghìn tám trăm bốn mươi frame, dài hai trăm sáu mươi mốt phẩy ba giây." |
+| **S2** | 15–25 | `results/media/v3_walk1_g1.mp4` (18,0; 10,0) | Retarget → Unitree G1, đi bộ nhìn thẳng | "Retarget sang Unitree G1. Mỗi frame mất mười bảy phẩy ba mili giây, nhanh hơn thời gian thực gần hai lần." |
+| **S3** | 25–35 | trái `v3_walk4_g1.mp4` (10,0; 10,0) · phải `v3_walk1_g1.mp4` (18,0; 10,0) | **hstack 640×720**: KI-01 khom lưng (trái) / walk1 chuẩn (phải) | "Cùng một pipeline: bên trái là clip gốc đi khom lưng, bên phải là clip đi bộ chuẩn." |
+| **S4** | 35–45 | `v5_sim2sim_g1_t1_pm01.mp4` (5,0 / 25,0 / 45,0; 10,0 mỗi đoạn) | **3-up**: G1 · T1 29dof · PM01 | "Đổi sang ba robot: T1 mười ba mili giây, G1 mười bảy, PM01 ba mươi lăm." |
+| **S5** | 45–59 | `results/figures/v6_noise_slide.png` | Đồ thị nhiễu N1–N4 (3 panel) | "Bốn phép thử nhiễu. Nhiễu khớp nửa độ vẫn an toàn, hai độ đã hỏng tám mươi tám phần trăm frame. Trễ một đến năm frame gần như vô hại." |
+| **S5b** | 59–69 | card sinh từ `results/v6_noise_sweep.csv` (`S5_table.png`) | **Bảng đối chiếu V6**: N1 nhiễu khớp · N2 trễ · N3 mất frame · N4 lệch tỉ lệ người | "Đổi khối lượng hay ma sát không làm đổi kết quả, vì GMR tối ưu động học. Nhiễu không tích lũy; ngưỡng hỏng nằm giữa một và hai độ." |
+| **S6** | 69–77 | card `results/figures/demo_cards/S6.png` | Card kết luận: tái lập một phần | "Kết luận: tuyên bố thời gian thực tái lập được. Chất lượng ánh xạ tái lập một phần." |
+
+Narration từng cảnh nằm trong khối CSV của mục "## Lời thuyết minh" ở `report/video_script.md`;
+`tools/build_voiceover.py` đọc đúng khối đó, không hardcode lời nói.
 
 ## Bản máy đọc (Code parse khối này)
 
