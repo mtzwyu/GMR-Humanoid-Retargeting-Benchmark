@@ -34,7 +34,7 @@ DEFAULT_SCRIPT = ROOT / "report/video_script.md"
 DEFAULT_KICH_BAN = ROOT / "report/kich_ban.md"
 DEFAULT_WAV = ROOT / "results/media/demo/narration.wav"
 SAMPLE_RATE = 48000
-MAX_TEMPO = 1.4  # kich_ban dài hơn ước lượng 2,6 từ/giây; 1,4x vẫn rõ, tránh cắt chữ
+MAX_TEMPO = 1.2  # trần theo yêu cầu Planner; vượt thì DỪNG, không tự nâng
 GAP_BEFORE_NEXT = 0.4  # giữ im lặng trước cảnh kế để kiem_video kiểm được
 GAIN_DB = -4.0
 
@@ -205,7 +205,13 @@ def main(argv=None):
             raise SystemExit(f"gTTS loi o {scene['scene']}: {exc}")
         raw = media_duration(ffmpeg, mp3)
         speed = raw / target
-        tempo = min(max(speed, 1.0), MAX_TEMPO)
+        tempo = max(speed, 1.0)
+        if tempo > MAX_TEMPO + 1e-6:
+            raise SystemExit(
+                f"{scene['scene']}: can atempo {tempo:.2f}x > {MAX_TEMPO:.1f}x "
+                f"(raw {raw:.2f}s, target {target:.2f}s, "
+                f"{len(scene['text'].split())} tu) — DUNG LAI, bao Planner"
+            )
         wav = workdir / f"{scene['scene']}.wav"
         filters = []
         if tempo > 1.001:
